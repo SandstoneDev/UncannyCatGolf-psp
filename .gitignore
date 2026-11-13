@@ -1,0 +1,6 @@
+/src/runtime/build/
+/src/runtime/PSP-GAME/
+*.iso
+*.cso
+*.log
+*.sav.*
