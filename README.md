@@ -2,18 +2,17 @@
 
 [По-русски](README.ru.md)
 
-An unofficial PSP port of *Uncanny Cat Golf* by SandstoneDev. Build 039 covers **82 of 113 campaign holes (72.6%)**, from the tutorial through **5_05** in Elysian Fields.
+An unofficial PSP port by SandstoneDev. Build 053 Compact covers **113 of 113 campaign holes**, from the tutorial to the Cosmic Championship finale. It includes the campaign map, English and Russian text, profiles, and saved progress.
 
-## Current status
+## Verification
 
-The port has a campaign map, profiles and persistent progress, English and Russian game text, and a number of the original gift unlocks. Build 039 was tested through 5_05 in PPSSPP using the Fat and Slim profiles, including loading saved progress again with the standard EBOOT. An earlier 039 executable stalled during startup on a PSP-3000. The revised executable passed the emulator tests and is awaiting a console retest.
+The closing stretch of the campaign and its finale passed in PPSSPP using Fat and Slim profiles. A separate 053 ISO test reached hole 2_11, saved progress, and reloaded it after a full restart on both profiles. The ISO still needs a test on a physical PSP-3000.
 
-## Roadmap
+## Remaining work
 
-- [ ] Finish the remaining 31 campaign holes. Elysian Fields has 13 left (5_06–5_18). Cosmic Championship has 18 (6_01–6_18).
-- [ ] Port the campaign ending, the final results, and the unlock for Cosmic Championship.
-- [ ] Port the 24 selectable costumes (skins), including their unlocks, the costume selector, and saved selection. Some costume gift cards already appear in the port.
-- [ ] Port the four standalone minigames, Endless Shuffle, Summer Villa, and the remaining profile modifiers and rewards.
+- Summer Villa, selectable costumes, and interactive Club Canny credits.
+- Standalone minigames, Endless Shuffle, and remaining profile modifiers, rewards, and extras.
+- The level editor, user-created worlds, and further checks for parity with the PC version.
 
 ## Credits
 
