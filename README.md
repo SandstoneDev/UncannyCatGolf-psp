@@ -16,6 +16,8 @@ An unofficial PSP port by **SandstoneDev**, based on the original **1.0.3b**. Th
 
 Download `Uncanny-Cat-Golf.iso` from [GitHub Releases](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases). On a PSP set up to run homebrew ISO images, copy it to the `ISO` folder at the root of the memory card and launch **Uncanny Cat Golf** from **Game → Memory Stick**. PPSSPP can open the ISO directly. The release includes a SHA-256 checksum.
 
+The port supports **PSP-1000 (Fat)**. Compatibility with this model was tested in PPSSPP. The release was also tested on a physical PSP-3000.
+
 ## Screenshots
 
 | Title screen | Campaign map | Tutorial |
