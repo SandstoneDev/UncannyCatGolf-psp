@@ -2,21 +2,36 @@
 
 ![Uncanny Cat Golf logo](docs/media/logo.png)
 
-[Русский](README.ru.md) · [Downloads](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases)
+[Русский](README.ru.md) · [053 R9 Hotfix](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/tag/v1.0.3b-psp.053-r9)
 
-An unofficial PSP port by **SandstoneDev**, based on the original **1.0.3b**. This is the first PSP release, **port build 053**.
+An unofficial PSP port by **SandstoneDev**, based on the original **1.0.3b**. The current PSP release is **port build 053 R9 Hotfix**.
 
 ## What's playable
 
 - All **113 campaign holes** across seven worlds, including the tutorial, world results, and campaign endings.
 - Campaign map, scores, ranks, records, and unlockable rewards used by the campaign.
 - English and Russian menus and text, PSP controls, multiple profiles, and save entries in the PSP's Saved Data Utility.
+- Hold SELECT to skip eligible holes with the original progress bar animation.
 
 ## Install
 
-Download `Uncanny-Cat-Golf.iso` from [GitHub Releases](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases). On a PSP set up to run homebrew ISO images, copy it to the `ISO` folder at the root of the memory card and launch **Uncanny Cat Golf** from **Game → Memory Stick**. PPSSPP can open the ISO directly. The release includes a SHA-256 checksum.
+Choose one archive. On PSP, use a system set up to run homebrew in the format you choose.
 
-The port supports **PSP-1000 (Fat)**. Compatibility with this model was tested in PPSSPP. The release was also tested on a physical PSP-3000.
+**[Download ISO ZIP](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.053-r9/Uncanny-Cat-Golf-1.0.3b-PSP-053-R9-ISO.zip)**
+
+1. Extract `Uncanny-Cat-Golf.iso` from the ZIP.
+2. Copy the ISO to `ISO` at the root of the memory card. In PPSSPP, open the extracted ISO directly.
+
+**[Download EBOOT ZIP](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.053-r9/Uncanny-Cat-Golf-1.0.3b-PSP-053-R9-EBOOT.zip)**
+
+1. Extract the included `PSP` folder to the root of the memory card.
+2. Keep `EBOOT.PBP` and the `data` folder together inside `PSP/GAME/UCG053`. In PPSSPP, open the extracted `EBOOT.PBP`.
+
+On PSP, launch **Uncanny Cat Golf** from **Game → Memory Stick**. Keep your existing saves when updating. The ISO keeps progress in `PSP/UCG053-ISO` and the EBOOT keeps it in `PSP/GAME/UCG053`.
+
+[SHA-256 checksums for both archives](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.053-r9/SHA256SUMS.txt).
+
+The port supports **PSP-1000 (Fat)**. Both formats were tested in PPSSPP. The R9 ISO also launched on a physical PSP without overclocking.
 
 ## Screenshots
 
@@ -26,11 +41,11 @@ The port supports **PSP-1000 (Fat)**. Compatibility with this model was tested i
 
 ## Known issues and roadmap
 
-This first PSP build still has bugs and performance issues. There can be short frame or audio stalls, particularly around the title screen, some transitions, and victory animations. Further releases will improve performance and bring the port closer to the PC version.
+R9 adjusts the ISO boot layout, caches the animated fields on 2_06 and 2_08, and preloads confetti on holes that share the same victory animation. There can be short frame or audio stalls, particularly around the title screen, some transitions, and victory animations. Further releases will improve performance and bring the port closer to the PC version.
 
 - Finish and integrate Summer Villa, costumes, Club Canny, Mystery Phone, and the secret quest. Work on these features is underway in a separate development build.
 - Add standalone minigames, Sound Test, Endless Shuffle, remaining modifiers, and the level editor with custom worlds.
-- Restore the original hold-to-skip behavior and animation on PSP, and continue checking UI, input, and effects against the PC release.
+- Continue checking UI, input, and effects against the PC release.
 
 [Building the PSP executable](src/README.md)
 
