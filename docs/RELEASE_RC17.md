@@ -1,6 +1,6 @@
 # Uncanny Cat Golf 1.0.3b for PSP — 0.6.9 / RC17
 
-**Prerelease content update by SandstoneDev. The level editor is included, but suffers from severe slowdown on PSP and is currently barely usable. Editor optimization is deferred.**
+**Content update by SandstoneDev. The level editor is included, but suffers from severe slowdown on PSP and is currently barely usable. Editor optimization is deferred.**
 
 This release brings together the main content developed after the public053R15 build: all113campaign courses, Summer Villa, costumes, Club Canny, Mystery Phone and the friend/secret quest; Endless Shuffle; Cat Artist/Copycat, Meowls, Uncanny Dash and Bort Bash; Sound Test58, campaign modifiers/Peak Hunter, first-start introduction and25demos. Experimental custom-world editing includes all14original ExampleWorld courses. Main game: English/Russian; editor: English.
 
@@ -25,7 +25,7 @@ On the owner's PSP-3000, editor-module entry→ready changed15.77→6.80s in sin
 
 ## По-русски
 
-**Предрелиз0.6.9/RC17. Редактор включён, но на PSP очень сильно тормозит и практически непригоден для комфортной работы; дальнейшая его оптимизация отложена.**
+**Релиз0.6.9/RC17. Редактор включён, но на PSP очень сильно тормозит и практически непригоден для комфортной работы; дальнейшая его оптимизация отложена.**
 
 Объединён основной контент после публичного053R15:113лунок кампании, Summer Villa, костюмы, Club Canny, Mystery Phone, квест друга и секретные маршруты, Endless, четыре мини-игры, Sound Test58, модификаторы/Peak Hunter, первое вступление и25демо. Включены14оригинальных ExampleWorld. Основная играEN/RU, редактор английский.
 

@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.6.9 / RC17 — 2026-11-26 (prerelease)
+## 0.6.9 / RC17 — 2026-11-26 (release)
+
+Published as the regular latest release. The same game archives and checksums are retained; their enclosed documentation records the earlier prerelease audit.
 
 Original game version: 1.0.3b. This update integrates the main content line developed after the public 053 R15 hotfix.
 

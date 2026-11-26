@@ -2,7 +2,7 @@
 
 [Русский](README.ru.md) · [RC17 downloads](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/tag/v1.0.3b-psp.069-rc17) · [Changelog](CHANGELOG.md)
 
-Unofficial PSP port by **SandstoneDev**, based on the original **1.0.3b**. Current build: **0.6.9 / RC17**, a prerelease containing the main game content beyond the earlier 053 release.
+Unofficial PSP port by **SandstoneDev**, based on the original **1.0.3b**. Current build: **0.6.9 / RC17**, a release containing the main game content beyond the earlier 053 release.
 
 **The level editor suffers from severe slowdown on PSP and is currently barely usable. It is included as experimental content. Further editor work is deferred.** The main game also has remaining frame/audio stalls; this is not a stable 30/60 FPS or exact-parity claim.
 
