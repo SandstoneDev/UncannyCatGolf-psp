@@ -1,36 +1,53 @@
-# Uncanny Cat Golf 1.0.3b for PSP — 0.6.9 / RC17
+## Uncanny Cat Golf 0.6.9 RC17
 
-**Content update by SandstoneDev. The level editor is included, but suffers from severe slowdown on PSP and is currently barely usable. Editor optimization is deferred.**
+Based on the original 1.0.3b. English and Russian are included.
 
-This release brings together the main content developed after the public053R15 build: all113campaign courses, Summer Villa, costumes, Club Canny, Mystery Phone and the friend/secret quest; Endless Shuffle; Cat Artist/Copycat, Meowls, Uncanny Dash and Bort Bash; Sound Test58, campaign modifiers/Peak Hunter, first-start introduction and25demos. Experimental custom-world editing includes all14original ExampleWorld courses. Main game: English/Russian; editor: English.
+### Added
 
-RC17 defers the custom-level catalogue until requested, reduces small font reads, restores the original timer/restraint in HUD text sizing, and fixes native aiming in custom-level play/playtest. Integrated smiley-group optimizations retain actors, spawns and simulation order. No content was cut to conceal slowdown.
+- All 113 campaign courses, Summer Villa, costumes, Club Canny and Mystery Phone.
+- Endless Shuffle, four minigames, Sound Test and campaign modifiers, including Peak Hunter.
+- The first-start introduction, 25 attract demos and the remaining original settings.
+- 14 ExampleWorld courses and an experimental level editor.
+- An optional 100% unlock save as a separate download.
 
-## Downloads
+### Improved
 
-- **EBOOT ZIP**: extract the included `PSP` folder to the card root. Keep the complete `PSP/GAME/UCG054` folder, including `storage.ucd` and `data`.
-- **ISO ZIP**: extract the included `ISO` and `PSP` folders to the card root. Launch the ISO; `PSP` supplies the optional offline manual.
-- **100-Percent-Save ZIP**: OPTIONAL SEPARATE DOWNLOAD. Generated developer unlock preset, not natural completion or a speed/leaderboard record. Uses slot07 and replaces shared unlock/quest state; first back up the entire `PSP/GAME/UCG054`. Both game archives exclude it. Exact113PEAK/565prism and global-unlock definition, hidden-course counter behavior and limitations are in its bilingual README.
-- Verify the archives with **SHA256SUMS.txt**. **ISO_SHA256.txt** covers the unchanged extracted ISO; **BUILD_INFO.json** records the frozen game identities.
+- Processing of large smiley groups, including course 4-8.
+- Resource loading, menu navigation, loading screens and text readability.
+- Native aiming in custom levels and playtest; original timer size restored.
 
-Current ISO and standard EBOOT share saves/config/custom worlds at `PSP/GAME/UCG054`. Keep it on updates. Old053directories are not automatically migrated; keep them backed up and see the repository's save instructions.
+### Downloads
 
-## Verification and limitations
+[ISO](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.069-rc17/Uncanny-Cat-Golf-1.0.3b-PSP-069-RC17-ISO.zip) · [EBOOT](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.069-rc17/Uncanny-Cat-Golf-1.0.3b-PSP-069-RC17-EBOOT.zip) · [100% save](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.069-rc17/Uncanny-Cat-Golf-1.0.3b-PSP-069-RC17-100-Percent-Save.zip) · [SHA-256](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.069-rc17/SHA256SUMS.txt)
 
-Fresh675source-input checks, a clean public-source build,1012payload files and1019actual ISO members passed; both compiled PBP files match the tested RC17 binaries. Limited EN EBOOT/RU ISO real-input workflows and private save roundtrips were checked. This is not exhaustive natural progression or physical qualification.
+The bonus save is generated. Back up `PSP/GAME/UCG054` before installing it: it replaces profile 07 and shared unlock/quest state.
 
-On the owner's PSP-3000, editor-module entry→ready changed15.77→6.80s in single uncontrolled runs, but the first Editing frame still blocked13.86s. There is no fresh whole-game FPS or audio-underrun measurement. Main-game frame/audio stalls remain possible, and stable30/60FPS, PSP-1000 compatibility, complete HOME firmware behavior and exactPCparity are not claimed. PC Godot mods and locales outside EN/RU are not supported.
+**Known issue:** the editor is very slow on PSP and is currently barely usable. [Details and other limitations](https://github.com/SandstoneDev/UncannyCatGolf-psp/blob/main/docs/KNOWN_ISSUES.md).
 
 ---
 
 ## По-русски
 
-**Релиз0.6.9/RC17. Редактор включён, но на PSP очень сильно тормозит и практически непригоден для комфортной работы; дальнейшая его оптимизация отложена.**
+Версия порта 0.6.9 RC17 на основе оригинала 1.0.3b. Основная игра поддерживает русский и английский языки.
 
-Объединён основной контент после публичного053R15:113лунок кампании, Summer Villa, костюмы, Club Canny, Mystery Phone, квест друга и секретные маршруты, Endless, четыре мини-игры, Sound Test58, модификаторы/Peak Hunter, первое вступление и25демо. Включены14оригинальных ExampleWorld. Основная играEN/RU, редактор английский.
+### Добавлено
 
-Два архива игры — **EBOOT** и **ISO** — содержат необходимые ассеты. Необязательный **сейв100%скачивается отдельно** и не устанавливается обычными архивами. Это сгенерированный сейв открытий: слот07 и общие награды/квест. Перед установкой скопируйте всю `PSP/GAME/UCG054`; точный состав и исключения указаны в егоREADME. Рекорды естественного прохождения не заявляются.
+- Все 113 лунок кампании, Summer Villa, костюмы, Club Canny и Mystery Phone.
+- Endless Shuffle, четыре мини-игры, Sound Test и модификаторы кампании, включая Peak Hunter.
+- Первое вступление, 25 автодемонстраций и оставшиеся настройки оригинала.
+- 14 уровней ExampleWorld и экспериментальный редактор.
+- Отдельный бонусный сейв со 100% открытий.
 
-Проверены целостность пакетов, соответствие исходников бинарникам и ограниченные функциональные сценарии. Загрузка модуля редактора в аппаратном прогоне стала короче15,77→6,80с, но затем первый кадр редактирования занял13,86с. ПриростFPS всей игры и улучшение звука по свежим логам не доказаны. В тяжёлых сценах/переходах остаются задержки. Основной контент перечисленных режимов перенесён; полное совпадение каждой механики/эффекта и всех естественных открытий не подтверждено.
+### Улучшено
 
-[Changelog](https://github.com/SandstoneDev/UncannyCatGolf-psp/blob/v1.0.3b-psp.069-rc17/CHANGELOG.md) · [Список изменений](https://github.com/SandstoneDev/UncannyCatGolf-psp/blob/v1.0.3b-psp.069-rc17/CHANGELOG.ru.md) · [Original game / Оригинал](https://slappyhappy2000.itch.io/uncanny-cat-golf)
+- Обработка больших роёв смайликов, в том числе на уровне 4-8.
+- Загрузка ресурсов, навигация меню, экраны загрузки и читаемость текста.
+- Натяжение удара в пользовательских уровнях и playtest; восстановлен исходный размер таймера.
+
+### Скачать
+
+[ISO](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.069-rc17/Uncanny-Cat-Golf-1.0.3b-PSP-069-RC17-ISO.zip) · [EBOOT](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.069-rc17/Uncanny-Cat-Golf-1.0.3b-PSP-069-RC17-EBOOT.zip) · [Сейв 100%](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.069-rc17/Uncanny-Cat-Golf-1.0.3b-PSP-069-RC17-100-Percent-Save.zip) · [SHA-256](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.069-rc17/SHA256SUMS.txt)
+
+Бонусный сейв сгенерирован. Перед установкой сделайте копию `PSP/GAME/UCG054`: он заменяет профиль 07 и общие открытия/состояние квеста.
+
+**Известная проблема:** редактор на PSP сильно тормозит и пока почти непригоден для работы. [Подробности и остальные ограничения](https://github.com/SandstoneDev/UncannyCatGolf-psp/blob/main/docs/KNOWN_ISSUES.md).
