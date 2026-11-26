@@ -103,3 +103,4 @@ struct EndingClock045 {
     bool music=false,scary=false,fast=false;
     unsigned ms() const { return static_cast<unsigned>(micros/1000); }
 };
+

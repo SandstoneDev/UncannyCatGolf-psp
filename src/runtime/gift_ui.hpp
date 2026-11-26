@@ -17,10 +17,14 @@ using GiftFile=PreferenceFile<0x31474355,validGifts>;
 class GiftSequence {
 public:
     void load(const GiftFile& file) { *this={}; value=file.read(); }
-    bool opened(GiftReward reward) const { return (value>>16)&giftBit(reward); }
+    void useOpened(bool (*reader)(unsigned)) {openedReader=reader;}
+    bool opened(GiftReward reward) const {
+        return openedReader ? openedReader(static_cast<unsigned>(reward)) : (value>>16)&giftBit(reward);
+    }
     uint32_t pending() const { return (value&GiftMask)&~(value>>16); }
 
     bool queue(const GiftFile& file,const Progress& progress) {
+        if (openedReader) return false;
         const auto peak=[&](unsigned first,unsigned end) {
             return std::all_of(progress.best+first,progress.best+end,[](const LevelBest& level) {
                 return level.rank==5;
@@ -52,10 +56,12 @@ public:
             start=now;
             elapsed=0;
             flew=burst=false;
+            audio.prime(Sound::GiftFly);
         }
         elapsed=static_cast<unsigned>((now-start)/1000);
         if (elapsed>=500 && !flew) {
             audio.play(Sound::GiftFly);
+            audio.prime(Sound::GiftBlast);
             flew=true;
         }
         if (elapsed>=2000 && !burst) {
@@ -73,6 +79,7 @@ public:
     unsigned reward=GiftCount,elapsed=0;
 
 private:
+    bool (*openedReader)(unsigned)=nullptr;
     uint32_t value=0;
     uint64_t start=0;
     bool flew=false,burst=false;
@@ -82,9 +89,10 @@ GiftSequence gifts;
 alignas(64) uint32_t bartGiftPixels[64*64]{};
 alignas(64) uint32_t burstGiftPixels[SelectorBurstGift::Width*SelectorBurstGift::Height]{};
 alignas(64) uint32_t giftPixels[SelectorGifts::Width*GiftArt::IconRows]{};
-alignas(64) uint32_t giftBlast[SelectorGifts::BlastPages][SelectorGifts::Width*GiftArt::ExplosionRows]{};
+#include "editor_legacy_gift_blast.hpp"
+const char* giftGeFailure=nullptr;
 
-void drawGiftIndicators(unsigned elapsed) {
+[[maybe_unused]] void drawGiftIndicators(unsigned elapsed) {
     using namespace SelectorGifts;
     const uint32_t pending=gifts.pending();
     if (!pending) return;
@@ -98,7 +106,7 @@ void drawGiftIndicators(unsigned elapsed) {
     }
 }
 
-void drawGift(unsigned elapsed) {
+[[maybe_unused]] void drawGift(unsigned elapsed) {
     using namespace SelectorGifts;
     drawGiftIndicators(elapsed);
     if (gifts.reward==GiftCount) return;
@@ -117,9 +125,16 @@ void drawGift(unsigned elapsed) {
         return;
     }
     if (ms<2000+std::size(Blast)*50) {
-        const auto& frame=Blast[(ms-2000)/50];
-        setTexture(GU_PSM_8888,SelectorGifts::Width,SelectorGifts::Height,giftBlast[frame.page]);
-        patch(frame.art,ViewX+272+frame.art.x,136+frame.art.y);
+        if (!EditorLegacyGiftBlast::draw((ms-2000)/50,ViewX+272,136)) {
+            const char* error=EditorLegacyGiftBlast::error();
+            if (error && (!std::strcmp(error,"Cannot finish legacy gift GE list") ||
+                          !std::strcmp(error,"Cannot fence legacy gift pixels") ||
+                          !std::strcmp(error,"Cannot resume legacy gift GE list"))) {
+                giftGeFailure=error;
+                return; // no GU operation is safe after a failed list fence/start
+            }
+            localeText(lang("Could not display gift effect","Не удалось показать эффект подарка"),272,256,.6f,Gold,true);
+        }
     }
     const float scale=std::clamp((ms-2000)/500.0f,0.1f,1.0f);
     if (gifts.reward==static_cast<unsigned>(GiftReward::BartBash)) {

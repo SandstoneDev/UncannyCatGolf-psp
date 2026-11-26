@@ -264,3 +264,5 @@ void drawSelectorDetails(const uint32_t* texture,const Progress& progress,unsign
     std::snprintf(value,sizeof value,"%02u:%02u:%02u.%02u",seconds/3600,seconds/60%60,seconds%60,hundredths);
     drawSelectorDigits(TotalTime,value,0,261.375f);
 }
+
+

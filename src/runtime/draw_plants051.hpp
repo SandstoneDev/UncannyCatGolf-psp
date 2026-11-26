@@ -25,3 +25,4 @@ void drawCosmicPlantActors(const GameplayView& view,const LiveResultArt::Slot& s
             actor(view,art,plants[n].position,view.worldScale()*plants[n].scale*sourceScale,White,true);
     }
 }
+

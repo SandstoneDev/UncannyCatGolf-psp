@@ -2,23 +2,19 @@
 
 LiveResultArt cosmicWorldTitles046;
 LiveResultArt::Slot cosmicWorldSlot046;
+alignas(64) uint8_t cosmicWorldTitlePixels046[SelectorWorld046VramBytes]{};
 
-void drawCosmicWorldTitle046(bool moving,unsigned world,unsigned from,unsigned frame) {
-    constexpr unsigned CosmicWorld=LevelSelectState::WorldCount-1;
-    if (progress.next<CosmicSecondCourse) return;
-    unsigned id=23;
-    if (moving) {
-        if (world==CosmicWorld && frame) id=std::min(frame,23u);
-        else if (from!=CosmicWorld || frame) return;
-    } else if (world!=CosmicWorld) return;
-    id+=russian()?24:0;
+bool cacheCosmicWorldTitle046(bool russian) {
     auto* scratch=reinterpret_cast<uint8_t*>(fallbackPage)+ResultScratchOffset;
-    // Gameplay uses the same VRAM, so prepare the patch each time the menu is entered.
-    constexpr unsigned titleVram=2*1024*1024-8192;
-    static_assert(SelectorWorld046VramBytes<=8192);
-    if (cosmicWorldTitles046.prepare(id,cosmicWorldSlot046,vram045(titleVram),
-                                    SelectorWorld046VramBytes,scratch,ResultScratchBytes))
-        drawLiveResultSprite(cosmicWorldSlot046);
-    cosmicWorldTitles046.closeStream();
     fallbackPageIndex=ScreenPages;
+    return cosmicWorldTitles046.prepare(russian?47:23,cosmicWorldSlot046,cosmicWorldTitlePixels046,
+                                      sizeof cosmicWorldTitlePixels046,scratch,ResultScratchBytes,true);
+}
+
+void drawCosmicWorldTitle046(unsigned world,unsigned from,unsigned alpha) {
+    constexpr unsigned CosmicWorld=LevelSelectState::WorldCount-1;
+    if (progress.next<CosmicSecondCourse || (world!=CosmicWorld && from!=CosmicWorld) ||
+        !cosmicWorldSlot046.owner) return;
+    if (world!=CosmicWorld) alpha=255-alpha;
+    drawLiveResultSprite(cosmicWorldSlot046,0,nullptr,1,GU_RGBA(255,255,255,alpha));
 }

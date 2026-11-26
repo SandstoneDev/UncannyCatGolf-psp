@@ -118,6 +118,7 @@ void drawCosmicGlass602(const LiveResultArt::Slot& slot,unsigned tick) {
 }
 
 void drawCosmicField046(const GameplayView& view,const Round& round) {
+    if (currentCourse<CosmicSecondCourse || currentCourse>=CosmicFourteenthCourse) return;
     if (currentCourse>=CosmicTwelfthCourse) {
         drawCosmicField051(view,round);
         return;
@@ -170,3 +171,4 @@ void drawCosmicFlag046(const Round& round) {
         drawLiveResultSprite(cosmicFlagSlot046);
     else drawGoalFlag(round,0,0,0);
 }
+

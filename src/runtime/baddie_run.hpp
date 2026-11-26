@@ -1,4 +1,5 @@
 #pragma once
+#include "actor_pronouns054.hpp"
 
 #include "game.hpp"
 
@@ -22,6 +23,7 @@ struct BaddieRun {
     SolidBlock cars[Capacity]{};
     Vec2 velocities[Capacity]{};
     uint8_t owners[Capacity]{};
+    ActorPronouns054::Tag labels[Capacity]{};
     unsigned bornAt[Capacity]{},defeatedAt[Capacity]{},doorRemovedAt[BaddieStage::MaxSpawners]{},doorOpenedAt[BaddieStage::MaxSpawners]{};
     unsigned countdowns[BaddieStage::MaxSpawners]{},liveCount[BaddieStage::MaxSpawners]{},count=0,bonus=0,defeatedCount=0;
     const BaddieStage* stage=nullptr;
@@ -96,6 +98,7 @@ struct BaddieRun {
             count=std::max(count,slot+1);
             owners[slot]=i;
             bornAt[slot]=tick;
+            labels[slot]=ActorPronouns054::session.ready(ActorPronouns054::Kind::Baddie);
             velocities[slot]=spawner.velocity;
             defeatedAt[slot]=0;
             if (stage->skull) skulls[slot]={spawner.center,16};

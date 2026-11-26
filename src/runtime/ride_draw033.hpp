@@ -89,8 +89,11 @@ void drawRideObjects033(const GameplayView& view,const Round& round,bool foregro
     }
     setTexture(GU_PSM_8888,ActorsWidth,ActorsHeight,actors);
     for (const auto& object:ride.objects) {
-        if (object.kind==CoasterObjectKind033::Ghost && object.x<=CoasterRun033::ScreenEdge)
-            actor(view,visual.ghost,{object.x,CoasterRun033::laneY(object.lane)},1,White,true);
+        if (object.kind==CoasterObjectKind033::Ghost && object.x<=CoasterRun033::ScreenEdge) {
+            const Vec2 position{object.x,CoasterRun033::laneY(object.lane)};
+            actor(view,visual.ghost,position,1,White,true);
+            ActorLabelDraw054::add(object.label,view,position,ActorPronouns054::Kind::Ghost);
+        }
     }
     for (const auto& object:ride.objects) {
         if (!object.popupScore || object.popupAge<=0) continue;

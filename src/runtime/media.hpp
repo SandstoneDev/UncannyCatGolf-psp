@@ -1,4 +1,5 @@
 #pragma once
+#include "user_audio_buses.hpp"
 
 #include "menu_scroll.hpp"
 #include "live_result_ids.hpp"
@@ -6,12 +7,18 @@
 #include "compact_audio.hpp"
 #include "ride_assets033.hpp"
 #include "elysian_wind044_audio.hpp"
+#include "loss_audio_stats.hpp"
+#include "editor_audio.hpp"
+#include "bort_voice.hpp"
+#include "sound_test_spectrum.hpp"
+#include "appearance_music_bus.hpp"
 
 #include <pspaudio.h>
 #include <pspkernel.h>
 #include <zlib.h>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstdint>
 #include <cstdio>
@@ -36,7 +43,31 @@ enum class Sound : unsigned {
     HorseJumpscare, HorseImpact, HorseFlightBurst, HorseMusic, UncannyGraze, WizardMagic1, WizardMagic2, WizardMagic3, WizardDeath,
     HorseDeathSupreme, HorseMissileBoom, HorseSurprise, HorseKeyHoly, HorseKeyProverb,
     GoldenClubThwack, WallDeath, GlassClink, MoonMoo1, MoonMoo2, MoonMoo3, MoonMoo4, MoonMoo5,
-    GoldenTeeMusic, GoodEndingMusic, HorseKeyProverbDelay, CosmicChampionship, StarstormWind, MetronomeBeat, RhythmBlock, PolyrhythmBlock, PolyrhythmBlockOrange, GoalRun, GoalLaugh, GoalGasp, SantaBegin, CosmicEndingMusic, CosmicEndingKiss, CosmicEndingSparkle, HurrahExplosion, HurrahSiren, HurrahUfo, Count
+    GoldenTeeMusic, GoodEndingMusic, HorseKeyProverbDelay, CosmicChampionship, StarstormWind, MetronomeBeat, RhythmBlock, PolyrhythmBlock, PolyrhythmBlockOrange, GoalRun, GoalLaugh, GoalGasp, SantaBegin, CosmicEndingMusic, CosmicEndingKiss, CosmicEndingSparkle, HurrahExplosion, HurrahSiren, HurrahUfo,
+    VillaMusic0, VillaMusic1, VillaMusic2, VillaMusic3, VillaMusic4,
+    VillaMusic5, VillaMusic6, VillaMusic7, VillaMusic8, VillaMusic9,
+    VillaChecklistMusic, ClubLoungeMusic, ClubBasementMusic, ClubRecitalMusic,
+    ClubTalk1, ClubTalk2, ClubTalk3, ClubTalk4, ClubTalk5,
+    ClubHurt1, ClubHurt2, ClubHurt3, ClubHurt4, ClubHurt5, ClubHurt6, ClubHurt7,
+    ClubBreakerDoor, ClubBreakerSpark, ClubGreenheadBoom, ClubBobScare, ClubAppleJohnDeath, ClubBibizuSplat,
+    PhoneMusic, PhoneCallMusic, PhoneStatic, PhoneButton,
+    PhonePronouns, PhoneUnfunny, PhoneElephantAsmr, PhoneWaltz, PhoneBetaAnniversary, PhoneRevo83,
+    PhoneEerieFeline, PhoneBeverly, PhoneFlintstone, PhoneBandicoot, PhoneRadio,
+    EndlessMusic, EndlessDemon, EndlessRad, EndlessTitle, EndlessLose, EndlessResults,
+    EndlessHurry, EndlessCaught, EndlessCrush, EndlessFakeKey, EndlessPass, EndlessExtraSkip,
+    EndlessRadCaught, EndlessTrapDeath,
+    EndlessModJump, EndlessMissileDing, EndlessMissileBoom, EndlessBortOw, EndlessBeeSwarm, EndlessCurse,
+    ArtistMusic, ArtistTalk1, ArtistTalk2, ArtistTalk3, ArtistTalk4, ArtistGoodbye, ArtistDingDong,
+    MeowlsMusic, MeowlsFlap, MeowlsThrow, MeowlsBreak, MeowlsHurt, MeowlsDeath, MeowlsSlurp,
+    MeowlsMini, MeowlsWarning, MeowlsRotate, MeowlsEggBurst, MeowlsBite, MeowlsGator, MeowlsLocation,
+    MeowlsWin, MeowlsPresentation, MeowlsTickle,
+    DashMusic, DashJump, DashSkip, DashTime, DashDeath, DashPause,
+    BortMusic, BortOw, BortCongrats, BortLose, BortPause,
+    SoundTestFirst=267, SoundTestLast=289,
+    EditorFirst=290,EditorExternal=347,EditorLast=ucg::editor_audio::Count-1,
+    EndlessAppear,EndlessRadAppear,EndlessModActive,
+    ArleJumpscare1,ArleJumpscare2,ArleJumpscare3,ArleJumpscare4,ArleJumpscare5,ArleJumpscare6,
+    Count
 };
 enum class StageCue : unsigned { None, Police, SecretRun, Park, ParkShort, Marcy, RideWind, FrontierAlarm, StarstormWind, MovingGoalRun, MovingGoalLaugh };
 
@@ -49,6 +80,7 @@ public:
         file=nullptr;
         current=MaxFrames;
         currentMenu=MenuScroll::RecordCount;
+        clearTitleIntro();
         liveResults=false;
         commonResults=false;
         auto incoming=openAssetFile(path);
@@ -127,7 +159,7 @@ public:
     bool hasCommonResults() const { return commonResults; }
     void resetTextureWorkspace() { leaveTextureWorkspace(); }
 
-    bool menu(const char* path,unsigned index,MenuScroll::Textures& art) {
+    bool menu(const char* path,unsigned index,MenuScroll::Textures& art,bool background=false) {
         leaveTextureWorkspace();
         using namespace MenuScroll;
         static_assert(TileBytes+HudBytes+StripBytes+BackBytes<=FrameBytes && ForegroundBytes<=sizeof compressed);
@@ -138,18 +170,103 @@ public:
         if (currentMenu!=index) {
             current=MaxFrames;
             currentMenu=RecordCount;
-            const auto input=openAssetFile(path);
-            auto* bank=input.get();
-            if (!bank || std::fseek(bank,4,SEEK_SET)!=0 || std::fread(tile,TileBytes,1,bank)!=1 ||
-                std::fseek(bank,recordOffset(index),SEEK_SET)!=0 ||
-                std::fread(hud,HudBytes,1,bank)!=1 || std::fread(compressed,ForegroundBytes,1,bank)!=1 ||
-                std::fread(strip,StripBytes,1,bank)!=1) return false;
+            if (!readMenu(path,index,tile,compressed,background)) return false;
             sceKernelDcacheWritebackRange(tile,TileBytes+HudBytes+StripBytes);
             sceKernelDcacheWritebackRange(compressed,ForegroundBytes);
             currentMenu=index;
         }
         art={tile,hud,compressed,strip,strip+StripBytes};
         return true;
+    }
+
+    static bool readMenu(const char* path,unsigned index,uint8_t* layers,uint8_t* foreground,bool background) {
+        using namespace MenuScroll;
+        if (index>=RecordCount) return false;
+        const auto input=openAssetFile(path);
+        auto* bank=input.get();
+        return bank && std::fseek(bank,4,SEEK_SET)==0 && readBytes(bank,layers,TileBytes,background) &&
+               std::fseek(bank,recordOffset(index),SEEK_SET)==0 && readBytes(bank,layers+TileBytes,HudBytes,background) &&
+               readBytes(bank,foreground,ForegroundBytes,background) &&
+               readBytes(bank,layers+TileBytes+HudBytes,StripBytes,background);
+    }
+
+    void adoptMenu(unsigned index,const uint8_t* layers,const uint8_t* foreground) {
+        using namespace MenuScroll;
+        leaveTextureWorkspace();
+        std::memcpy(pixels,layers,TileBytes+HudBytes+StripBytes);
+        std::memcpy(compressed,foreground,ForegroundBytes);
+        sceKernelDcacheWritebackRange(pixels,TileBytes+HudBytes+StripBytes);
+        sceKernelDcacheWritebackRange(compressed,ForegroundBytes);
+        current=MaxFrames;
+        currentMenu=index;
+    }
+
+    struct TitleTiming {
+        unsigned prefetchCalls=0,prefetchTotal=0,prefetchMax=0;
+        unsigned reads=0,readTotal=0,readMax=0,hits=0;
+        unsigned decodes=0,decodeTotal=0,decodeMax=0;
+    };
+
+    const TitleTiming& titleTiming() const { return titleSample; }
+    void resetTitleTiming() { titleSample={}; }
+
+    struct TitleBuffer { uint8_t* pixels; unsigned capacity; };
+
+    void prepareTitleIntro(const std::array<TitleBuffer,3>& buffers,unsigned durationMs) {
+        clearTitleIntro();
+        if (!count(Clip::Title)) return;
+        titleIntro=buffers;
+        const auto& clip=clips[static_cast<unsigned>(Clip::Title)];
+        const auto first=frames[clip.first].offset;
+        const unsigned capacity=buffers[0].capacity+buffers[1].capacity+buffers[2].capacity;
+        for (unsigned i=0;i<clip.count && i*50<durationMs;++i) {
+            const auto& record=frames[clip.first+i];
+            const unsigned bytes=record.offset-first+record.length();
+            if (bytes>capacity) break;
+            titleIntroBytes=bytes;
+        }
+        titleIntroOffset=first;
+    }
+
+    void fillTitleIntro() {
+        if (titleIntroLoaded>=titleIntroBytes) return;
+        unsigned offset=titleIntroLoaded;
+        for (const auto& buffer:titleIntro) {
+            if (offset>=buffer.capacity) {
+                offset-=buffer.capacity;
+                continue;
+            }
+            const unsigned count=std::min({32768u,titleIntroBytes-titleIntroLoaded,buffer.capacity-offset});
+            const auto started=sceKernelGetSystemTimeLow();
+            const bool read=std::fseek(file,titleIntroOffset+titleIntroLoaded,SEEK_SET)==0 &&
+                std::fread(buffer.pixels+offset,1,count,file)==count;
+            sampleTime(started,titleSample.prefetchCalls,titleSample.prefetchTotal,titleSample.prefetchMax);
+            if (!read) {
+                titleIntroBytes=titleIntroLoaded;
+                std::clearerr(file);
+                return;
+            }
+            titleIntroLoaded+=count;
+            return;
+        }
+    }
+
+    void clearTitleIntro() {
+        titleIntro={};
+        titleIntroLoaded=titleIntroBytes=0;
+    }
+
+    unsigned cachedTitleBytes() const { return titleIntroLoaded; }
+    bool titleIntroPrepared() const { return titleIntroBytes!=0; }
+
+    void finishTitleIntro() {
+        // Bounded by the prepared cache's fixed workspace capacity. A failed
+        // read truncates the target in fillTitleIntro; never spin on no progress.
+        while (titleIntroLoaded<titleIntroBytes) {
+            const unsigned before=titleIntroLoaded;
+            fillTitleIntro();
+            if (titleIntroLoaded==before) break;
+        }
     }
 
     const uint16_t* frame(Clip id,unsigned timeMs,bool repeat=false) {
@@ -168,8 +285,9 @@ public:
         const unsigned distance=record.distance(),key=index-distance;
         const bool reuseKey=distance && current==key;
         current=MaxFrames;
-        if (!reuseKey && !decodeKey(frames[key])) return nullptr;
-        if (distance && record.length() && !applyDelta(record)) return nullptr;
+        const bool timed=id==Clip::Title || id==Clip::Loading;
+        if (!reuseKey && !decodeKey(frames[key],timed)) return nullptr;
+        if (distance && record.length() && !applyDelta(record,timed)) return nullptr;
         sceKernelDcacheWritebackRange(pixels,FrameBytes);
         current=index;
         return pixels;
@@ -234,24 +352,60 @@ private:
     bool workspaceActive=false;
     bool liveResults=false;
     bool commonResults=false;
+    std::array<TitleBuffer,3> titleIntro{};
+    unsigned titleIntroOffset=0,titleIntroBytes=0,titleIntroLoaded=0;
 
-    bool readPayload(const Frame& record) {
-        return std::fseek(file,record.offset,SEEK_SET)==0 &&
-            std::fread(compressed,1,record.length(),file)==record.length();
+    TitleTiming titleSample{};
+    static void sampleTime(unsigned started,unsigned& calls,unsigned& total,unsigned& peak) {
+        const unsigned elapsed=sceKernelGetSystemTimeLow()-started;
+        ++calls;
+        total+=elapsed;
+        peak=std::max(peak,elapsed);
     }
 
-    bool decodeKey(const Frame& record) {
-        if (!readPayload(record)) return false;
+    bool readPayload(const Frame& record,bool timed) {
+        if (record.offset>=titleIntroOffset) {
+            unsigned offset=record.offset-titleIntroOffset;
+            if (offset<=titleIntroLoaded && record.length()<=titleIntroLoaded-offset) {
+                unsigned copied=0;
+                for (const auto& buffer:titleIntro) {
+                    if (offset>=buffer.capacity) {
+                        offset-=buffer.capacity;
+                        continue;
+                    }
+                    const unsigned count=std::min(buffer.capacity-offset,record.length()-copied);
+                    std::memcpy(compressed+copied,buffer.pixels+offset,count);
+                    copied+=count;
+                    if (copied==record.length()) {
+                        if (timed) ++titleSample.hits;
+                        return true;
+                    }
+                    offset=0;
+                }
+            }
+        }
+        const auto started=timed?sceKernelGetSystemTimeLow():0;
+        const bool read=std::fseek(file,record.offset,SEEK_SET)==0 &&
+            std::fread(compressed,1,record.length(),file)==record.length();
+        if (timed) sampleTime(started,titleSample.reads,titleSample.readTotal,titleSample.readMax);
+        return read;
+    }
+
+    bool decodeKey(const Frame& record,bool timed) {
+        if (!readPayload(record,timed)) return false;
+        const auto started=timed?sceKernelGetSystemTimeLow():0;
         Inflater decoder(compressed,record.length());
         if (!decoder.ready) return false;
         decoder.stream.next_out=reinterpret_cast<Bytef*>(pixels);
         decoder.stream.avail_out=FrameBytes;
         const int result=inflate(&decoder.stream,Z_FINISH);
+        if (timed) sampleTime(started,titleSample.decodes,titleSample.decodeTotal,titleSample.decodeMax);
         return decoder.complete(result,record.length());
     }
 
-    bool applyDelta(const Frame& record) {
-        if (!readPayload(record)) return false;
+    bool applyDelta(const Frame& record,bool timed) {
+        if (!readPayload(record,timed)) return false;
+        const auto started=timed?sceKernelGetSystemTimeLow():0;
         Inflater decoder(compressed,record.length());
         if (!decoder.ready) return false;
         alignas(4) unsigned char difference[DeltaScratchBytes];
@@ -269,6 +423,7 @@ private:
             for (unsigned i=0;i<produced;++i) output[cursor+i]^=difference[i];
             cursor+=produced;
         }
+        if (timed) sampleTime(started,titleSample.decodes,titleSample.decodeTotal,titleSample.decodeMax);
         return decoder.complete(result,record.length());
     }
 
@@ -280,11 +435,22 @@ private:
 };
 
 
-enum class AudioProbePhase : unsigned { Off, Profile, Osk60, Osk30, Victory, Title, Count };
+enum class AudioProbePhase : unsigned { Off, Profile, Osk60, Osk30, Victory, Title, Map, Count };
 
+inline constexpr unsigned SoundCount=static_cast<unsigned>(Sound::Count);
+static_assert(static_cast<unsigned>(Sound::Loss)==LossProbe::AudioStats::TargetId);
+static_assert(static_cast<unsigned>(Sound::HurrahUfo)==164 &&
+              static_cast<unsigned>(Sound::VillaMusic0)==165 &&
+              static_cast<unsigned>(Sound::VillaChecklistMusic)==175 &&
+              static_cast<unsigned>(Sound::ClubLoungeMusic)==176 &&
+              static_cast<unsigned>(Sound::PhoneMusic)==197 &&
+              static_cast<unsigned>(Sound::SlotPhone)==72 && static_cast<unsigned>(Sound::EndlessTrapDeath)==225);
 struct AudioProbeTiming {
     std::atomic<unsigned> blocks{0},readMax{0},mixMax{0},gapMax{0},late{0};
     std::atomic<unsigned> priming{0},underruns{0},effectUnderruns{0},readErrors{0};
+    std::atomic<unsigned> lastMissingEffect{0},musicBufferMin{UINT32_MAX},rankPagePeak{0},rankFinished{0};
+    std::atomic<bool> resultsBangFinished{false};
+    std::atomic<unsigned> effectStarted[SoundCount]{},effectMissing[SoundCount]{};
     std::atomic<int> outputError{0};
     std::atomic<unsigned> musicIoUs{0},effectIoUs{0},musicIoCalls{0},effectIoCalls{0};
     std::atomic<unsigned> musicIoMax{0},effectIoMax{0},musicWorkMax{0},effectWorkMax{0};
@@ -301,28 +467,42 @@ public:
     void resetTiming(AudioProbePhase phase) {
         auto& sample=timings[static_cast<unsigned>(phase)];
         sample.blocks=sample.readMax=sample.mixMax=sample.gapMax=sample.late=0;
-        sample.priming=sample.underruns=sample.effectUnderruns=sample.readErrors=0;
+        sample.priming=sample.underruns=sample.effectUnderruns=sample.readErrors=sample.lastMissingEffect=0;
         sample.outputError=0;
+        sample.musicBufferMin=UINT32_MAX;
+        sample.rankPagePeak=sample.rankFinished=0;
+        sample.resultsBangFinished=false;
+        if (phase==AudioProbePhase::Map || phase==AudioProbePhase::Victory)
+            for (unsigned i=0;i<SoundCount;++i) sample.effectStarted[i]=sample.effectMissing[i]=0;
         sample.musicIoUs=sample.effectIoUs=sample.musicIoCalls=sample.effectIoCalls=0;
         sample.musicIoMax=sample.effectIoMax=sample.musicWorkMax=sample.effectWorkMax=0;
     }
+
+    void armLossTiming(bool enabled) { lossTimingArmed.store(enabled,std::memory_order_relaxed); }
+    __attribute__((noinline)) void beginLossProbe(unsigned caught) { lossStats.begin(caught); }
+    __attribute__((noinline)) LossProbe::AudioSnapshot lossSnapshot() const { return lossStats.snapshot(); }
+    __attribute__((noinline)) LossProbe::AudioSnapshot endLossProbe() { return lossStats.end(); }
 #endif
 
     ~AudioMixer() { stop(); }
 
-    bool open(const char* path,const char* slotPath,const char* parkPath,const char* ringPath) {
+    bool open(const char* path,const char* slotPath,const char* parkPath,const char* ringPath,
+              const char* diagnosticLog=nullptr) {
         if (files[0] || compact.ready()) return false;
         openFailure=nullptr;
-        if (!loadBanks(path,slotPath,parkPath)) {
+        if (!loadBanks(path,slotPath,parkPath,diagnosticLog)) {
             stop();
             return false;
         }
+        logStartup(diagnosticLog,"ring_timers");
         if (!ringTimers.open(ringPath)) {
             openFailure="ring_timers";
             stop();
             return false;
         }
+        logStartup(diagnosticLog,"reserve_channel");
         channel=sceAudioChReserve(PSP_AUDIO_NEXT_CHANNEL,Block,PSP_AUDIO_FORMAT_STEREO);
+        logStartup(diagnosticLog,"channel_result",channel);
         if (channel<0) {
             openFailure="reserve_channel";
             stop();
@@ -332,14 +512,27 @@ public:
         stageCueCommand.store(0,std::memory_order_relaxed);
         consumed.store(0,std::memory_order_relaxed);
         produced.store(0,std::memory_order_relaxed);
+        bufferedMusicRequest.store(0,std::memory_order_relaxed);
+        xmbMusicPhase.store(XmbMusicPhase::Idle,std::memory_order_relaxed);
+        musicInput.reserve.store(0,std::memory_order_relaxed);
         for (auto& command:pending) command.store(0,std::memory_order_relaxed);
         for (auto& word:stopping) word.store(0,std::memory_order_relaxed);
         musicTuning.store(UnityTune,std::memory_order_relaxed);
         musicCursorTrack.store(0,std::memory_order_relaxed);
         musicCursor.store(0,std::memory_order_relaxed);
+        dashPaused.store(false,std::memory_order_relaxed);
+        bortPaused.store(false,std::memory_order_relaxed);
+        soundTestPeaks.store(false,std::memory_order_relaxed);
+        musicPeakSum.store(0,std::memory_order_relaxed);
+        bortVoices.stop();
+        for (auto& cursor:bortCursor) cursor.store(0,std::memory_order_relaxed);
+        bortSerial.store(0,std::memory_order_relaxed);
+#ifdef UCG_TEST_DASH
+        for (auto& cursor:dashEffectCursor) cursor.store(0,std::memory_order_relaxed);
+#endif
         active.store(true,std::memory_order_release);
-        reader=startThread("ucg-pcm-reader",readerMain,0x2e);
-        if (reader>=0) thread=startThread("ucg-mixer",threadMain,0x12);
+        reader=startThread("ucg-pcm-reader",readerMain,0x2e,diagnosticLog);
+        if (reader>=0) thread=startThread("ucg-mixer",threadMain,0x12,diagnosticLog);
         if (thread>=0) return true;
         openFailure="start_threads";
         stop();
@@ -348,7 +541,78 @@ public:
 
     void play(Sound id) {
         const unsigned index=static_cast<unsigned>(id);
+#ifdef UCG_VICTORY_PROBE
+        if (id==Sound::Loss) {
+            const unsigned epoch=lossStats.token();
+            if (epoch) lossStats.command(epoch,sceKernelGetSystemTimeLow());
+            lossCommandEpoch.store(epoch,std::memory_order_release);
+        }
+#endif
         if (index<Count) pending[index].store(PlainEffect,std::memory_order_relaxed);
+    }
+
+    unsigned residentFrames(Sound id) const { return effects[static_cast<unsigned>(id)].prefixFrames; }
+    unsigned totalFrames(Sound id) const { return entries[static_cast<unsigned>(id)].frames; }
+
+    void prime(Sound id) {
+        const unsigned index=static_cast<unsigned>(id);
+        if (index<Count && effects[index].streamed) {
+            uint32_t idle=0;
+            pending[index].compare_exchange_strong(idle,PrimeEffect,std::memory_order_relaxed);
+        }
+    }
+
+    // One mixer command owns both cancellation and quiet preparation. Separate
+    // stop-bit/prime publications could otherwise cancel the new preparation.
+    void resetLossForReplay() {
+        pending[static_cast<unsigned>(Sound::Loss)].store(ResetPrimeEffect,std::memory_order_release);
+    }
+
+    void setTitleAudio(bool enabled) {
+        titleAudio.store(enabled,std::memory_order_release);
+    }
+
+    unsigned queuedMusicFrames() const {
+        const unsigned read=consumed.load(std::memory_order_acquire);
+        const unsigned write=produced.load(std::memory_order_acquire);
+        return std::min(write-read,PcmSlots)*PcmFrames;
+    }
+
+    static constexpr unsigned MapReadReserve=12*4096, XmbReserve=14*4096;
+    unsigned menuMusicReserve() const {
+        const auto request=requested.load(std::memory_order_acquire);
+        if (!isMenuTrack(request) || bufferedMusicRequest.load(std::memory_order_acquire)!=request) return 0;
+        const auto first=bufferedMusicFirst.load(std::memory_order_relaxed);
+        const auto read=consumed.load(std::memory_order_acquire);
+        const auto write=produced.load(std::memory_order_acquire);
+        const auto pages=std::min({write-read,write-first,PcmSlots});
+        // The mixer may have already used most of the oldest page.
+        return pages? (pages-1)*PcmFrames:0;
+    }
+
+    bool menuIoReady(unsigned reserve) const {
+        return !isMenuTrack(requested.load(std::memory_order_relaxed)) || menuMusicReserve()>=reserve;
+    }
+
+    unsigned xmbMusicInputBytes() const { return musicInput.reserve.load(std::memory_order_acquire); }
+    unsigned xmbMusicDiskReads() const { return musicInput.reads.load(std::memory_order_relaxed); }
+
+    bool tryBeginXmbMusic(bool wanted) {
+        auto phase=xmbMusicPhase.load(std::memory_order_acquire);
+        if (phase==XmbMusicPhase::Prefetch) return false;
+        if (!wanted) {
+            xmbMusicPhase.compare_exchange_strong(phase,XmbMusicPhase::Idle,std::memory_order_acq_rel);
+            return false;
+        }
+        if (phase!=XmbMusicPhase::Prepare &&
+            !xmbMusicPhase.compare_exchange_strong(phase,XmbMusicPhase::Prepare,std::memory_order_acq_rel))
+            return false;
+        if (!menuIoReady(XmbReserve)) return false;
+        const auto request=requested.load(std::memory_order_acquire);
+        if (compact.ready() && isMenuTrack(request) && xmbMusicInputBytes()<PackedBank::MusicInputReserve)
+            return false;
+        phase=XmbMusicPhase::Prepare;
+        return xmbMusicPhase.compare_exchange_strong(phase,XmbMusicPhase::Write,std::memory_order_acq_rel);
     }
 
     void playTuned(Sound id,float gainDb,float pitch) {
@@ -357,11 +621,26 @@ public:
         if (!std::isfinite(gainDb)) gainDb=0;
         if (!std::isfinite(pitch)) pitch=1;
         const float gain=std::pow(10.0f,std::clamp(gainDb,-96.0f,12.0f)/20.0f);
-        pending[index].store(packTuning(gain,std::clamp(pitch,0.5f,3.0f)),std::memory_order_relaxed);
+        const bool lowVoice=(id>=Sound::ClubTalk1 && id<=Sound::ClubTalk5) || id==Sound::ClubBobScare;
+        pending[index].store(packTuning(gain,std::clamp(pitch,lowVoice?0.125f:0.5f,3.0f)),
+                             std::memory_order_relaxed);
+    }
+
+    // Update the campaign TK loop without restarting its decoder/phase.
+    void retune(Sound sound,float gainDb,float pitch) {
+        const unsigned index=static_cast<unsigned>(sound);
+        if (index>=Count || !std::isfinite(gainDb) || !std::isfinite(pitch)) return;
+        const float gain=std::pow(10.f,std::clamp(gainDb,-96.f,12.f)/20);
+        pending[index].store(0x80000000u|packTuning(gain,std::clamp(pitch,.5f,sound==Sound::EndlessHurry?5.f:3.f)),std::memory_order_relaxed);
     }
 
     void stop(Sound sound) {
         const unsigned index=static_cast<unsigned>(sound);
+        if(sound==Sound::Loss) {
+            // Play, reset/prepare and stop share one ordered intent cell.
+            pending[index].store(StopLossEffect,std::memory_order_release);
+            return;
+        }
         if (index<Count) stopping[index/32].fetch_or(1u<<(index%32),std::memory_order_relaxed);
     }
 
@@ -387,16 +666,58 @@ public:
     void stopRingTimers() { ringTimers.stop(); }
 
     void music(Sound id) {
+        if (static_cast<unsigned>(id)>=Count) return;
         requestTrack(static_cast<unsigned>(id)+1);
+        holdMusic.store(false,std::memory_order_release);
+    }
+    void musicAt(Sound id,unsigned frame) {
+        if (static_cast<unsigned>(id)>=Count) return;
+        requestTrack(static_cast<unsigned>(id)+1,frame,true);
         holdMusic.store(false,std::memory_order_release);
     }
     void primeMusic(Sound id) {
+        if (static_cast<unsigned>(id)>=Count) return;
         holdMusic.store(true,std::memory_order_release);
         requestTrack(static_cast<unsigned>(id)+1);
     }
+    void observeSoundTest(bool enabled) { soundTestPeaks.store(enabled,std::memory_order_relaxed); }
+    float soundTestPeak() const { return musicPeakSum.load(std::memory_order_relaxed)/32768.f; }
+    float soundTestBand(unsigned i) const { return soundTestSpectrum.band(i); }
+    void pauseBort(bool pause) { bortPaused.store(pause,std::memory_order_release); }
+    void playBortOw(unsigned count) { bortVoices.play(count); }
+    void stopBortOw() { bortVoices.stop(); }
+    BortVoices::Snapshot bortOwState() const { return bortVoices.snapshot(); }
+    unsigned bortEffectPosition(Sound id) const {
+        return bortCursor[id==Sound::BortCongrats?0:1].load(std::memory_order_relaxed);
+    }
+    unsigned bortCongratsSerial() const { return bortSerial.load(std::memory_order_acquire); }
+    void pauseDash(bool pause) { dashPaused.store(pause,std::memory_order_release); }
+#ifdef UCG_TEST_DASH
+    unsigned dashEffectPosition(Sound id) const {
+        const unsigned index=static_cast<unsigned>(id)-static_cast<unsigned>(Sound::DashJump);
+        return index<std::size(dashEffectCursor)?dashEffectCursor[index].load(std::memory_order_relaxed):0;
+    }
+#endif
+
     void muteMusic() {
         requestTrack(0);
         holdMusic.store(false,std::memory_order_release);
+    }
+    // Main-only transition fence. The reader owns the decoder and publishes
+    // this exact mute generation only after it has closed the old decoder.
+    bool releaseMusicForContent(unsigned maxWaitUs=250000) {
+        if (!active.load(std::memory_order_acquire)) return false;
+        muteMusic();
+        const unsigned request=requested.load(std::memory_order_relaxed);
+        const unsigned start=sceKernelGetSystemTimeLow();
+        while (active.load(std::memory_order_acquire) &&
+               requested.load(std::memory_order_acquire)==request) {
+            if (bufferedMusicRequest.load(std::memory_order_acquire)==request) return true;
+            const unsigned elapsed=sceKernelGetSystemTimeLow()-start;
+            if (elapsed>=maxWaitUs ||
+                sceKernelDelayThread(std::min(1000u,maxWaitUs-elapsed))<0) return false;
+        }
+        return false;
     }
     void musicTune(float gain,float pitch) {
         if (!std::isfinite(gain)) gain=1;
@@ -412,9 +733,18 @@ public:
             track!=musicCursorTrack.load(std::memory_order_acquire)) return 0;
         return musicCursor.load(std::memory_order_relaxed);
     }
+    bool musicFinished(Sound source) const {
+        const unsigned index=static_cast<unsigned>(source);
+        return index<Count && entries[index].frames && musicPositionFrames(source)>=entries[index].frames;
+    }
     unsigned blocks() const { return audible.load(std::memory_order_relaxed); }
     unsigned effectMemoryBytes() const { return effectBytes; }
     const char* failure() const { return openFailure; }
+
+    // Atomic block snapshot, independent from authored scene tuning.
+    void userBusVolumes(unsigned master,unsigned music,unsigned sounds) {
+        userBuses.store(UserAudioBuses::pack(master,music,sounds),std::memory_order_relaxed);
+    }
 
     void rideVolume(float music,float cartDb,float windDb,float windPitch=0) {
         const auto gain=[](float db) { return unsigned(256*std::min(1.0f,std::pow(10.0f,db/20))); };
@@ -440,13 +770,18 @@ public:
         ringTimers.close();
         effectPcm.reset();
         effectStreams.reset();
+        effectPages.reset();
         effectStreamCount=0;
         effectBytes=0;
         fileOffset=UINT32_MAX;
     }
 
 private:
+    static constexpr unsigned LegacyCount=static_cast<unsigned>(Sound::EndlessModJump);
     static constexpr unsigned Count=static_cast<unsigned>(Sound::Count);
+    static_assert(LegacyCount==226 && Count==ucg::editor_audio::Count+9);
+    using PackedBank=ucg::packed_audio::Bank<Count>;
+    enum class XmbMusicPhase : unsigned { Idle, Prepare, Prefetch, Write };
     static constexpr unsigned SlotFirst=static_cast<unsigned>(Sound::SlotJackpot);
     static constexpr unsigned ParkFirst=static_cast<unsigned>(Sound::ParkSwitch);
     static constexpr unsigned MaxEffectBytes=3520*1024;
@@ -456,17 +791,22 @@ private:
     }
     static constexpr unsigned CueMask=15,CuePause=16,CueStateMask=CueMask|CuePause;
     static constexpr unsigned CommandWords=(Count+31)/32;
-    static constexpr unsigned GainBits=11,GainMask=(1u<<GainBits)-1,PlainEffect=1;
+    static constexpr unsigned GainBits=11,GainMask=(1u<<GainBits)-1,PlainEffect=1,PrimeEffect=2,ResetPrimeEffect=3,StopLossEffect=4;
     static constexpr unsigned UnityTune=(WizardWindUnity<<GainBits)|256;
     static unsigned packTuning(float gain,float pitch) {
         return (static_cast<unsigned>(pitch*WizardWindUnity+0.5f)<<GainBits) |
                 static_cast<unsigned>(gain*256+0.5f);
     }
     static constexpr unsigned Block=1024;
-    static constexpr unsigned PcmSlots=8,PcmFrames=4096,TrackMask=0xff;
+    static constexpr unsigned PcmSlots=16, DefaultPcmSlots=8,PcmFrames=4096,TrackMask=0x1ff;
+    static_assert(XmbReserve<=PcmFrames*(PcmSlots-1) && MapReadReserve<XmbReserve);
+    static bool isMenuTrack(unsigned request) { return (request&TrackMask)==static_cast<unsigned>(Sound::Menu)+1; }
     static constexpr unsigned PrefixFrames=4096, ResidentFrames=12288;
     static constexpr unsigned EffectSlots=2, EffectFrames=2048, MusicLowWater=3;
-    static constexpr unsigned MaxActiveEffectStreams=32;
+    static constexpr unsigned MaxActiveEffectStreams=24, RankPages=8;
+    static constexpr bool rankEffect(unsigned index) {
+        return index>=static_cast<unsigned>(Sound::RankUncanny) && index<=static_cast<unsigned>(Sound::RankPeak);
+    }
     static_assert(Count<TrackMask && (PcmSlots&(PcmSlots-1))==0);
     static_assert(PrefixFrames%Block==0 && EffectFrames%Block==0);
     struct Entry { uint32_t offset,frames,stream,loop; };
@@ -476,7 +816,8 @@ private:
         bool last;
     };
     struct EffectStream {
-        PcmPage<EffectFrames> pcm[EffectSlots];
+        PcmPage<EffectFrames>* pcm=nullptr;
+        unsigned capacity=0;
         // The reader owns produced and the two source fields. The mixer owns consumed and request.
         std::atomic<unsigned> produced{0},consumed{0},request{0};
         unsigned sourceRequest=0,sourceFrame=0;
@@ -492,7 +833,8 @@ private:
     Effect effects[Count]{};
     std::unique_ptr<int16_t[]> effectPcm;
     std::unique_ptr<EffectStream[]> effectStreams;
-    unsigned effectStreamCount=0;
+    std::unique_ptr<PcmPage<EffectFrames>[]> effectPages;
+    unsigned effectStreamCount=0, rankSlot=UINT32_MAX;
     unsigned voiceSlots[Count]{};
     unsigned effectBytes=0;
     const char* openFailure=nullptr;
@@ -501,19 +843,42 @@ private:
     uint32_t fileOffset=UINT32_MAX;
     int channel=-1,thread=-1,reader=-1;
     std::atomic<bool> active{false};
+    std::atomic<uint32_t> userBuses{UserAudioBuses::Unity};
     std::atomic<unsigned> requested{0},stageCueCommand{0};
+    std::atomic<unsigned> requestedStart[2]{};
     // Each cursor has one writer. Release/acquire also protects the page contents.
     PcmPage<PcmFrames> pcm[PcmSlots]{};
     std::atomic<unsigned> produced{0},consumed{0};
+    std::atomic<unsigned> bufferedMusicFirst{0},bufferedMusicRequest{0};
+    std::atomic<XmbMusicPhase> xmbMusicPhase{XmbMusicPhase::Idle};
+    struct {
+        std::atomic<unsigned> reserve{0},reads{0};
+    } musicInput;
     std::atomic<uint32_t> pending[Count]{};
     std::atomic<unsigned> musicTuning{UnityTune},musicCursorTrack{0},musicCursor{0};
     std::atomic<bool> holdMusic{false};
+    std::atomic<bool> dashPaused{false},bortPaused{false},soundTestPeaks{false};
+    std::atomic<unsigned> musicPeakSum{0};
+    SoundTestSpectrum soundTestSpectrum;
+    BortVoices bortVoices;
+    std::atomic<unsigned> bortCursor[2]{},bortSerial{0};
+#ifdef UCG_TEST_DASH
+    std::atomic<unsigned> dashEffectCursor[4]{};
+#endif
+    std::atomic<bool> titleAudio{false};
     std::atomic<uint32_t> stopping[CommandWords]{};
     std::atomic<unsigned> audible{0};
     std::atomic<unsigned> rideGains{256},rideWindStep{0};
     alignas(64) int16_t buffers[2][Block*2]{};
     int32_t work[Block*2]{};
+    int32_t appearanceMusic[Block*2]{}; // 8192 bytes, mixer-thread only.
     std::atomic<AudioProbePhase> probePhase{AudioProbePhase::Off};
+#ifdef UCG_VICTORY_PROBE
+    LossProbe::AudioStats lossStats;
+    std::atomic<bool> lossTimingArmed{false};
+    std::atomic<unsigned> lossCommandEpoch{0};
+    unsigned lossVoiceEpoch=0; // Mixer-owned token of the command actually consumed.
+#endif
     AudioProbeTiming timings[static_cast<unsigned>(AudioProbePhase::Count)]{};
 
     static void recordMax(std::atomic<unsigned>& maximum,unsigned value) {
@@ -523,6 +888,9 @@ private:
 
     static bool alwaysResident(unsigned index) {
         switch (static_cast<Sound>(index)) {
+        case Sound::ResultsBang:
+        case Sound::Select:
+        case Sound::Back:
         case Sound::Shot:
         case Sound::Coin:
         case Sound::StopToken:
@@ -538,12 +906,17 @@ private:
 
     static unsigned streamedPrefix(unsigned index) {
         switch (static_cast<Sound>(index)) {
+        case Sound::GiftAward:
+        case Sound::GiftFly:
+        case Sound::GiftBlast:
+        case Sound::Join:
         case Sound::Startup:
+        case Sound::TitleCheer:
+            return 16384;
         case Sound::TitleHit:
         case Sound::TitleImpact:
-        case Sound::TitleCheer:
+            return 4096;
         case Sound::ResultsHit:
-        case Sound::ResultsBang:
         case Sound::RankUncanny:
         case Sound::RankAtrocious:
         case Sound::RankStinky:
@@ -582,10 +955,21 @@ private:
         return end==static_cast<uint32_t>(size);
     }
 
-    bool loadBanks(const char* path,const char* slotPath,const char* parkPath) {
+    static void logStartup(const char* path,const char* step,int detail=0) {
+        if (!path) return;
+        if (auto* out=std::fopen(path,"a")) {
+            std::fprintf(out,"build=053 event=audio_startup step=%s detail=%d free=%u largest=%u\n",
+                         step,detail,sceKernelTotalFreeMemSize(),sceKernelMaxFreeMemSize());
+            std::fclose(out);
+        }
+    }
+
+    bool loadBanks(const char* path,const char* slotPath,const char* parkPath,const char* diagnosticLog) {
         using Packed = ucg::packed_audio::Bank<Count>;
         openFailure="compact_audio_bank";
+        logStartup(diagnosticLog,"compact_bank_open");
         const auto format=compact.open(path);
+        logStartup(diagnosticLog,"compact_bank_result",static_cast<int>(format));
         if (format==Packed::Open::Invalid) return false;
         if (format==Packed::Open::Ready) {
             for (unsigned id=0;id<Count;++id)
@@ -596,7 +980,8 @@ private:
             openFailure="slots_audio_bank";
             if (!openBank(1,slotPath,SlotFirst,ParkFirst-SlotFirst)) return false;
             openFailure="park_audio_bank";
-            if (!openBank(2,parkPath,ParkFirst,Count-ParkFirst)) return false;
+            if (!openBank(2,parkPath,ParkFirst,LegacyCount-ParkFirst)) return false;
+            std::fill(entries+LegacyCount,entries+Count,Entry{});
         }
         openFailure="effect_budget";
 
@@ -604,11 +989,25 @@ private:
         unsigned prefixFrames=0,streamCount=0;
         for (unsigned i=0;i<count;++i) {
             const auto& entry=entries[i];
-            if (entry.stream) continue;
+            if (!entry.frames || entry.stream) continue;
+            // Preserve Main84 prefixes. Appended effects share the same reader
+            // slots, with resident Bort/Builder cues and three loop heads.
+            const bool extrasEffect=i>=static_cast<unsigned>(Sound::VillaMusic0) &&
+                i!=static_cast<unsigned>(Sound::PhoneButton) && i!=static_cast<unsigned>(Sound::PhoneStatic);
             const bool newEffect=i>=static_cast<unsigned>(Sound::RideCoaster);
-            const bool resident=entry.frames<=(newEffect?Block:ResidentFrames) || alwaysResident(i);
-            const unsigned legacyPrefix=streamedPrefix(i);
-            const unsigned prefix=newEffect?Block:legacyPrefix;
+            // Leave room for the largest replay board while Endless music is decoding.
+            const auto sound=static_cast<Sound>(i);
+            const bool shortPrefix=(sound>=Sound::Spotlight && sound<=Sound::OutOfBounds) ||
+                                   (sound>=Sound::SmileyRing && sound<=Sound::CoasterFlyby312);
+            const unsigned cap=shortPrefix || newEffect?Block:ResidentFrames;
+            const bool mainResident=i==static_cast<unsigned>(Sound::BortOw) ||
+                i==ucg::editor_audio::BuilderPresentFly || i==ucg::editor_audio::BuilderPresentExplode;
+            const bool resident=mainResident || (!extrasEffect && (entry.frames<=cap || alwaysResident(i)));
+            // At EOF the mixer can continue through the loop head before the
+            // reader has published a page for the new stream request.
+            const bool loopHead=entry.loop && modifierLoopBit(i);
+            const unsigned prefix=loopHead?PrefixFrames:
+                extrasEffect?0:shortPrefix || newEffect?Block:streamedPrefix(i);
             const unsigned frames=resident?entry.frames:std::min<unsigned>(entry.frames,prefix);
             if (frames>byteLimit/4-prefixFrames) return false;
             effects[i].prefixFrames=frames;
@@ -616,37 +1015,55 @@ private:
             streamCount+=!resident;
         }
         streamCount=std::min(streamCount,MaxActiveEffectStreams);
-        const size_t bytes=prefixFrames*4+streamCount*sizeof(EffectStream);
+        rankSlot=streamCount;
+        const unsigned pages=streamCount*EffectSlots+RankPages;
+        const size_t bytes=prefixFrames*4+(streamCount+1)*sizeof(EffectStream)+pages*sizeof(PcmPage<EffectFrames>);
         if (bytes>byteLimit) return false;
 
         openFailure="effect_prefix_memory";
+        logStartup(diagnosticLog,"allocate_effect_prefix",prefixFrames*4);
         effectPcm.reset(new(std::nothrow) int16_t[prefixFrames*2]);
         if (!effectPcm) return false;
         openFailure="effect_stream_memory";
-        effectStreams.reset(new(std::nothrow) EffectStream[streamCount]);
-        if (streamCount && !effectStreams) return false;
+        logStartup(diagnosticLog,"allocate_effect_streams",bytes-prefixFrames*4);
+        effectStreams.reset(new(std::nothrow) EffectStream[streamCount+1]);
+        effectPages.reset(new(std::nothrow) PcmPage<EffectFrames>[pages]);
+        if (!effectStreams || !effectPages) return false;
+        for (unsigned i=0;i<=streamCount;++i) {
+            effectStreams[i].pcm=effectPages.get()+i*EffectSlots;
+            effectStreams[i].capacity=i==rankSlot?RankPages:EffectSlots;
+        }
         openFailure="effect_prefix_read";
         int16_t* prefix=effectPcm.get();
-        effectStreamCount=streamCount;
+        effectStreamCount=streamCount+1;
         std::fill_n(voiceSlots,Count,UINT32_MAX);
         for (unsigned i=0;i<count;++i) {
+            if (i%16==0) logStartup(diagnosticLog,"read_effect_prefixes",i);
             Effect& effect=effects[i];
-            if (!effect.prefixFrames) continue;
+            if (!entries[i].frames || entries[i].stream) {
+                effect={};
+                continue;
+            }
             effect.prefix=prefix;
             effect.streamed=effect.prefixFrames<entries[i].frames;
-            if (readPcm(i,0,prefix,effect.prefixFrames)!=effect.prefixFrames) return false;
+            if (effect.prefixFrames && readPcm(i,0,prefix,effect.prefixFrames)!=effect.prefixFrames) return false;
             prefix+=effect.prefixFrames*2;
         }
+        logStartup(diagnosticLog,"effect_prefixes_ready",count);
         effectBytes=static_cast<unsigned>(bytes);
         openFailure=nullptr;
         return true;
     }
 
-    int startThread(const char* name,int (*entry)(SceSize,void*),int priority) {
+    int startThread(const char* name,int (*entry)(SceSize,void*),int priority,const char* diagnosticLog) {
+        logStartup(diagnosticLog,name);
         const int id=sceKernelCreateThread(name,entry,priority,0x3000,0,nullptr);
+        logStartup(diagnosticLog,"thread_created",id);
         if (id<0) return -1;
         AudioMixer* self=this;
-        if (sceKernelStartThread(id,sizeof self,&self)>=0) return id;
+        const int result=sceKernelStartThread(id,sizeof self,&self);
+        logStartup(diagnosticLog,"thread_started",result);
+        if (result>=0) return id;
         sceKernelDeleteThread(id);
         return -1;
     }
@@ -658,12 +1075,25 @@ private:
         id=-1;
     }
 
-    void requestTrack(unsigned track) {
+    static unsigned startSlot(unsigned request) { return (request/(TrackMask+1))&1; }
+
+    void requestTrack(unsigned track,unsigned frame=0,bool restart=false) {
         const unsigned old=requested.load(std::memory_order_relaxed);
-        if ((old&TrackMask)==track) return;
+        if (!restart && (old&TrackMask)==track) return;
         musicTuning.store(UnityTune,std::memory_order_relaxed);
-        // The generation distinguishes mute -> restart of the same track from its old PCM.
-        requested.store(((old+TrackMask+1)&~TrackMask)|track,std::memory_order_release);
+        const unsigned next=((old+TrackMask+1)&~TrackMask)|track;
+        requestedStart[startSlot(next)].store(frame,std::memory_order_release);
+        // The generation distinguishes a restart or seek from old queued PCM.
+        requested.store(next,std::memory_order_release);
+    }
+
+    bool trackStart(unsigned request,unsigned& position) const {
+        const unsigned frame=requestedStart[startSlot(request)].load(std::memory_order_acquire);
+        // A slot can be reused by two rapid commands before this consumer wakes up.
+        if (request!=requested.load(std::memory_order_acquire)) return false;
+        const unsigned id=request&TrackMask;
+        position=id && entries[id-1].frames?frame%entries[id-1].frames:0;
+        return true;
     }
 
     static int readerMain(SceSize,void* arg) {
@@ -678,15 +1108,32 @@ private:
     unsigned readPcm(unsigned id,unsigned position,int16_t* samples,unsigned frames) {
         const auto phase=probePhase.load(std::memory_order_relaxed);
         auto* sample=phase==AudioProbePhase::Off?nullptr:&timings[static_cast<unsigned>(phase)];
-        const unsigned start=sample?sceKernelGetSystemTimeLow():0;
+#ifdef UCG_VICTORY_PROBE
+        const bool lossTimed=lossTimingArmed.load(std::memory_order_relaxed);
+#else
+        constexpr bool lossTimed=false;
+#endif
+        const unsigned start=sample || lossTimed?sceKernelGetSystemTimeLow():0;
+#ifdef UCG_VICTORY_PROBE
+        const bool lossMusic=entries[id].stream!=0;
+        const unsigned lossReadEpoch=lossTimed?lossStats.readBegin(id,lossMusic,start):0;
+        unsigned lossIoUs=0;
+#endif
         unsigned count=0;
         if (compact.ready()) {
-            using Bank=ucg::packed_audio::Bank<Count>;
-            Bank::IoTiming io{};
-            compact.measureIo(sample?&io:nullptr);
+            PackedBank::IoTiming io{};
             const bool music=entries[id].stream!=0;
+            const bool menu=id==static_cast<unsigned>(Sound::Menu);
+            compact.measureIo(sample || menu || lossTimed?&io:nullptr);
             count=music?compact.readMusic(id,position,samples,frames):compact.readEffect(id,position,samples,frames);
             compact.measureIo(nullptr);
+#ifdef UCG_VICTORY_PROBE
+            lossIoUs=io.microseconds;
+#endif
+            if (menu) {
+                musicInput.reserve.store(compact.musicInputReady(),std::memory_order_release);
+                musicInput.reads.fetch_add(io.calls,std::memory_order_relaxed);
+            }
             if (sample) {
                 const unsigned elapsed=sceKernelGetSystemTimeLow()-start;
                 (music?sample->musicIoCalls:sample->effectIoCalls).fetch_add(io.calls,std::memory_order_relaxed);
@@ -704,7 +1151,14 @@ private:
             fileIndex=bank;
             fileOffset=count==frames?offset+count*4:UINT32_MAX;
             if (count!=frames) std::clearerr(source);
+#ifdef UCG_VICTORY_PROBE
+            if (lossTimed) lossIoUs=sceKernelGetSystemTimeLow()-start;
+#endif
         }
+#ifdef UCG_VICTORY_PROBE
+        if (lossTimed)
+            lossStats.readEnd(lossReadEpoch,id,lossMusic,start,sceKernelGetSystemTimeLow(),lossIoUs,count!=frames);
+#endif
         if (sample) {
             recordMax(sample->readMax,sceKernelGetSystemTimeLow()-start);
             if (count!=frames) sample->readErrors.fetch_add(1,std::memory_order_relaxed);
@@ -740,57 +1194,104 @@ private:
         }
     }
 
+    bool fillEffectSlot(unsigned slot,bool emptyOnly) {
+        auto& stream=effectStreams[slot];
+        const unsigned request=stream.request.load(std::memory_order_acquire);
+        const unsigned voice=request&TrackMask;
+        if (!voice) return false;
+        const unsigned index=voice-1;
+        const auto& effect=effects[index];
+        if (request!=stream.sourceRequest) {
+            stream.sourceRequest=request;
+            stream.sourceFrame=effect.prefixFrames;
+        }
+        const auto& entry=entries[index];
+        const unsigned write=stream.produced.load(std::memory_order_relaxed);
+        const unsigned queued=write-stream.consumed.load(std::memory_order_acquire);
+        if (stream.sourceFrame==entry.frames || queued>=stream.capacity || (emptyOnly && queued))
+            return false;
+
+        auto& page=stream.pcm[write%stream.capacity];
+        const unsigned frames=std::min<unsigned>(entry.frames-stream.sourceFrame,EffectFrames);
+        const unsigned count=readPcm(index,stream.sourceFrame,page.samples,frames);
+        if (count==frames && stream.request.load(std::memory_order_acquire)==request) {
+            page.request=request;
+            page.frames=count;
+            stream.sourceFrame+=count;
+            stream.produced.store(write+1,std::memory_order_release);
+            if (slot==rankSlot && probePhase.load(std::memory_order_relaxed)==AudioProbePhase::Victory)
+                recordMax(timings[static_cast<unsigned>(AudioProbePhase::Victory)].rankPagePeak,queued+1);
+        }
+        return true;
+    }
+
     bool fillEffect(unsigned& next,bool emptyOnly) {
         for (unsigned i=0;i<effectStreamCount;++i) {
             const unsigned slot=(next+i)%effectStreamCount;
-            auto& stream=effectStreams[slot];
-            const unsigned request=stream.request.load(std::memory_order_acquire);
-            const unsigned voice=request&TrackMask;
-            if (!voice) continue;
-            const unsigned index=voice-1;
-            const auto& effect=effects[index];
-            if (request!=stream.sourceRequest) {
-                stream.sourceRequest=request;
-                stream.sourceFrame=effect.prefixFrames;
-            }
-            const auto& entry=entries[index];
-            const unsigned write=stream.produced.load(std::memory_order_relaxed);
-            const unsigned queued=write-stream.consumed.load(std::memory_order_acquire);
-            if (stream.sourceFrame==entry.frames || queued>=EffectSlots || (emptyOnly && queued))
-                continue;
-
-            auto& page=stream.pcm[write%EffectSlots];
-            const unsigned frames=std::min<unsigned>(entry.frames-stream.sourceFrame,EffectFrames);
-            const unsigned count=readPcm(index,stream.sourceFrame,page.samples,frames);
-            if (count==frames && stream.request.load(std::memory_order_acquire)==request) {
-                page.request=request;
-                page.frames=count;
-                stream.sourceFrame+=count;
-                stream.produced.store(write+1,std::memory_order_release);
-            }
+            if (!fillEffectSlot(slot,emptyOnly)) continue;
             next=(slot+1)%effectStreamCount;
             return true;
         }
         return false;
     }
 
+    bool fillUrgentLoss() {
+        if(rankSlot>=effectStreamCount) return false;
+        auto& stream=effectStreams[rankSlot];
+        if((stream.request.load(std::memory_order_acquire)&TrackMask)!=static_cast<unsigned>(Sound::Loss)+1)
+            return false;
+        const unsigned queued=stream.produced.load(std::memory_order_acquire)-
+                              stream.consumed.load(std::memory_order_acquire);
+        return queued<std::min(4u,stream.capacity) && fillEffectSlot(rankSlot,false);
+    }
+
+    bool beginMusicInputPrefetch() {
+        auto expected=XmbMusicPhase::Prepare;
+        return xmbMusicPhase.compare_exchange_strong(expected,XmbMusicPhase::Prefetch,std::memory_order_acq_rel);
+    }
+
     int readAudio() {
         unsigned current=0,position=0,nextEffect=0;
-        bool finished=false;
+        bool finished=false,boosted=false;
         while (active.load(std::memory_order_acquire)) {
             const unsigned request=requested.load(std::memory_order_acquire);
             if (request!=current) {
+                if (!trackStart(request,position)) continue;
                 compact.endMusic();
+                musicInput.reserve.store(0,std::memory_order_release);
                 current=request;
-                position=0;
                 finished=false;
+                bufferedMusicFirst.store(produced.load(std::memory_order_relaxed),std::memory_order_relaxed);
+                // Acknowledge only after endMusic has released the old decoder.
+                bufferedMusicRequest.store(request,std::memory_order_release);
             }
             const unsigned track=request&TrackMask;
             const unsigned write=produced.load(std::memory_order_relaxed);
             const unsigned queued=write-consumed.load(std::memory_order_acquire);
-            const bool music=track && entries[track-1].stream && !finished && queued<PcmSlots;
-            if (music && queued<MusicLowWater) fillMusic(request,position,finished,write);
-            else if (fillEffect(nextEffect,true) || fillEffect(nextEffect,false)) continue;
+            const bool deepReserve=isMenuTrack(request) && !holdMusic.load(std::memory_order_acquire) &&
+                                   !titleAudio.load(std::memory_order_acquire);
+            const unsigned limit=deepReserve?PcmSlots:DefaultPcmSlots;
+            const bool music=track && entries[track-1].stream && !finished && queued<limit;
+            // Like the radio reader, refill urgently when the presentation has little PCM left.
+            // The hardware output thread retains priority over the reader at all times.
+            const bool boost=titleAudio.load(std::memory_order_acquire) ||
+                (music && !holdMusic.load(std::memory_order_acquire) && queued<(boosted?5u:2u));
+            if (boost!=boosted && sceKernelChangeThreadPriority(0,boost?0x1b:0x2e)>=0)
+                boosted=boost;
+            // A music page contains twice as many frames as an effect page.
+            // Preserve the last two music pages, then refill the critical SFX
+            // before topping up music or unrelated effects. No new I/O owner.
+            if (music && queued<2) fillMusic(request,position,finished,write);
+            else if (fillUrgentLoss()) continue;
+            else if (music && queued<(deepReserve?12u:MusicLowWater)) fillMusic(request,position,finished,write);
+            else if (isMenuTrack(request) && queued>=12 &&
+                     xmbMusicInputBytes()<PackedBank::MusicInputReserve &&
+                     compact.canCacheMusic(static_cast<unsigned>(Sound::Menu)) &&
+                     beginMusicInputPrefetch()) {
+                musicInput.reserve.store(compact.cacheMusicInput(),std::memory_order_release);
+                xmbMusicPhase.store(XmbMusicPhase::Prepare,std::memory_order_release);
+            } else if (fillEffect(nextEffect,true) || fillEffectSlot(rankSlot,false) ||
+                       fillEffect(nextEffect,false)) continue;
             else if (music) fillMusic(request,position,finished,write);
             else sceKernelDelayThread(2000);
         }
@@ -894,6 +1395,24 @@ private:
         return StageCue::None;
     }
 
+    static constexpr unsigned modifierLoopBit(unsigned id) {
+        return id==static_cast<unsigned>(Sound::EndlessMissileDing)?1u:
+               id==static_cast<unsigned>(Sound::EndlessBeeSwarm)?2u:
+               id==static_cast<unsigned>(Sound::MeowlsRotate)?4u:id==333?8u:0u;
+    }
+
+    static bool loopsEffect(unsigned index,StageCue cue,bool cartLoop) {
+        switch (static_cast<Sound>(index)) {
+        case Sound::RideCoaster: return cartLoop;
+        case Sound::RideWind: return cue==StageCue::RideWind;
+        case Sound::StarstormWind: return cue==StageCue::StarstormWind;
+        case Sound::DangerSiren: return cue==StageCue::FrontierAlarm;
+        case Sound::GoalRun: return cue==StageCue::MovingGoalRun;
+        case Sound::GoalLaugh: return cue==StageCue::MovingGoalLaugh;
+        default: return false;
+        }
+    }
+
     // Only the mixer assigns a slot to a voice. The reader sees the voice and generation together.
     static void requestEffect(EffectStream& stream,unsigned voice) {
         const unsigned old=stream.request.load(std::memory_order_relaxed);
@@ -901,7 +1420,7 @@ private:
         stream.request.store(((old&~TrackMask)+TrackMask+1)|voice,std::memory_order_release);
     }
 
-    EffectStream* streamFor(unsigned index,bool restart=false) {
+    EffectStream* streamFor(unsigned index,bool restart=false,bool reservedOnly=false) {
         if (!effects[index].streamed) return nullptr;
         const unsigned assigned=voiceSlots[index];
         if (assigned<effectStreamCount) {
@@ -909,7 +1428,18 @@ private:
             if (restart) requestEffect(stream,index+1);
             return &stream;
         }
-        for (unsigned slot=0;slot<effectStreamCount;++slot) {
+        if (rankEffect(index) || index==static_cast<unsigned>(Sound::Loss)) {
+            auto& stream=effectStreams[rankSlot];
+            if (!(stream.request.load(std::memory_order_relaxed)&TrackMask)) {
+                voiceSlots[index]=rankSlot;
+                requestEffect(stream,index+1);
+                return &stream;
+            }
+            // Quiet preparation waits for the deep reserve. An actual voice
+            // keeps the old ordinary-slot fallback if a rank is still playing.
+            if(index==static_cast<unsigned>(Sound::Loss) && reservedOnly) return nullptr;
+        }
+        for (unsigned slot=0;slot<rankSlot;++slot) {
             auto& stream=effectStreams[slot];
             if (stream.request.load(std::memory_order_relaxed)&TrackMask) continue;
             voiceSlots[index]=slot;
@@ -937,7 +1467,7 @@ private:
         unsigned read=stream.consumed.load(std::memory_order_relaxed);
         const unsigned write=stream.produced.load(std::memory_order_acquire);
         while (read!=write) {
-            const auto& page=stream.pcm[read%EffectSlots];
+            const auto& page=stream.pcm[read%stream.capacity];
             if (page.request==request) return &page;
             stream.consumed.store(++read,std::memory_order_release);
         }
@@ -967,6 +1497,10 @@ private:
             samples=page->samples+offset*2;
             frames=std::min(page->frames-offset,Block);
         }
+#ifdef UCG_VICTORY_PROBE
+        if (index==static_cast<unsigned>(Sound::Loss) && frames && lossVoiceEpoch)
+            lossStats.mixed(lossVoiceEpoch,sceKernelGetSystemTimeLow());
+#endif
         if (gain==256) {
             for (unsigned i=0;i<frames*2;++i) work[i]+=samples[i];
         } else {
@@ -974,6 +1508,19 @@ private:
         }
         position+=frames;
         if (position==entries[index].frames) {
+#ifdef UCG_VICTORY_PROBE
+            if (index==static_cast<unsigned>(Sound::Loss) && lossVoiceEpoch)
+                lossStats.completed(lossVoiceEpoch,sceKernelGetSystemTimeLow());
+#endif
+            if (index==static_cast<unsigned>(Sound::ResultsBang) || rankEffect(index)) {
+                if (probePhase.load(std::memory_order_relaxed)==AudioProbePhase::Victory) {
+                    auto& sample=timings[static_cast<unsigned>(AudioProbePhase::Victory)];
+                    if (index==static_cast<unsigned>(Sound::ResultsBang))
+                        sample.resultsBangFinished.store(true,std::memory_order_relaxed);
+                    else sample.rankFinished.fetch_or(
+                        1u<<(index-static_cast<unsigned>(Sound::RankUncanny)),std::memory_order_relaxed);
+                }
+            }
             releaseStream(index);
         } else if (effect.streamed && position>effect.prefixFrames &&
                    (position-effect.prefixFrames)%EffectFrames==0) {
@@ -1032,10 +1579,16 @@ private:
         unsigned position[Count];
         for (unsigned i=0;i<Count;++i) position[i]=entries[i].frames;
         unsigned current=0,offset=0,buffer=0,previousSubmit=0,previousCue=0;
-        bool started=false,finished=false,cartLoop=false;
+        bool started=false,finished=false,cartLoop=false,phoneStaticLoop=false;
         unsigned musicFraction=0,musicPlayed=0;
         unsigned effectFraction[Count]{},effectTuning[Count]{};
+        bool primed[Count]{};
+        bool lossWarmWanted=false,observingSoundTest=false;
+        unsigned modifierLoops=0,completedBortSerial=0;
         AudioProbePhase previousPhase=AudioProbePhase::Off;
+#ifdef UCG_VICTORY_PROBE
+        unsigned previousLossEpoch=0,previousLossSubmit=0;
+#endif
         while (active.load(std::memory_order_acquire)) {
             auto& mix=buffers[buffer];
             const AudioProbePhase phase=probePhase.load(std::memory_order_relaxed);
@@ -1043,11 +1596,12 @@ private:
             const unsigned mixStart=sample?sceKernelGetSystemTimeLow():0;
             const unsigned request=requested.load(std::memory_order_acquire);
             if (request!=current) {
+                if (!trackStart(request,musicPlayed)) continue;
                 current=request;
                 started=false;
                 finished=false;
-                offset=musicFraction=musicPlayed=0;
-                musicCursor.store(0,std::memory_order_relaxed);
+                offset=musicFraction=0;
+                musicCursor.store(musicPlayed,std::memory_order_relaxed);
                 musicCursorTrack.store(request,std::memory_order_release);
             }
             const unsigned tuning=musicTuning.load(std::memory_order_relaxed);
@@ -1056,6 +1610,10 @@ private:
             const unsigned filled=step==WizardWindUnity && !musicFraction?
                 takeMusic(mix,request,offset,finished,musicPlayed):
                 takePitchedMusic(mix,request,offset,finished,musicPlayed,musicFraction,step);
+#ifdef UCG_VICTORY_PROBE
+            const bool lossMusicMissing=step && track && entries[track-1].stream && filled<Block &&
+                                        !finished && (started || filled);
+#endif
             if (track && musicPlayed>=entries[track-1].frames) {
                 const auto& entry=entries[track-1];
                 if (entry.loop) {
@@ -1069,14 +1627,34 @@ private:
                 auto& missing=started||filled?sample->underruns:sample->priming;
                 missing.fetch_add(1,std::memory_order_relaxed);
             }
+            if (phase==AudioProbePhase::Map && isMenuTrack(request) && step && (started || filled)) {
+                const unsigned reserve=menuMusicReserve();
+                if (reserve<sample->musicBufferMin.load(std::memory_order_relaxed))
+                    sample->musicBufferMin.store(reserve,std::memory_order_relaxed);
+            }
             started|=filled!=0;
             std::fill(mix+filled*2,mix+Block*2,0);
+            const bool observe=soundTestPeaks.load(std::memory_order_relaxed);
+            if (observe!=observingSoundTest) {
+                soundTestSpectrum.reset();observingSoundTest=observe;
+                musicPeakSum.store(0,std::memory_order_relaxed);
+            }
+            if (observe) {
+                unsigned left=0,right=0;
+                for (unsigned i=0;i<Block;++i) {
+                    left=std::max(left,static_cast<unsigned>(std::abs(int(mix[2*i]))));
+                    right=std::max(right,static_cast<unsigned>(std::abs(int(mix[2*i+1]))));
+                }
+                musicPeakSum.store(left+right,std::memory_order_relaxed);
+                soundTestSpectrum.feed(mix,Block);
+            }
             const unsigned ride=rideGains.load(std::memory_order_relaxed);
             const int32_t gain=(ride&511)*(tuning&GainMask)/256;
             if (gain==256) std::copy(mix,mix+Block*2,work);
             else for (unsigned i=0;i<Block*2;++i) work[i]=int32_t(mix[i])*gain/256;
             constexpr unsigned cart=static_cast<unsigned>(Sound::RideCoaster);
             constexpr unsigned wind=static_cast<unsigned>(Sound::RideWind);
+            constexpr unsigned phoneStatic=static_cast<unsigned>(Sound::PhoneStatic);
             uint32_t stops[CommandWords];
             for (unsigned i=0;i<CommandWords;++i) stops[i]=stopping[i].exchange(0,std::memory_order_relaxed);
             const unsigned cueState=stageCueCommand.load(std::memory_order_acquire);
@@ -1089,23 +1667,115 @@ private:
                 const unsigned command=pending[i].load(std::memory_order_relaxed)?
                     pending[i].exchange(0,std::memory_order_relaxed):0;
                 if (!effects[i].prefix) continue;
+                const bool stop=(stops[i/32]&(1u<<(i%32))) ||
+                    (i==static_cast<unsigned>(Sound::Loss) && command==StopLossEffect);
+                if (!command && !stop && !cueChanged) continue;
                 const auto cue=cueFor(i);
                 if (cue!=StageCue::None && cueChanged) {
                     effectFraction[i]=effectTuning[i]=0;
                     setEffect(i,position[i],cue==activeCue);
                 }
-                if (stops[i/32]&(1u<<(i%32))) {
-                    if (i==cart) cartLoop=false;
+                if(i==static_cast<unsigned>(Sound::Loss) && command==ResetPrimeEffect) {
+#ifdef UCG_VICTORY_PROBE
+                    if(lossVoiceEpoch && position[i]<entries[i].frames)
+                        lossStats.stopped(lossVoiceEpoch,sceKernelGetSystemTimeLow());
+                    lossVoiceEpoch=0;
+#endif
                     setEffect(i,position[i],false);
+                    effectFraction[i]=effectTuning[i]=0;
+                    primed[i]=false;
+                    lossWarmWanted=true;
+                    continue;
+                }
+                if (stop) {
+#ifdef UCG_VICTORY_PROBE
+                    if(i==static_cast<unsigned>(Sound::Loss)) {
+                        if(lossVoiceEpoch && position[i]<entries[i].frames)
+                            lossStats.stopped(lossVoiceEpoch,sceKernelGetSystemTimeLow());
+                        lossVoiceEpoch=0;
+                    }
+#endif
+                    if(i==static_cast<unsigned>(Sound::Loss)) lossWarmWanted=false;
+                    if (i==cart) cartLoop=false;
+                    if (i==phoneStatic) phoneStaticLoop=false;
+                    modifierLoops&=~modifierLoopBit(i);
+                    setEffect(i,position[i],false);
+                    primed[i]=false;
                     continue;
                 }
                 if (cue!=StageCue::None && cuePaused) continue;
+                if (command&0x80000000u) {
+                    effectTuning[i]=command&0x7fffffffu;
+                    if (position[i]==entries[i].frames) {
+                        if (entries[i].loop) modifierLoops|=modifierLoopBit(i);
+                        setEffect(i,position[i],true);
+                    }
+                    continue;
+                }
+                if (command==PrimeEffect) {
+                    if(i==static_cast<unsigned>(Sound::Loss)) {
+                        if(position[i]==entries[i].frames && !primed[i]) lossWarmWanted=true;
+                        continue;
+                    }
+                    if (rankEffect(i)) {
+                        // Results take precedence over quiet Loss preparation
+                        // posted in the same mixer block.
+                        lossWarmWanted=false;
+                        const unsigned oldRank=(effectStreams[rankSlot].request.load(std::memory_order_relaxed)&TrackMask)-1;
+                        if (oldRank<Count && oldRank!=i && primed[oldRank] && position[oldRank]==entries[oldRank].frames) {
+                            releaseStream(oldRank);
+                            primed[oldRank]=false;
+                        }
+                    }
+                    if (position[i]==entries[i].frames) primed[i]=streamFor(i)!=nullptr;
+                    continue;
+                }
                 if (command &&
                     (i!=static_cast<unsigned>(Sound::Push) || position[i]==entries[i].frames)) {
+#ifdef UCG_VICTORY_PROBE
+                    if (i==static_cast<unsigned>(Sound::Loss)) {
+                        lossVoiceEpoch=lossCommandEpoch.load(std::memory_order_acquire);
+                        if (lossVoiceEpoch) lossStats.started(lossVoiceEpoch,sceKernelGetSystemTimeLow());
+                    }
+#endif
                     if (i==cart) cartLoop=true;
+                    if (i==phoneStatic) phoneStaticLoop=true;
+                    if (i==static_cast<unsigned>(Sound::BortCongrats)) ++completedBortSerial;
+                    if (entries[i].loop) modifierLoops|=modifierLoopBit(i);
                     effectFraction[i]=0;
                     effectTuning[i]=command==PlainEffect?0:command;
-                    setEffect(i,position[i],true);
+                    if (phase==AudioProbePhase::Map || phase==AudioProbePhase::Victory)
+                        sample->effectStarted[i].fetch_add(1,std::memory_order_relaxed);
+                    if (primed[i]) {
+                        position[i]=0;
+                        primed[i]=false;
+                    } else setEffect(i,position[i],true);
+                    if(i==static_cast<unsigned>(Sound::Loss)) {
+                        lossWarmWanted=false;
+#ifdef UCG_VICTORY_PROBE
+                        const unsigned slot=voiceSlots[i];
+                        if(lossVoiceEpoch && slot<effectStreamCount) {
+                            auto& stream=effectStreams[slot];
+                            effectPage(stream); // Discard any stale-generation pages first.
+                            const unsigned queued=stream.produced.load(std::memory_order_acquire)-
+                                                  stream.consumed.load(std::memory_order_relaxed);
+                            lossStats.prepared(lossVoiceEpoch,std::min(queued,stream.capacity),stream.capacity);
+                        }
+#endif
+                    }
+                }
+            }
+
+            if(lossWarmWanted) {
+                constexpr unsigned loss=static_cast<unsigned>(Sound::Loss);
+                const unsigned old=(effectStreams[rankSlot].request.load(std::memory_order_relaxed)&TrackMask)-1;
+                if(old<Count && old!=loss && primed[old] && position[old]==entries[old].frames) {
+                    releaseStream(old);
+                    primed[old]=false;
+                }
+                if(position[loss]==entries[loss].frames && streamFor(loss,false,true)) {
+                    primed[loss]=true;
+                    lossWarmWanted=false;
                 }
             }
 
@@ -1114,8 +1784,44 @@ private:
             const bool policeWaiting=activeCue==StageCue::Police && !cuePaused &&
                 (!effectReady(spot,position[spot]) || !effectReady(siren,position[siren]));
             bool effectMissing=policeWaiting;
+            const auto markMissing=[&](unsigned id) {
+                if (sample) sample->lastMissingEffect.store(id+1,std::memory_order_relaxed);
+                if (phase==AudioProbePhase::Map || phase==AudioProbePhase::Victory) sample->effectMissing[id].fetch_add(1,std::memory_order_relaxed);
+#ifdef UCG_VICTORY_PROBE
+                if (id==static_cast<unsigned>(Sound::Loss) && lossVoiceEpoch) {
+                    const unsigned slot=voiceSlots[id];
+                    const unsigned pages=slot<effectStreamCount?
+                        effectStreams[slot].produced.load(std::memory_order_acquire)-
+                        effectStreams[slot].consumed.load(std::memory_order_relaxed):UINT32_MAX;
+                    lossStats.missing(lossVoiceEpoch,sceKernelGetSystemTimeLow(),position[id],pages);
+                }
+#endif
+            };
+            if (policeWaiting && phase==AudioProbePhase::Map) {
+                if (!effectReady(spot,position[spot])) markMissing(spot);
+                if (!effectReady(siren,position[siren])) markMissing(siren);
+            }
+            const auto buses=userBuses.load(std::memory_order_relaxed);
+            bool appearanceCaptured=false;
+            constexpr unsigned appearanceFirst=static_cast<unsigned>(Sound::EndlessAppear);
+            constexpr unsigned appearanceLast=static_cast<unsigned>(Sound::EndlessRadAppear);
+            static_assert(appearanceFirst==362 && appearanceLast==363 && static_cast<unsigned>(Sound::EndlessModActive)==364 && Count==371);
+            const bool pauseBortEffects=bortPaused.load(std::memory_order_relaxed);
+            const bool pauseDashEffects=dashPaused.load(std::memory_order_relaxed);
             for (unsigned i=0;i<Count;++i) {
+                // Freeze only the two Music-bus appearances before later Sounds cues.
+                if (i==appearanceLast+1)
+                    AppearanceMusicBus::finish(work,appearanceMusic,Block*2,appearanceCaptured);
                 if (!effects[i].prefix) continue;
+                const bool phoneLoop=i==phoneStatic && phoneStaticLoop;
+                const bool modifierLoop=modifierLoops&modifierLoopBit(i);
+                const bool loop=phoneLoop || modifierLoop || loopsEffect(i,activeCue,cartLoop);
+                const bool ended=position[i]==entries[i].frames;
+                if (ended && !loop) continue;
+                if (pauseBortEffects && i>=static_cast<unsigned>(Sound::BortOw) &&
+                    i<=static_cast<unsigned>(Sound::BortLose)) continue;
+                if (pauseDashEffects && i>=static_cast<unsigned>(Sound::DashJump) &&
+                    i<=static_cast<unsigned>(Sound::DashDeath)) continue;
                 const auto cue=cueFor(i);
                 if ((cue!=StageCue::None && (cuePaused || (cue==StageCue::Police && policeWaiting))) ||
                     ((i==static_cast<unsigned>(Sound::CoasterFlyby) ||
@@ -1123,10 +1829,7 @@ private:
                      i==static_cast<unsigned>(Sound::CoasterFlyby312) ||
                      i==static_cast<unsigned>(Sound::RideCoaster)) && cuePaused)) continue;
                 const bool windEffect=i==wind || i==static_cast<unsigned>(Sound::StarstormWind);
-                const bool loop=(i==cart && cartLoop) || (windEffect && activeCue==cue) ||
-                    (i==static_cast<unsigned>(Sound::DangerSiren) && activeCue==StageCue::FrontierAlarm) ||
-                    ((cue==StageCue::MovingGoalRun || cue==StageCue::MovingGoalLaugh) && activeCue==cue);
-                if (loop && position[i]==entries[i].frames) setEffect(i,position[i],true);
+                if (ended) setEffect(i,position[i],true);
                 constexpr unsigned horn1=static_cast<unsigned>(Sound::CarHorn1);
                 constexpr unsigned horn2=static_cast<unsigned>(Sound::CarHorn2);
                 constexpr unsigned hornGain=81; // Authored -10 dB in Q8.
@@ -1134,16 +1837,33 @@ private:
                 const unsigned effectGain=tuning?tuning&GainMask:i==cart?(ride>>9)&511:windEffect?(ride>>18)&511:
                     (i==horn1 || i==horn2)?hornGain:cue==StageCue::MovingGoalRun?102:256;
                 const unsigned pitch=windEffect && loop && windStep?windStep:tuning>>GainBits;
-                if ((windEffect && loop && windStep) || (pitch && pitch!=WizardWindUnity)) {
-                    if (!mixPitchedEffect(i,position[i],effectFraction[i],pitch,effectGain,loop))
-                        effectMissing=true;
-                } else if (!mixEffect(i,position[i],effectGain)) effectMissing=true;
+                if (buses!=UserAudioBuses::Unity && i>=appearanceFirst && i<=appearanceLast)
+                    AppearanceMusicBus::capture(buses,true,work,appearanceMusic,Block*2,appearanceCaptured);
+                if (phoneLoop || modifierLoop || (windEffect && loop && windStep) || (pitch && pitch!=WizardWindUnity)) {
+                    if (mixPitchedEffect(i,position[i],effectFraction[i],pitch?pitch:WizardWindUnity,effectGain,loop)) continue;
+                } else if (mixEffect(i,position[i],effectGain)) continue;
+                effectMissing=true;
+                markMissing(i);
             }
             if (sample && effectMissing) sample->effectUnderruns.fetch_add(1,std::memory_order_relaxed);
+#ifdef UCG_TEST_DASH
+            for (unsigned i=0;i<4;++i)
+                dashEffectCursor[i].store(position[static_cast<unsigned>(Sound::DashJump)+i],std::memory_order_relaxed);
+#endif
+            bortCursor[0].store(position[static_cast<unsigned>(Sound::BortCongrats)],std::memory_order_relaxed);
+            bortCursor[1].store(position[static_cast<unsigned>(Sound::BortLose)],std::memory_order_relaxed);
+            bortSerial.store(completedBortSerial,std::memory_order_release);
+            constexpr unsigned bortOw=static_cast<unsigned>(Sound::BortOw);
+            bortVoices.mix(effects[bortOw].prefix,entries[bortOw].frames,work,Block,pauseBortEffects);
             ringTimers.mix(ringVoices,work,Block,cuePaused);
             bool nonzero=false;
             for (unsigned i=0;i<Block*2;++i) {
-                mix[i]=static_cast<int16_t>(std::clamp<int32_t>(work[i],-32768,32767));
+                // At unity this is the exact original sample/clamp path.
+                const int32_t value=buses==UserAudioBuses::Unity?work[i]:UserAudioBuses::combine(
+                    work[i],AppearanceMusicBus::musicSample(
+                        gain==256?int32_t(mix[i]):int32_t(mix[i])*gain/256,
+                        appearanceMusic[i],appearanceCaptured),buses);
+                mix[i]=static_cast<int16_t>(std::clamp<int32_t>(value,-32768,32767));
                 nonzero|=mix[i]!=0;
             }
             sceKernelDcacheWritebackRange(mix,sizeof mix);
@@ -1160,7 +1880,22 @@ private:
                 sample->blocks.fetch_add(1,std::memory_order_relaxed);
             }
             previousPhase=phase;
+#ifdef UCG_VICTORY_PROBE
+            const unsigned submitEpoch=lossStats.token();
+            if (submitEpoch) {
+                const unsigned now=sceKernelGetSystemTimeLow();
+                const unsigned gap=previousLossEpoch==submitEpoch?now-previousLossSubmit:0;
+                constexpr unsigned blockUs=Block*1000000u/44100u;
+                lossStats.block(submitEpoch,gap,gap>blockUs+2000,lossMusicMissing,effectMissing);
+                lossStats.submitted(lossVoiceEpoch,now);
+                previousLossEpoch=submitEpoch;
+                previousLossSubmit=now;
+            }
+#endif
             const int result=sceAudioOutputBlocking(channel,PSP_AUDIO_VOLUME_MAX,mix);
+#ifdef UCG_VICTORY_PROBE
+            if (result<0 && submitEpoch) lossStats.outputError(submitEpoch,result);
+#endif
             if (result<0) {
                 if (sample) sample->outputError.store(result,std::memory_order_relaxed);
                 active.store(false,std::memory_order_release);

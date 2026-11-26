@@ -41,3 +41,4 @@ bool loadRhythmArt050(const char* executable,unsigned index) {
         return loadVramAtlas045(cosmicPortalArt611,assetPath(executable,"cosmic-portals-6_11.pak"),CosmicPortalOffset611);
     return true;
 }
+

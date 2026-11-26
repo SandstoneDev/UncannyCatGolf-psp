@@ -31,3 +31,4 @@ void drawCosmicPortals608(const GameplayView& view,unsigned tick) {
         sceGuDrawArray(GU_TRIANGLE_STRIP,GU_TEXTURE_32BITF|GU_COLOR_8888|GU_VERTEX_32BITF|GU_TRANSFORM_2D,4,nullptr,vertices);
     }
 }
+

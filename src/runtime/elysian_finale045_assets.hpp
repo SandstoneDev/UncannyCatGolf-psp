@@ -167,3 +167,4 @@ bool loadFinaleCourse045(const char* executable,unsigned index) {
     }
     return true;
 }
+

@@ -1,4 +1,5 @@
 #pragma once
+#include "actor_pronouns054.hpp"
 
 #include "game.hpp"
 
@@ -54,6 +55,7 @@ struct MultiDogUpdate {
 
 class MultiDogRun {
 public:
+    ActorPronouns054::Tag labels[DogCourseStage::MaxDogs]{};
     CircleCollider bodies[DogCourseStage::MaxDogs]{};
     Vec2 velocities[DogCourseStage::MaxDogs]{};
     float graphicScales[DogCourseStage::MaxDogs]{};
@@ -66,6 +68,7 @@ public:
         for (unsigned i=0;i<stage.dogCount;++i) {
             const auto& dog=stage.dogs[i];
             bodies[i]={dog.center,dog.radius};
+            labels[i]=ActorPronouns054::session.ready(ActorPronouns054::Kind::Dog);
             velocities[i]=dog.velocity;
             graphicScales[i]=dog.graphicScale;
         }
@@ -192,3 +195,4 @@ private:
         recovering[index]=dot(overlap,overlap)>1.0e-8f;
     }
 };
+

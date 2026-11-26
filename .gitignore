@@ -4,3 +4,10 @@
 *.cso
 *.log
 *.sav.*
+
+/src/editor-runtime/build/
+/src/dist/
+*.pbp
+*.elf
+*.prx
+*.o

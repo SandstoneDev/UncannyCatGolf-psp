@@ -1,4 +1,5 @@
 #pragma once
+#include "fake_thinker057.hpp"
 
 constexpr unsigned FrontierPropsOffset1617=48*1024;
 constexpr unsigned FrontierLightsOffset1617=176*1024;
@@ -45,12 +46,18 @@ void drawFrontierEnemies416(const GameplayView& view,const Round& round) {
     draw(FrontierSpawnDoorPatch416+skulls.doorFrame(round.ticks),FrontierSkullSpawner416);
     draw(FrontierSpawnDoorPatch416+chuckles.spawnerFrame(round.ticks,0),FrontierChuckleSpawners416[0].center);
     for (unsigned i=0;i<cars.count;++i) {
+        if (cars.alive(i)) ActorLabelDraw054::add(cars.labels[i],view,cars.center(i),ActorPronouns054::Kind::Baddie);
+        else if (cars.defeatedAt[i] && round.ticks-cars.defeatedAt[i]<50) ActorLabelDraw054::add(cars.labels[i],view,cars.center(i),ActorPronouns054::Kind::Baddie);
         if (cars.alive(i)) draw(FrontierCarPatch416+(cars.velocities[i].y>0),cars.center(i));
     }
     for (unsigned i=0;i<skulls.count;++i) {
+        if (skulls.bodies[i].radius>0) ActorLabelDraw054::add(skulls.labels[i],view,skulls.bodies[i].center,ActorPronouns054::Kind::Baddie);
+        else if (skulls.defeatedAt[i] && round.ticks-skulls.defeatedAt[i]<50) ActorLabelDraw054::add(skulls.labels[i],view,skulls.bodies[i].center,ActorPronouns054::Kind::Baddie);
         if (skulls.bodies[i].radius>0) draw(FrontierSkullPatch416+round.ticks*24/60%24,skulls.bodies[i].center);
     }
     for (unsigned i=0;i<chuckles.count;++i) {
+        if (chuckles.bodies[i].radius>0) ActorLabelDraw054::add(chuckles.labels[i],view,chuckles.bodies[i].center,ActorPronouns054::Kind::Baddie);
+        else if (chuckles.defeatedAt[i] && round.ticks-chuckles.defeatedAt[i]<50) ActorLabelDraw054::add(chuckles.labels[i],view,chuckles.defeatedPosition[i],ActorPronouns054::Kind::Baddie);
         if (chuckles.bodies[i].radius>0)
             draw(FrontierChucklePatch416+chuckles.actorTick(i,round.ticks)/2%25,chuckles.bodies[i].center);
     }
@@ -151,9 +158,14 @@ void drawFrontierThinker417(const Round& round) {
     const GameplayView view(round.scene,ViewX);
     const auto center=round.finale417.finalGhostActive?view.position(round.finale417.finalGhost.position):
                                                       Vec2{ViewX+204*17.0f/32,468*17.0f/32};
+    // FakeThinker._ready binds Master.costume (including material), not ghost_costume.
+    sceGuScissor(ViewX,0,ViewX+132,Height);
+    if (FakeThinker057::drawSelected(center.x,center.y)) {
+        sceGuScissor(0,0,Width,Height);
+        return;
+    }
     const auto& art=visual.cat;
     const float scale=(88*17.0f/32)/art.width;
-    sceGuScissor(ViewX,0,ViewX+132,Height);
     setTexture(GU_PSM_8888,ActorsWidth,ActorsHeight,actors);
     patch(art,center.x+art.x*scale,center.y+art.y*scale,scale);
     sceGuScissor(0,0,Width,Height);

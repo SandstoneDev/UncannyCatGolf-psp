@@ -1,4 +1,5 @@
 #pragma once
+#include "fake_thinker057.hpp"
 
 uint32_t shadeHurrah053(const Round& round) {
     return round.lastHurrah.revealed?CosmicTrapTint617:White;
@@ -6,6 +7,7 @@ uint32_t shadeHurrah053(const Round& round) {
 
 void prepareCosmicDraw053(const Round& round,bool) {
     const unsigned course=currentCourse-CosmicSixteenthCourse;
+    if (course>=std::size(cosmicLayers053)) return;
     auto& bank=cosmicLayers053[course];
     auto* scratch=reinterpret_cast<uint8_t*>(fallbackPage)+ResultScratchOffset;
     auto* memory=goalFlags.scratch()+CosmicLayersRamOffset053;
@@ -245,6 +247,7 @@ void drawCosmicProps053(const GameplayView& view,const Round& round,bool result)
         actor(view,cosmicProps617.patch(CosmicDoghouse617+round.ticks/6%11),CosmicDog617.goal,1,shade);
         if (!chillMode && !round.game.won) {
             actor(view,cosmicProps617.patch(CosmicFinalGhostPatch617),round.lastHurrah.hunter.position,1,shade);
+            ActorLabelDraw054::add(round.lastHurrah.hunter.label,view,round.lastHurrah.hunter.position,ActorPronouns054::Kind::Ghost);
             Vec2 atScreen;
             if (view.ghostIndicator(round.lastHurrah.hunter.position,atScreen))
                 actor(view,cosmicProps617.patch(CosmicGhostPointer617),atScreen);
@@ -265,6 +268,7 @@ void drawCosmicProps053(const GameplayView& view,const Round& round,bool result)
             setFrontierTexture(frontierDogArt);
             actor(view,frontierDogArt.patch(11),round.dog.body.center,
                   view.worldZoom()*round.dog.graphicScale/CosmicDog617.graphicScale,shade);
+                  ActorLabelDraw054::add(round.dog.label,view,round.dog.body.center,ActorPronouns054::Kind::Dog);
         }
         if (!result) {
             auto* memory=vram045(CosmicRingOffset053);
@@ -296,6 +300,34 @@ void drawHurrahLights053(const GameplayView& view,const Round& round) {
     sceGuBlendFunc(GU_ADD,GU_SRC_ALPHA,GU_ONE_MINUS_SRC_ALPHA,0,0);
 }
 
+void drawHurrahThinker053(const Round& round) {
+    if (!cosmicProps617.texture()) return;
+    Vec2 at{108,249};
+    if (round.lastHurrah.hunterActive) {
+        const auto p=round.lastHurrah.hunter.position;
+        at={(256+(p.x+round.scene.right)*256/round.scene.right)*GameplayView::RasterScale,
+            ((p.y+round.scene.bottom)*256/round.scene.bottom)*GameplayView::RasterScale};
+    }
+    sceGuScissor(ViewX,0,ViewX+132,Height);
+    // P_17's FakeThinker has the same selected-player binding as4_17.
+    // Its script moves the sprite only after FinalGhost becomes active.
+    const Vec2 costumeAt=round.lastHurrah.hunterActive?at:
+        Vec2{204*GameplayView::RasterScale,468*GameplayView::RasterScale};
+    if (FakeThinker057::drawSelected(ViewX+costumeAt.x,costumeAt.y)) {
+        sceGuScissor(0,0,Width,Height);
+        return;
+    }
+    // Preserve the previous default/not-ready fallback cull exactly.
+    if (at.x<-30 || at.x>170 || at.y<-30 || at.y>302) {
+        sceGuScissor(0,0,Width,Height);
+        return;
+    }
+    bindProps053(cosmicProps617);
+    const auto& sprite=cosmicProps617.patch(CosmicFakeThinker617);
+    patch(sprite,ViewX+at.x+sprite.x,at.y+sprite.y);
+    sceGuScissor(0,0,Width,Height);
+}
+
 void drawHurrahHud053(const Round& round) {
     if (!cosmicProps617.texture()) return;
     if (round.smiley.everStarted && cosmicUfo617.texture()) {
@@ -309,16 +341,5 @@ void drawHurrahHud053(const Round& round) {
             sceGuScissor(0,0,Width,Height);
         }
     }
-    Vec2 at{108,249};
-    if (round.lastHurrah.hunterActive) {
-        const auto p=round.lastHurrah.hunter.position;
-        at={(256+(p.x+round.scene.right)*256/round.scene.right)*GameplayView::RasterScale,
-            ((p.y+round.scene.bottom)*256/round.scene.bottom)*GameplayView::RasterScale};
-    }
-    if (at.x<-30 || at.x>170 || at.y<-30 || at.y>302) return;
-    sceGuScissor(ViewX,0,ViewX+132,Height);
-    bindProps053(cosmicProps617);
-    const auto& sprite=cosmicProps617.patch(CosmicFakeThinker617);
-    patch(sprite,ViewX+at.x+sprite.x,at.y+sprite.y);
-    sceGuScissor(0,0,Width,Height);
+    drawHurrahThinker053(round);
 }

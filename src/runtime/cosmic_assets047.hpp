@@ -4,3 +4,4 @@ ParkPatchBank<CosmicBlocks605Width,CosmicBlocks605Height,CosmicBlocks605Count> c
 ParkPatchBank<CosmicWeather605Width,CosmicWeather605Height,CosmicWeather605Count> starstormWeather047;
 std::string starstormWeatherPath047;
 unsigned starstormWeatherGeneration047=0;
+

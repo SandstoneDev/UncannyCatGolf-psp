@@ -101,8 +101,8 @@ class ParkSwitchOverlay {
 public:
     static constexpr unsigned Side=256, States=2;
 
-    bool load(const std::string& filename) {
-        if (path==filename) return true;
+    bool load(const std::string& filename,uint16_t* video=nullptr) {
+        if (path==filename && borrowed==video) return true;
         const auto file=openAssetFile(filename.c_str());
         uint32_t header[2]{};
         Patch next[States]{};
@@ -117,6 +117,8 @@ public:
                 p.x+p.width>272 || p.y+p.height>272) return false;
         }
         std::copy(std::begin(next),std::end(next),art);
+        if (video) pixels.reset();
+        borrowed=video;
         path=filename;
         cached=States;
         return true;
@@ -124,6 +126,7 @@ public:
 
     void unload() {
         pixels.reset();
+        borrowed=nullptr;
         path.clear();
         cached=States;
     }
@@ -131,22 +134,33 @@ public:
     const uint16_t* frame(unsigned state,Patch& patch) {
         if (state>=States || path.empty()) return nullptr;
         if (cached!=state) {
-            if (!pixels) pixels.reset(static_cast<uint16_t*>(memalign(64,TextureBytes)));
+            if (!borrowed && !pixels) pixels.reset(static_cast<uint16_t*>(memalign(64,TextureBytes)));
             const auto file=openAssetFile(path.c_str());
             cached=States;
-            if (!pixels || !file || std::fseek(file.get(),DataOffset+state*TextureBytes,SEEK_SET)!=0 ||
-                std::fread(pixels.get(),TextureBytes,1,file.get())!=1) return nullptr;
-            sceKernelDcacheWritebackRange(pixels.get(),TextureBytes);
+            if ((!borrowed && !pixels) || !file ||
+                std::fseek(file.get(),DataOffset+state*TextureBytes,SEEK_SET)!=0) return nullptr;
+            if (borrowed) {
+                auto* target=reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(borrowed)|0x40000000u);
+                alignas(64) uint8_t chunk[4096];
+                for (unsigned offset=0;offset<TextureBytes;offset+=sizeof chunk) {
+                    if (std::fread(chunk,sizeof chunk,1,file.get())!=1) return nullptr;
+                    std::memcpy(target+offset,chunk,sizeof chunk);
+                }
+            } else {
+                if (std::fread(pixels.get(),TextureBytes,1,file.get())!=1) return nullptr;
+                sceKernelDcacheWritebackRange(pixels.get(),TextureBytes);
+            }
             cached=state;
         }
         patch=art[state];
-        return pixels.get();
+        return borrowed?borrowed:pixels.get();
     }
 
 private:
     static constexpr unsigned TextureBytes=Side*Side*sizeof(uint16_t);
     static constexpr unsigned DataOffset=2*sizeof(uint32_t)+States*sizeof(Patch);
     std::unique_ptr<uint16_t,ParkFreePixels> pixels;
+    uint16_t* borrowed=nullptr;
     Patch art[States]{};
     std::string path;
     unsigned cached=States;

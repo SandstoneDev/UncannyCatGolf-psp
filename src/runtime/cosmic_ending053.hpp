@@ -172,6 +172,8 @@ void drawStage(unsigned visualMs) {
 }
 
 void drawCanny(float x,float y,bool ghost=false,bool flip=false) {
+    // final_results.gd binds Canny1/Uncanny2 to player, Uncanny1 to ghost.
+    if (Costumes054::drawScreenActor056(ghost,Left+(x-256)*Scale,y*Scale,1,White,flip)) {setAtlas();return;}
     sprite(ghost?13:12,(x-256)*Scale,y*Scale,White,flip);
 }
 }

@@ -1,6 +1,8 @@
 #pragma once
+#include "actor_pronouns054.hpp"
 
 #include "game.hpp"
+#include "swarm_peer_grid066.hpp"
 
 #include <iterator>
 
@@ -19,6 +21,7 @@ struct ChuckleRun {
 
     CircleCollider bodies[SwarmCapacity]{};
     Vec2 velocities[SwarmCapacity]{};
+    ActorPronouns054::Tag labels[SwarmCapacity]{};
     unsigned defeatedAt[SwarmCapacity]{};
     Vec2 defeatedPosition[SwarmCapacity]{};
     unsigned count=0,bonus=0,defeatedCount=0;
@@ -47,7 +50,10 @@ struct ChuckleRun {
         *this={};
         despawn=despawnDistance;
         count=positions?std::min(size,Capacity):0;
-        for (unsigned i=0;i<count;++i) bodies[i]={positions[i],Radius};
+        for (unsigned i=0;i<count;++i) {
+            bodies[i]={positions[i],Radius};
+            labels[i]=ActorPronouns054::session.ready(ActorPronouns054::Kind::Baddie);
+        }
     }
 
     void startSpawners(const ChuckleSpawner* spawners,unsigned size,float despawnDistance,bool swarm=false) {
@@ -85,6 +91,9 @@ struct ChuckleRun {
               const CircleCollider* skulls=nullptr,unsigned skullCount=0,
               const CircleCollider* dogs=nullptr,unsigned dogCount=0,
               WallContact (*otherWalls)(Vec2,Vec2,float)=nullptr) {
+        const bool optimizeSwarm=swarmEnabled && count>=32;
+        SwarmPeerGrid066 peerGrid;
+        if (optimizeSwarm) peerGrid.build(bodies,count);
         const auto sweepSolids=[&](Vec2 center,Vec2 motion,float radius) {
             auto contact=walls.sweep(center,motion,radius);
             if (otherWalls) {
@@ -109,12 +118,14 @@ struct ChuckleRun {
         for (unsigned i=0;i<count;++i) {
             auto& body=bodies[i];
             if (body.radius<=0) continue;
+            const Vec2 indexedCenter=body.center;
             if (std::max(std::abs(body.center.x),std::abs(body.center.y))>despawn) {
+                peerGrid.remove(i,indexedCenter);
                 body.radius=0;
                 continue;
             }
             if (spawnEnabled || swarmEnabled) {
-                const Vec2 correction=peerCorrection(i);
+                const Vec2 correction=peerCorrection(i,optimizeSwarm);
                 if (dot(correction,correction)>0) {
                     const auto contact=sweepSolids(body.center,correction,body.radius);
                     body.center=body.center+correction*std::min(1.0f,contact.time);
@@ -128,26 +139,39 @@ struct ChuckleRun {
             if (speed>MaxSpeed) velocity=velocity*(MaxSpeed/speed);
             const Vec2 motion=velocity*(1.0f/60.0f);
             auto contact=sweepSolids(body.center,motion,body.radius);
-            for (unsigned j=0;j<count;++j) {
-                if (j==i) continue;
+            const auto sweepPeer=[&](unsigned j) {
+                if (j==i) return;
                 if (swarmEnabled) {
                     const Vec2 gap=body.center-bodies[j].center;
                     constexpr float reach=2*Radius+MaxSpeed/60.0f;
-                    if (std::abs(gap.x)>reach || std::abs(gap.y)>reach) continue;
+                    if (std::abs(gap.x)>reach || std::abs(gap.y)>reach) return;
                 }
                 sweepCircle(bodies[j],body.center,motion,body.radius,contact);
+            };
+            SwarmPeerGrid066::Mask peers;
+            if (peerGrid.query(body.center,peers)) {
+                peers.each(sweepPeer);
+            } else {
+                for (unsigned j=0;j<count;++j) sweepPeer(j);
             }
             body.center=body.center+motion*std::min(contact.time,1.0f);
             if (contact.time<=1.0f)
                 velocity=velocity-contact.normal*(2.0f*dot(velocity,contact.normal));
+            peerGrid.update(i,indexedCenter,body.center);
         }
         if (spawnerVisible()) ++spawnTick;
         if (spawnEnabled && spawnTick>=nextSpawnAt) spawn();
+        unsigned sourceLive[MaxSpawners]{};
+        if (optimizeSwarm && sourceCount) {
+            for (unsigned i=0;i<count;++i)
+                if (bodies[i].radius>0 && owner[i]<sourceCount) ++sourceLive[owner[i]];
+        }
         for (unsigned source=0;source<sourceCount;++source) {
             if (spawnTick<nextSourceSpawn[source]) continue;
             const auto& config=sources[source];
-            unsigned live=0;
-            for (unsigned i=0;i<count;++i) live+=owner[i]==source && bodies[i].radius>0;
+            unsigned live=optimizeSwarm?sourceLive[source]:0;
+            if (!optimizeSwarm)
+                for (unsigned i=0;i<count;++i) live+=owner[i]==source && bodies[i].radius>0;
             if (live>=config.limit) continue;
             const unsigned slots=swarmEnabled?SwarmCapacity:SpawnerSlots;
             for (unsigned i=0;i<slots;++i) {
@@ -157,6 +181,7 @@ struct ChuckleRun {
                 defeatedAt[i]=0;
                 owner[i]=source;
                 bornAt[i]=spawnTick;
+                labels[i]=ActorPronouns054::session.ready(ActorPronouns054::Kind::Baddie);
                 unsigned& openedAt=sourceOpenedAt[source];
                 if (!swarmEnabled || !openedAt || spawnTick-openedAt>=SpawnerOpenTicks)
                     openedAt=spawnTick;
@@ -189,7 +214,7 @@ private:
     unsigned spawnTick=0,nextSpawnAt=FirstSpawnTick,lastSpawnAt=0;
     unsigned bornAt[SwarmCapacity]{};
 
-    Vec2 peerCorrection(unsigned index) const {
+    Vec2 peerCorrection(unsigned index,bool rejectSeparated=false) const {
         // The spawner may place a body on top of a surviving Chuckle.
         const auto& body=bodies[index];
         Vec2 correction{};
@@ -197,6 +222,7 @@ private:
             if (j==index || bodies[j].radius<=0) continue;
             const float clearance=body.radius+bodies[j].radius;
             const Vec2 delta=body.center+correction-bodies[j].center;
+            if (rejectSeparated && (std::abs(delta.x)>clearance || std::abs(delta.y)>clearance)) continue;
             const float squared=dot(delta,delta);
             if (squared>=clearance*clearance) continue;
             const float distance=std::sqrt(squared);
@@ -212,6 +238,7 @@ private:
             bodies[i]={SpawnerCenter,Radius};
             velocities[i]={};
             bornAt[i]=spawnTick;
+            labels[i]=ActorPronouns054::session.ready(ActorPronouns054::Kind::Baddie);
             count=std::max(count,i+1);
             lastSpawnAt=spawnTick;
             nextSpawnAt=spawnTick+SpawnInterval;

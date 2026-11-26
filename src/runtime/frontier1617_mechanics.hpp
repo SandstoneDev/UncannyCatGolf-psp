@@ -1,4 +1,5 @@
 #pragma once
+#include "actor_pronouns054.hpp"
 
 #include "world4_mechanics035.hpp"
 #include "portal.hpp"
@@ -17,6 +18,7 @@ struct FrontierSkullRun416 {
     static constexpr float Speed=125.0f, Radius=16.0f;
     CircleCollider bodies[Capacity]{};
     Vec2 velocities[Capacity]{};
+    ActorPronouns054::Tag labels[Capacity]{};
     unsigned defeatedAt[Capacity]{},count=0,openedAt=0,defeatedCount=0;
 
     void restart() { *this={}; }
@@ -71,6 +73,7 @@ struct FrontierSkullRun416 {
             if (bodies[i].radius>0) continue;
             constexpr float diagonal=-Speed*0.7071067812f;
             bodies[i]={FrontierSkullSpawner416,Radius};
+            labels[i]=ActorPronouns054::session.ready(ActorPronouns054::Kind::Baddie);
             velocities[i]={diagonal,diagonal};
             defeatedAt[i]=0;
             count=std::max(count,i+1);
@@ -215,3 +218,4 @@ inline bool stepFrontierGhosts417(GhostMotion& primary,GhostMotion* extras,unsig
     const float radius=playerRadius+FrontierFinalGhostHitRadius417;
     return caughtByPeer || dot(gap,gap)<=radius*radius;
 }
+

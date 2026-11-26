@@ -1,0 +1,5 @@
+/src/runtime/** -text
+/src/editor-runtime/** -text
+/src/xmb/** -text
+*.md text eol=lf
+*.sh text eol=lf

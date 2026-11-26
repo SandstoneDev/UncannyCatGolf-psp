@@ -16,6 +16,9 @@ struct SlotMachineArt {
     static constexpr unsigned OverlaySize = 16;
     static constexpr unsigned TextWidth = 256, TextHeight = 32;
 
+    static constexpr unsigned CacheBytes=(ReelWidth*ReelHeight+EyeSize*EyeSize+TextWidth*TextHeight)*sizeof(uint16_t)
+                                          +2*OverlaySize*OverlaySize*sizeof(uint32_t);
+
     bool open(std::string name) {
         const auto file = openAssetFile(name.c_str());
         unsigned header[2]{};
@@ -23,17 +26,26 @@ struct SlotMachineArt {
             header[0] != 0x4c534355 || header[1] != OutcomeCount ||
             std::fseek(file.get(), 0, SEEK_END) != 0 ||
             std::ftell(file.get()) != static_cast<long>(PagesOffset + 2 * OutcomeCount * sizeof(Cache::text))) return false;
+        unload();
         path = std::move(name);
         return true;
     }
 
-    bool load() {
-        if (cache) return true;
+    bool load() { return cache || loadInto(nullptr); }
+
+    bool loadBorrowed(void* storage,std::size_t bytes) {
+        unload();
+        if (!storage || reinterpret_cast<uintptr_t>(storage)%alignof(Cache) || bytes<CacheBytes) return false;
+        return loadInto(storage);
+    }
+
+private:
+    bool loadInto(void* borrowed) {
         const auto file = openAssetFile(path.c_str());
         if (!file || std::fseek(file.get(), 2 * sizeof(uint32_t), SEEK_SET) != 0) return false;
-        auto* const storage = memalign(64, sizeof(Cache));
+        auto* const storage = borrowed ? borrowed : memalign(64, sizeof(Cache));
         if (!storage) return false;
-        std::unique_ptr<Cache,FreeCache> memory(new (storage) Cache);
+        std::unique_ptr<Cache,FreeCache> memory(new (storage) Cache,FreeCache{!borrowed});
         if (std::fread(memory.get(), PagesOffset - 2 * sizeof(uint32_t), 1, file.get()) != 1)
             return false;
         sceKernelDcacheWritebackRange(memory.get(), PagesOffset - 2 * sizeof(uint32_t));
@@ -41,6 +53,7 @@ struct SlotMachineArt {
         return true;
     }
 
+public:
     void unload() { cache.reset(); cached = NoPage; }
     const uint16_t* reels() const { return cache->reels; }
     const uint16_t* eyes() const { return cache->eyes; }
@@ -67,10 +80,17 @@ private:
         uint32_t overlays[2][OverlaySize * OverlaySize];
         uint16_t text[TextWidth * TextHeight];
     };
-    struct FreeCache { void operator()(Cache* value) const { std::free(value); } };
+    static_assert(sizeof(Cache)==CacheBytes);
+    struct FreeCache {
+        bool owned=true;
+        void operator()(Cache* value) const {
+            value->~Cache();
+            if (owned) std::free(value);
+        }
+    };
     static constexpr unsigned PagesOffset = 8 + offsetof(Cache,text);
     static constexpr unsigned NoPage = 2 * OutcomeCount;
-    std::unique_ptr<Cache,FreeCache> cache;
+    std::unique_ptr<Cache,FreeCache> cache{nullptr,FreeCache{true}};
     std::string path;
     unsigned cached = NoPage;
 };

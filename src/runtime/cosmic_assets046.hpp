@@ -76,3 +76,4 @@ bool loadCosmicCourse046(const char* executable,unsigned index) {
     cosmicFallbackPath046=path(index==CosmicFourthCourse?"cosmic-fallback-6_04-state1.z":"cosmic-fallback-6_03-state1.z");
     return loadVramAtlas045(cosmicSwitchFaces046,path("elysian-switch-faces-5_14.pak"),CosmicSwitchFacesOffset046);
 }
+

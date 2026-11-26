@@ -1,9 +1,11 @@
 #pragma once
+#include "credits_costume057.hpp"
 
 // The board and credits use pre-existing frame and texture workspaces.
 bool endingFrameReady045=false;
 
 void drawElysianEnding045(unsigned ms,bool fast) {
+    CreditsCostume057::ensure();
     unsigned generation=0;
     auto* scratch=clips.compressedTextureWorkspace<ElysianEnding045::NativeBytes+ElysianEnding045::MaxPayload>(generation);
     auto* key=reinterpret_cast<uint8_t*>(fallbackPage);
@@ -12,11 +14,14 @@ void drawElysianEnding045(unsigned ms,bool fast) {
     horseMeter039.invalidateShared();
     levelSelectArt.invalidateBase();
     const auto* pixels=endingArt045.frame(russian(),ms/(1000/ElysianEnding045::Fps),out,key,scratch);
+    const bool selectedScare=pixels&&CreditsCostume057::prepare(ms,out);
     beginFrame();
-    endingFrameReady045=pixels!=nullptr;
+    UniqueHud057::drawMaster();
+    endingFrameReady045=pixels!=nullptr&&(Costumes054::selected==VillaCostumes::Id::Canny||CreditsCostume057::frameReady);
     if (pixels) {
         setTexture(GU_PSM_5650,512,512,pixels);
         patch({0,0,272,272,0,0},ViewX+136,0);
+        CreditsCostume057::drawScare(selectedScare);
         if (fast) localeText(lang("Skipping...", "Пропуск..."),369,254,1,White,true);
     }
     endFrame();
@@ -27,6 +32,7 @@ bool updateElysianEnding045(Flow& flow,EndingClock045& clock,uint64_t delta,bool
     if (!skip) clock.micros+=delta*(fast?4:1);
     if (skip || clock.ms()>=EndingClock045::DurationMs) {
         endingArt045.close();
+        CreditsCostume057::reset();
         audio.musicTune(1,1);
         audio.music(Sound::Menu);
         openLevelSelect(flow,CosmicFirstCourse);
@@ -38,8 +44,10 @@ bool updateElysianEnding045(Flow& flow,EndingClock045& clock,uint64_t delta,bool
     }
     if (clock.music) {
         audio.musicTune(fast?0.5f:1.0f,fast?4.0f:1.0f);
-        const float seconds=audio.musicPositionSeconds();
-        if (seconds>0) {
+        const float seconds=audio.musicPositionFrames(Sound::GoodEndingMusic)/44100.0f;
+        // Original ending.gd seeks only while $Music.playing. A completed
+        // non-looping PSP stream retains its final cursor, so stop seeking.
+        if (seconds>0 && !audio.musicFinished(Sound::GoodEndingMusic)) {
             const auto synced=static_cast<unsigned>(seconds*1000)+EndingClock045::MusicStartMs;
             if (synced<EndingClock045::DurationMs-1250 &&
                 std::abs(static_cast<int>(synced)-static_cast<int>(clock.ms()))>100)
@@ -48,7 +56,9 @@ bool updateElysianEnding045(Flow& flow,EndingClock045& clock,uint64_t delta,bool
     }
     if (!clock.scary && clock.ms()>=EndingClock045::ScaryMs) {
         clock.scary=true;
-        audio.play(Sound::Loss);
+        const auto pair=Costumes054::screenPair056();
+        const unsigned cue=Costumes054::costumeSoundForPlayback056(pair.ghost);
+        audio.play(cue==260?Sound::Loss:static_cast<Sound>(cue));
     }
     return false;
 }
@@ -137,6 +147,7 @@ void drawFinaleHorse518(const GameplayView& view,const Round& round) {
         const Vec2 position=horse.position+Vec2{0,y};
         actor(view,horseDefeatArt518.patch(2),position,view.worldScale(),White,true);
         actor(view,horseDefeatArt518.patch(3+tick/6%2),position+Vec2{0,-20},1.25f*view.worldScale(),White,true);
+        ActorLabelDraw054::add(horse.label,view,position,ActorPronouns054::Kind::Horse);
     } else if (tick<480) {
         const float flatten=1-std::clamp((tick-std::min(tick,300u))/180.0f,0.0f,1.0f);
         const Vec2 point=view.position(horse.position+Vec2{0,64*(1-flatten)});
@@ -145,6 +156,7 @@ void drawFinaleHorse518(const GameplayView& view,const Round& round) {
         if (alternate) setTexture(GU_PSM_8888,ElysianHorseDefeat518Width,ElysianHorseDefeat518Height,horseDefeatArt518.texture());
         const auto& art=alternate?horseDefeatArt518.patch(tick<240?0:1):horseObjects039.patch(0);
         patchScaled(art,point.x+art.x*x,point.y+art.y*y,x,y,finaleTint518(round));
+        ActorLabelDraw054::add(horse.label,view,horse.position,ActorPronouns054::Kind::Horse);
     }
 }
 
@@ -329,3 +341,4 @@ void drawCosmicGate601(const GameplayView& view,const Round& round) {
     const auto tint=cosmicRainbow045(phase);
     drawCosmicGateArt045(view,round,tint);
 }
+

@@ -70,3 +70,4 @@ private:
     unsigned offset=0,cached[Slots]{};
     alignas(64) uint32_t pixels[Slots][Size*Size]{};
 };
+

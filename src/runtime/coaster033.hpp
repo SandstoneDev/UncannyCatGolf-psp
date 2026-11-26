@@ -1,4 +1,5 @@
 #pragma once
+#include "actor_pronouns054.hpp"
 
 #include "jump_pad.hpp"
 
@@ -14,6 +15,7 @@ struct CoasterObject033 {
     uint32_t tint=0xffffffff;
     unsigned ticks=0, popupScore=0;
     float popupAge=0;
+    ActorPronouns054::Tag label{};
 };
 
 struct CoasterEvents033 {
@@ -292,6 +294,7 @@ private:
             it->x=SpawnX;
             if (entry.kind==CoasterObjectKind033::Ghost) {
                 ++spawnedGhosts;
+                it->label=ActorPronouns054::session.ready(ActorPronouns054::Kind::Ghost);
                 event.ghostWarning=true;
                 event.ghostWarningPitch=effectsRng.pitch(1.2f);
             } else {

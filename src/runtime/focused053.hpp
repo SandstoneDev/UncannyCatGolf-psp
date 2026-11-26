@@ -198,3 +198,4 @@ bool runFocused053(const char* executable,Course& course,SaveFile& save,
         if (!saved.best[i].rank) return fail("test_053_new_scores");
     return true;
 }
+

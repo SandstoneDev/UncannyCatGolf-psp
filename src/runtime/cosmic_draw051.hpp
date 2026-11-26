@@ -152,4 +152,6 @@ void drawMovingGoal613(const GameplayView& view,const Round& round,unsigned resu
     const unsigned face=goal.face==MovingGoal051::Face::Normal?16+animationTick*5/60%3:
                         goal.face==MovingGoal051::Face::Laugh?19+animationTick*7/60%2:21+animationTick*4/60%2;
     draw(face,{});
+    ActorLabelDraw054::add(round.goalFaceLabel,view,position+Vec2{48,-64},ActorPronouns054::Kind::GoalFace,0.75f);
 }
+

@@ -71,11 +71,15 @@ enum class Thought { None, Terry, Money, Sand, Skull, Swim, Jump, Police, Idle, 
 
 class ThoughtPlayer {
 public:
+    static constexpr unsigned StaticClip=47;
     bool open(const char* path) {
         cached=0;
         displayed=nullptr;
         return bank.open(path);
     }
+
+    const ThoughtBank::Entry& clip(unsigned index) const { return bank.entry(index); }
+    const uint16_t* sourceFrame(unsigned index) { return bank.frame(index); }
 
     void begin(unsigned tick,unsigned entropy=sceKernelGetSystemTimeLow()) {
         begin(game,tick,entropy);
@@ -147,7 +151,6 @@ private:
         return displayed;
     }
 
-    static constexpr unsigned StaticClip=47;
     ThoughtBank bank;
     Playback game{},menu{};
     const uint16_t* displayed=nullptr;

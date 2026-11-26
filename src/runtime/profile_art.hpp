@@ -18,12 +18,13 @@ enum class ProfilePart : unsigned {
 class ProfileArt {
 public:
     static constexpr unsigned Size=512, Rows=272;
+    static constexpr unsigned SkipWidth=512, SkipHeight=128;
 
     bool open(const char* filename) {
         const auto input=openAssetFile(filename);
         auto* file=input.get();
         uint32_t magic=0;
-        if (!file || std::fread(&magic,sizeof magic,1,file)!=1 || (magic!=0x31464355 && magic!=0x32464355 && magic!=0x33464355) ||
+        if (!file || std::fread(&magic,sizeof magic,1,file)!=1 || (magic!=0x31464355 && magic!=0x32464355 && magic!=0x33464355 && magic!=0x34464355) ||
             std::fread(parts,sizeof parts,1,file)!=1 || std::fread(atlas,sizeof atlas,1,file)!=1 ||
             std::fseek(file,0,SEEK_END)!=0 || std::ftell(file)!=static_cast<long>(FrameOffset+4*FrameBytes))
             return false;
@@ -40,11 +41,13 @@ public:
             if (backSize<MenuScroll::BackBytes+MenuScroll::BackTableBytes ||
                 backSize>(BackLabelRow-BackDataRow)*Size*2-sizeof backSize) return false;
         } else backSize=0;
-        if (magic==0x33464355) {
+        hasSkipHud=magic==0x34464355;
+        if (magic==0x33464355 || hasSkipHud) {
             std::memcpy(&iconSize,iconData(),sizeof iconSize);
             if (!iconSize || iconSize>(BackLabelRow-IconRow)*Size*2-sizeof iconSize ||
                 backSize>(IconRow-BackDataRow)*Size*2-sizeof backSize) return false;
         }
+        if (hasSkipHud && iconSize>(SkipRow-IconRow)*Size*2-sizeof iconSize) return false;
         path=filename;
         current=0;
         sceKernelDcacheWritebackRange(atlas,sizeof atlas);
@@ -65,7 +68,15 @@ public:
         return true;
     }
 
+    uint8_t* baseWorkspace() {
+        current=0;
+        return reinterpret_cast<uint8_t*>(base);
+    }
+
     const Patch& part(bool russian,ProfilePart id) const { return parts[russian][static_cast<unsigned>(id)]; }
+
+    const void* skipPalette() const { return hasSkipHud?atlas+Size*SkipRow:nullptr; }
+    const void* skipTexture() const { return atlas+Size*(SkipRow+1); }
 
     bool hasBackArt() const { return backSize!=0; }
     unsigned saveIconSize() const { return iconSize; }
@@ -83,8 +94,10 @@ public:
 
 private:
     Patch parts[2][static_cast<unsigned>(ProfilePart::Count)]{};
-    static constexpr unsigned BackDataRow=280, IconRow=400, BackLabelRow=496;
+    static constexpr unsigned BackDataRow=280, IconRow=400, SkipRow=424, BackLabelRow=496;
+    static_assert((BackLabelRow-SkipRow-1)*Size*2>=SkipWidth*SkipHeight);
     unsigned backSize=0, iconSize=0;
+    bool hasSkipHud=false;
 
     const unsigned char* iconData() const {
         return reinterpret_cast<const unsigned char*>(atlas+Size*IconRow);
@@ -109,7 +122,7 @@ public:
         return true;
     }
 
-    bool load(bool russian) {
+    bool load(bool russian,bool background=false) {
         using namespace MenuScroll;
         const unsigned locale=russian;
         if (current==locale) return true;
@@ -117,7 +130,7 @@ public:
         const auto file=openAssetFile(path.c_str());
         if (!file || std::fseek(file.get(),buttonOffset(locale),SEEK_SET)!=0 ||
             std::fread(patches,sizeof patches,1,file.get())!=1 ||
-            std::fread(atlas,sizeof atlas,1,file.get())!=1) return false;
+            !readBytes(file.get(),atlas,sizeof atlas,background)) return false;
         for (const auto& button:patches) {
             for (const auto& p:button) {
                 if (p.u<0 || p.v<0 || p.width<=0 || p.height<=0 ||

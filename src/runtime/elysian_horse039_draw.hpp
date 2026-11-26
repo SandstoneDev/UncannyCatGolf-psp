@@ -78,6 +78,7 @@ void drawHorseObjects039(const GameplayView& view,const HorseRun039& horse,uint3
         const Vec2 at=view.position(point);
         const float sx=4*horse.scale.x*view.worldScale(),sy=4*horse.scale.y*view.worldScale();
         patchScaled(body,at.x+body.x*sx,at.y+body.y*sy,sx,sy,tint(horse.saturation,255),view.delta({1,0}).x<0);
+        ActorLabelDraw054::add(horse.label,view,horse.position,ActorPronouns054::Kind::Horse);
     }
     for (unsigned i=0;i<horse.explosions.size();++i) {
         const auto& boom=horse.explosions[(horse.explosionIndex+i)%horse.explosions.size()];

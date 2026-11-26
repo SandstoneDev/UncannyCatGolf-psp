@@ -37,3 +37,4 @@ inline bool touchesCosmicKey613(Vec2 point,float radius) {
     const float y=std::max(0.0f,std::abs(local.y)-CosmicKeyTrigger613.halfSize.y);
     return x*x+y*y<=radius*radius;
 }
+

@@ -8,13 +8,14 @@
 #include "pause_art.hpp"
 
 struct PauseMenuState {
-    enum class Choice : unsigned { Resume, Settings, LevelSelect, Main, None };
+    enum class Choice : unsigned { Resume, Settings, LevelSelect, Main, PeakHunter, None };
 
     Choice choice=Choice::Resume;
     bool crossArmed=false;
     unsigned elapsedMs=0;
 
-    Choice update(uint32_t pressed,uint32_t released,bool clean) {
+    Choice update(uint32_t pressed,uint32_t released,bool clean,bool peakAvailable=false) {
+        if (!peakAvailable && choice==Choice::PeakHunter) choice=Choice::Resume;
         if (clean) {
             crossArmed=false;
             return Choice::None;
@@ -23,7 +24,8 @@ struct PauseMenuState {
         const bool up=pressed&PSP_CTRL_UP,down=pressed&PSP_CTRL_DOWN;
         if (!crossArmed && up!=down) {
             const unsigned row=static_cast<unsigned>(choice);
-            choice=static_cast<Choice>((row+(down?1:3))%4);
+            const unsigned rows=peakAvailable?5:4;
+            choice=static_cast<Choice>((row+(down?1:rows-1))%rows);
         }
         if (!crossArmed || !(released&PSP_CTRL_CROSS)) return Choice::None;
         crossArmed=false;
@@ -34,7 +36,9 @@ struct PauseMenuState {
 namespace PauseArt {
 constexpr int Field=272;
 constexpr unsigned FilterFrames=10, MaxDots=1024;
-alignas(64) uint32_t atlas[Width*Height]{};
+// All sampled patches end by row 212. Keep the complete swizzle band.
+constexpr unsigned AtlasRows=216;
+alignas(64) uint32_t atlas[Width*AtlasRows]{};
 alignas(64) uint32_t colors[256]{};
 alignas(64) uint8_t darkness[Field*Field]{}, filter[Field*Field]{};
 uint32_t counts[FilterFrames]{}, dots[FilterFrames][MaxDots]{};
@@ -46,6 +50,7 @@ bool load(const char* path) {
     uint32_t magic=0;
     bool ok=std::fread(&magic,sizeof magic,1,file)==1 && magic==0x50504355 &&
                   std::fread(atlas,sizeof atlas,1,file)==1 &&
+                  std::fseek(file,Width*(Height-AtlasRows)*sizeof(uint32_t),SEEK_CUR)==0 &&
                   std::fread(colors,sizeof colors,1,file)==1 &&
                   std::fread(darkness,sizeof darkness,1,file)==1 &&
                   std::fread(counts,sizeof counts,1,file)==1;

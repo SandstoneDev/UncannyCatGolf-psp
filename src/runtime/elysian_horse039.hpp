@@ -1,4 +1,5 @@
 #pragma once
+#include "actor_pronouns054.hpp"
 
 #include "game.hpp"
 
@@ -56,6 +57,7 @@ struct HorseRun039 {
     static constexpr float WallRadius=64,GoalBodyRadius=10,GoalAreaRadius=16,CatchHalfSize=37;
 
     std::array<HorseGoal039,HorseCourse039::GoalCapacity> goals{};
+    ActorPronouns054::Tag label{};
     const HorseCourse039* config=nullptr;
     std::array<HorseTrail039,20> trails{};
     std::array<HorseExplosion039,8> explosions{};
@@ -77,6 +79,7 @@ struct HorseRun039 {
     void restart(const HorseCourse039& course) {
         *this={};
         config=&course;
+        label=ActorPronouns054::session.ready(ActorPronouns054::Kind::Horse);
         bounds=course.bounds;
         position=course.position;
         direction=course.direction;

@@ -52,3 +52,4 @@ bool loadSwitchCourse(SwitchStage& stage,const char* courseId,AssetPath path) {
     const char* layers[]{first.c_str(),second.c_str()};
     return stage.load(layers,static_cast<unsigned>(std::size(layers)),blocks,count);
 }
+

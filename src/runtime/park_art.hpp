@@ -3,6 +3,7 @@
 #include "asset_file.hpp"
 #include "smiley_ring.hpp"
 #include "visual.hpp"
+#include "park_resource_io.hpp"
 #include <cstddef>
 #include <cstdlib>
 #include <malloc.h>
@@ -30,6 +31,7 @@ class ParkArt {
 public:
     static constexpr unsigned Side=256, RingFrames=10, CoinFrames=10, UfoFrames=3;
     static constexpr unsigned MotionFrames=3600, Crossfade=60;
+    static constexpr unsigned MotionTrackBytes=MotionFrames*sizeof(Vec2);
 
     bool open(const char* art,const char* legacyStage) {
         const auto pictures=openAssetFile(art);
@@ -48,10 +50,14 @@ public:
         return true;
     }
 
-    bool load(const char* path=nullptr,bool extraRings=false) {
+    bool load(const char* path=nullptr,bool extraRings=false,void* video=nullptr,void* scratch=nullptr,
+              void* motionStorage=nullptr,unsigned motionBytes=0,const char** reason=nullptr) {
+        io={};
         const std::string name=path?std::string(path):legacyPath;
-        if (loadedPath==name) return true;
-        const auto config=openAssetFile(name.c_str());
+        if (loadedPath==name && borrowed==video &&
+            motionView==(motionStorage?motionStorage:motion.get())) return true;
+        if (reason) *reason="park_stage_header";
+        auto config=openAssetFile(name.c_str());
         ParkStage stage{};
         if (!config || !readStage(config.get(),stage)) return false;
         if (!extraRings && !stage.balloonCount && !stage.smiley.coinCount && !stage.ufoSpeed) {
@@ -62,28 +68,65 @@ public:
             return true;
         }
         unload();
-        auto* const storage=memalign(64,sizeof(Cache));
-        if (!storage) return false;
-        std::unique_ptr<Cache,FreeCache> memory(new (storage) Cache);
-        {
-            const auto pictures=openAssetFile(artPath.c_str());
-            if (!pictures || std::fseek(pictures.get(),2*sizeof(uint32_t)+sizeof patches,SEEK_SET)!=0 ||
-                std::fread(memory->texture,TextureBytes,1,pictures.get())!=1) return false;
+        std::unique_ptr<Cache,FreeCache> memory;
+        if (!video) {
+            if (reason) *reason="park_art_memory";
+            auto* const storage=memalign(64,sizeof(Cache));
+            if (!storage) return false;
+            memory.reset(new (storage) Cache);
         }
+        auto* pixels=video?scratch:memory->texture;
+        if (reason) *reason="park_art_pixels";
+        if (!pixels) return false;
         std::unique_ptr<BalloonTrack[]> tracks;
+        BalloonTrack* trackPixels=nullptr;
         if (stage.balloonCount) {
-            tracks.reset(new (std::nothrow) BalloonTrack[stage.balloonCount]);
-            if (!tracks) return false;
+            if (reason) *reason="park_motion_memory";
+            if (motionStorage) {
+                if (reinterpret_cast<uintptr_t>(motionStorage)%alignof(BalloonTrack) ||
+                    stage.balloonCount>motionBytes/sizeof(BalloonTrack)) return false;
+                trackPixels=static_cast<BalloonTrack*>(motionStorage);
+            } else {
+                tracks.reset(new (std::nothrow) BalloonTrack[stage.balloonCount]);
+                if (!tracks) return false;
+                trackPixels=tracks.get();
+            }
         }
+        if (reason) *reason="park_motion_data";
         for (unsigned i=0;i<stage.balloonCount;++i) {
-            auto& samples=tracks[i].samples;
-            if (std::fread(samples,sizeof samples,1,config.get())!=1) return false;
+            auto& samples=trackPixels[i].samples;
+            if (motionStorage) {
+                // Kernel I/O always targets RAM, including borrowed VRAM tracks.
+                alignas(64) uint8_t chunk[4096];
+                auto* destination=reinterpret_cast<uint8_t*>(samples);
+                for (unsigned offset=0;offset<sizeof samples;) {
+                    const unsigned bytes=std::min<unsigned>(sizeof chunk,sizeof samples-offset);
+                    if (std::fread(chunk,1,bytes,config.get())!=bytes) return false;
+                    std::memcpy(destination+offset,chunk,bytes);
+                    offset+=bytes;
+                }
+            } else if (std::fread(samples,sizeof samples,1,config.get())!=1) return false;
             for (const auto point:samples) if (!finite(point)) return false;
         }
         if (std::fgetc(config.get())!=EOF || std::ferror(config.get())) return false;
-        sceKernelDcacheWritebackRange(memory->texture,TextureBytes);
+        config.reset();
+        {
+            ParkResourceReader pictures(io);
+            if (!pictures.open(artPath.c_str()) ||
+                !pictures.seek(2*sizeof(uint32_t)+sizeof patches) ||
+                !pictures.read(pixels,TextureBytes) || !pictures.finish()) {
+                if (reason) *reason=io.phase;
+                return false;
+            }
+        }
+        if (video) {
+            auto* uncached=reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(video)|0x40000000u);
+            std::memcpy(uncached,pixels,TextureBytes);
+        } else sceKernelDcacheWritebackRange(pixels,TextureBytes);
+        borrowed=video;
         cache=std::move(memory);
         motion=std::move(tracks);
+        motionView=trackPixels;
         loadedPath=name;
         data=stage;
         return true;
@@ -91,12 +134,14 @@ public:
 
     void unload() {
         cache.reset();
+        borrowed=nullptr;
         motion.reset();
+        motionView=nullptr;
         loadedPath.clear();
         data={};
     }
 
-    const uint32_t* pixels() const { return cache?cache->texture:nullptr; }
+    const uint32_t* pixels() const { return borrowed?static_cast<const uint32_t*>(borrowed):cache?cache->texture:nullptr; }
     void invalidateRingTexture() { ringPixels=nullptr; }
     const uint32_t* ringTexture(uint8_t* storage,unsigned generation) {
         if (ringGeneration!=generation || ringPixels!=storage) {
@@ -118,7 +163,7 @@ public:
     Vec2 balloonMotion(unsigned index,unsigned tick) const {
         constexpr unsigned period=MotionFrames-Crossfade;
         const unsigned phase=tick%period;
-        const auto& samples=motion[index].samples;
+        const auto& samples=motionView[index].samples;
         if (tick<period || phase>=Crossfade) return samples[phase];
         const float t=static_cast<float>(phase)/Crossfade;
         const float weight=t*t*(3.0f-2.0f*t);
@@ -126,6 +171,8 @@ public:
     }
 
     ParkStage data{};
+    ParkReadStatus io{};
+    const std::string& atlasPath() const { return artPath; }
 
 private:
     struct LegacyStage {
@@ -186,7 +233,9 @@ private:
     struct BalloonTrack { Vec2 samples[MotionFrames]; };
     struct FreeCache { void operator()(Cache* value) const { std::free(value); } };
     std::unique_ptr<Cache,FreeCache> cache;
+    void* borrowed=nullptr;
     std::unique_ptr<BalloonTrack[]> motion;
+    BalloonTrack* motionView=nullptr;
     Patch patches[RingFrames+CoinFrames+UfoFrames+1]{};
     std::string artPath,legacyPath,loadedPath;
     uint8_t* ringPixels=nullptr;

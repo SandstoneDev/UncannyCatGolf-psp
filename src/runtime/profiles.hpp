@@ -1,6 +1,8 @@
 #pragma once
 
 #include "campaign.hpp"
+#include "campaign_mod_options.hpp"
+#include "profile_archive.hpp"
 
 #include <array>
 #include <cstddef>
@@ -11,13 +13,16 @@ using ProfileName=std::array<char,3*ProfileNameLength+1>;
 
 struct ProfileEntry {
     ProfileName title{},player{};
-    unsigned completed=0,prisms=0;
+    unsigned completed=0,prisms=0,next=0;
     bool found=false,chill=false;
+    uint16_t modifiers=0;
 };
 
 class Profiles {
 public:
     static constexpr unsigned Count=8, Legacy=0, None=Count;
+    using DeleteToken=ProfileArchive::Token;
+    using DeleteResult=ProfileArchive::Result;
 
     explicit Profiles(std::string directory): root(std::move(directory)) {}
 
@@ -47,16 +52,30 @@ public:
         return false;
     }
 
-    void refresh() {
+    void refresh() { refreshImpl(false); }
+    bool refreshChecked() { return refreshImpl(true); }
+
+private:
+    bool refreshImpl(bool checked) {
+        bool complete=true;
         entries={};
         order={};
         visible=0;
         for (unsigned index=Count;index>0;--index) {
             const unsigned slot=index-1;
+            if (!ProfileArchive(root).recover(slot)) {complete=false;continue;}
             Progress progress;
-            if (!save(slot).read(progress)) continue;
+            if (checked) {
+                const auto status=save(slot).readChecked(progress);
+                if (status!=SaveFile::ReadStatus::Valid) {
+                    if (status!=SaveFile::ReadStatus::Missing) complete=false;
+                    continue;
+                }
+            } else if (!save(slot).read(progress)) continue;
             auto& entry=entries[slot];
+            snapshots[slot]=progress;
             entry.found=true;
+            entry.next=progress.next;
             for (unsigned i=0;i<CourseCount;++i) entry.completed+=progress.best[i].score!=0;
             entry.prisms=progress.totalPrisms();
             if (slot!=Legacy) {
@@ -67,26 +86,46 @@ public:
                     entry.chill=record.flags&1;
                 }
             }
+            entry.modifiers=CampaignMods::Store(path(slot,".mods")).read(entry.chill);
+            entry.chill=(entry.modifiers&CampaignMods::Chill)!=0;
             order[visible++]=slot;
         }
+        return complete;
     }
 
+public:
+    bool selectDelete(unsigned selected,DeleteToken& token) {
+        token={};
+        if (selected>=Count || !refreshChecked() || !entries[selected].found) return false;
+        return ProfileArchive(root).capture(selected,roster(),token);
+    }
+    DeleteResult confirmDelete(const DeleteToken& token) {
+        if (token.slot>=Count) return DeleteResult::Stale;
+        if (!refreshChecked()) return DeleteResult::IOError;
+        if (!entries[token.slot].found) return DeleteResult::Stale;
+        const auto result=ProfileArchive(root).archive(token,roster());
+        refresh();
+        return result;
+    }
     unsigned size() const { return visible; }
     unsigned slot(unsigned index) const { return index<visible?order[index]:None; }
     const ProfileEntry& entry(unsigned slot) const { return entries[slot]; }
+    const Progress& snapshot(unsigned slot) const { return snapshots[slot]; }
 
-    unsigned create(const ProfileName& title,const ProfileName& player,bool chill=false) {
+    unsigned create(const ProfileName& title,const ProfileName& player,bool chill=false,uint16_t modifiers=0) {
         if (!validName(title) || !validName(player)) return None;
+        if (chill) modifiers|=CampaignMods::Chill;
+        if (!CampaignMods::valid(modifiers)) return None;
         refresh();
         unsigned slot=1;
-        while (slot<Count && entries[slot].found) ++slot;
+        while (slot<Count && (entries[slot].found || !ProfileArchive(root).empty(slot))) ++slot;
         if (slot==Count) return None;
 
         Record record{};
         record.magic=Magic;
         record.title=title;
         record.player=player;
-        record.flags=chill?1:0;
+        record.flags=(modifiers&CampaignMods::Chill)?1:0;
         record.check=hash(record);
         const std::string temporary=path(slot,".meta.tmp");
         const std::string metadata=path(slot,".meta");
@@ -94,7 +133,8 @@ public:
         if (!file) return None;
         const bool wrote=std::fwrite(&record,sizeof record,1,file)==1;
         const bool closed=std::fclose(file)==0;
-        if (!wrote || !closed || !save(slot).write({})) return None;
+        if (!wrote || !closed || !CampaignMods::Store(path(slot,".mods")).write(modifiers) ||
+            !save(slot).write({})) return None;
         // The temporary metadata also remains readable after a failed FAT rename.
         std::rename(temporary.c_str(),metadata.c_str());
         refresh();
@@ -135,8 +175,14 @@ private:
         return root+name;
     }
 
+    unsigned roster() const {
+        unsigned mask=0;
+        for (unsigned i=0;i<Count;++i) if(entries[i].found) mask|=1u<<i;
+        return mask;
+    }
     std::string root;
     std::array<ProfileEntry,Count> entries{};
+    std::array<Progress,Count> snapshots{};
     std::array<unsigned,Count> order{};
     unsigned visible=0;
 };

@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <array>
+#include <cerrno>
+#include <cstring>
 #include <cstdint>
 #include <cstdio>
 #include <string>
@@ -128,7 +130,7 @@ struct LevelBest { uint32_t score=0,rank=0,time=UINT32_MAX; };
 struct Progress {
     uint32_t next=0,ticks=0,resets=0,quest=0,terryKey=0;
     LevelBest best[SaveCourseCapacity]{};
-    uint32_t golfKey=0,glowstickKey=0,parkKey=0,frontierKey=0,elysianKey=0,cosmicKey=0;
+    uint32_t golfKey=0,glowstickKey=0,parkKey=0,frontierKey=0,elysianKey=0,cosmicKey=0,endlessKey=0;
 
     bool record(unsigned level,Score score,unsigned clock,bool advance) {
         auto& entry=best[level];
@@ -174,7 +176,21 @@ struct TerryRun {
 
 class SaveFile {
 public:
+    enum class ReadStatus { Missing, Valid, Invalid, IOError };
     explicit SaveFile(const std::string& path) : base(path) {}
+
+    ReadStatus readChecked(Progress& progress) const {
+        ReadStatus left, right;
+        const Saved a=readSlot(0,&left), b=readSlot(1,&right);
+        if (left==ReadStatus::IOError || right==ReadStatus::IOError) return ReadStatus::IOError;
+        if (a.sequence && a.sequence==b.sequence && std::memcmp(&a.progress,&b.progress,sizeof(Progress))!=0)
+            return ReadStatus::Invalid;
+        const Saved& newest=latest(a,b);
+        if (!newest.sequence)
+            return left==ReadStatus::Missing && right==ReadStatus::Missing ? ReadStatus::Missing : ReadStatus::Invalid;
+        progress=newest.progress;
+        return ReadStatus::Valid;
+    }
 
     bool read(Progress& progress) {
         const Saved a=readSlot(0), b=readSlot(1);
@@ -190,7 +206,7 @@ public:
         const unsigned slot=newest.sequence && &newest==&a ? 1 : 0;
         Record<Progress> record{};
         record.magic=Magic;
-        record.version=8;
+        record.version=9;
         record.sequence=newest.sequence+1;
         if (!record.sequence) return false;
         record.progress=progress;
@@ -238,10 +254,15 @@ private:
         LevelBest best[SaveCourseCapacity];
         uint32_t golfKey,glowstickKey,parkKey,frontierKey,elysianKey;
     };
+    struct V8Progress {
+        uint32_t next,ticks,resets,quest,terryKey;
+        LevelBest best[SaveCourseCapacity];
+        uint32_t golfKey,glowstickKey,parkKey,frontierKey,elysianKey,cosmicKey;
+    };
     template<class P> struct Record { uint32_t magic,version,sequence; P progress; uint32_t check; };
     struct Saved { uint32_t sequence=0; Progress progress{}; };
     static_assert(sizeof(Record<LegacyProgress>)==96 && sizeof(Record<V2Progress>)==1572 && sizeof(Record<V3Progress>)==1576);
-    static_assert(sizeof(Record<V4Progress>)==1580 && sizeof(Record<V5Progress>)==1584 && sizeof(Record<V6Progress>)==1588 && sizeof(Record<V7Progress>)==1592 && sizeof(Record<Progress>)==1596);
+    static_assert(sizeof(Record<V4Progress>)==1580 && sizeof(Record<V5Progress>)==1584 && sizeof(Record<V6Progress>)==1588 && sizeof(Record<V7Progress>)==1592 && sizeof(Record<V8Progress>)==1596 && sizeof(Record<Progress>)==1600);
     std::string base;
 
     std::string path(unsigned index) const { return base+(index?".1":".0"); }
@@ -258,17 +279,23 @@ private:
     }
 
     template<class P> static bool readRecord(std::FILE* file,Record<P>& record,unsigned version) {
-        return std::fseek(file,0,SEEK_SET)==0 && std::fread(&record,sizeof record,1,file)==1 &&
+        return std::fread(&record,sizeof record,1,file)==1 &&
                std::fgetc(file)==EOF && !std::ferror(file) && record.magic==Magic &&
                record.version==version && record.sequence && record.check==checksum(record);
     }
 
-    Saved readSlot(unsigned index) const {
+    Saved readSlot(unsigned index,ReadStatus* status=nullptr) const {
         std::FILE* file=std::fopen(path(index).c_str(),"rb");
-        if (!file) return {};
+        if (!file) {
+            if (status) *status=errno==ENOENT ? ReadStatus::Missing : ReadStatus::IOError;
+            return {};
+        }
         uint32_t header[2]{};
         Saved saved{};
-        if (std::fread(header,sizeof header,1,file)==1 && header[0]==Magic) {
+        const bool headerReady=std::fread(header,sizeof header,1,file)==1 && header[0]==Magic &&
+                               header[1]>=1 && header[1]<=9;
+        const bool seekFailed=headerReady && std::fseek(file,0,SEEK_SET)!=0;
+        if (headerReady && !seekFailed) {
             if (header[1]==1) {
                 Record<LegacyProgress> record{};
                 if (readRecord(file,record,1) && record.progress.next<=TutorialCount) {
@@ -329,17 +356,32 @@ private:
                     std::copy_n(old.best,SaveCourseCapacity,saved.progress.best);
                 }
             } else if (header[1]==8) {
+                Record<V8Progress> record{};
+                if (readRecord(file,record,8)) {
+                    const auto& old=record.progress;
+                    saved.sequence=record.sequence;
+                    saved.progress={old.next,old.ticks,old.resets,old.quest,old.terryKey,{},
+                                    old.golfKey,old.glowstickKey,old.parkKey,old.frontierKey,old.elysianKey,old.cosmicKey};
+                    std::copy_n(old.best,SaveCourseCapacity,saved.progress.best);
+                }
+            } else if (header[1]==9) {
                 Record<Progress> record{};
-                if (readRecord(file,record,8)) saved={record.sequence,record.progress};
+                if (readRecord(file,record,9)) saved={record.sequence,record.progress};
             }
         }
-        std::fclose(file);
+        const bool readError=seekFailed || std::ferror(file)!=0;
+        const bool closed=std::fclose(file)==0;
+        if (status) {
+            if (readError || !closed) {*status=ReadStatus::IOError;return {};}
+            *status=ReadStatus::Invalid;
+        }
         const Progress& progress=saved.progress;
         if (!saved.sequence || progress.next>CourseCount || progress.quest>6 || progress.terryKey>1 || progress.golfKey>1 ||
-            progress.glowstickKey>1 || progress.parkKey>1 || progress.frontierKey>1 || progress.elysianKey>1 || progress.cosmicKey>1) return {};
+            progress.glowstickKey>1 || progress.parkKey>1 || progress.frontierKey>1 || progress.elysianKey>1 || progress.cosmicKey>1 || progress.endlessKey>1) return {};
         for (const auto& level:progress.best) {
             if (level.rank>5 || level.score>100000) return {};
         }
+        if (status) *status=ReadStatus::Valid;
         return saved;
     }
 };

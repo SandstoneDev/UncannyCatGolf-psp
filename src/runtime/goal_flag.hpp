@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <pspkernel.h>
 #include <string>
+#include <new>
 #include <zlib.h>
 
 class GoalFlagArt {
@@ -13,9 +14,15 @@ public:
 
     static constexpr unsigned ScratchBytes=SignalCount*FieldFrames*FlagFrames*Size*Size*sizeof(uint16_t);
 
+    uint8_t* unusedFrameTail(unsigned slot,unsigned bytes) {
+        if (slot>=courses || loaded!=slot || !bytes || bytes>ScratchBytes) return nullptr;
+        const unsigned offset=(ScratchBytes-bytes)&~63u;
+        return textures(entry)*sizeof(Frame)<=offset ? frames+offset : nullptr;
+    }
+
     uint8_t* scratch() {
         loaded=courses;
-        return reinterpret_cast<uint8_t*>(frames);
+        return frames;
     }
 
     bool open(const char* filename,unsigned count) {
@@ -41,7 +48,7 @@ public:
                 area.u!=0 || area.v!=0 || area.width<=0 || area.height<=0 ||
                 area.width>static_cast<int>(Size) || area.height>static_cast<int>(Size) ||
                 area.x<136 || area.x+area.width>408 || area.y<0 || area.y+area.height>272) return false;
-            if (!compressed) offset+=textures(entry)*sizeof frames[0];
+            if (!compressed) offset+=textures(entry)*sizeof(Frame);
         }
         if (!compressed && bytes!=static_cast<long>(offset)) return false;
         packed=compressed;
@@ -63,6 +70,9 @@ public:
         const unsigned count=textures(entry);
         if (count) {
             if (count>SignalCount*FieldFrames*FlagFrames) return false;
+            // Each published frame keeps its original uint16_t pixel type. The remainder
+            // of the byte array can provide storage for independent aligned objects.
+            for (unsigned i=0;i<count;++i) new (frames+i*sizeof(Frame)) Frame;
             if (packed) {
                 unsigned end=fileBytes;
                 if (slot+1<courses) {
@@ -71,10 +81,10 @@ public:
                     end=next.offset;
                 }
                 if (entry.offset>=end || end>fileBytes ||
-                    !inflatePage(file,entry.offset,end-entry.offset,count*sizeof frames[0],scratch,scratchBytes)) return false;
+                    !inflatePage(file,entry.offset,end-entry.offset,count*sizeof(Frame),scratch,scratchBytes)) return false;
             } else if (std::fseek(file,entry.offset,SEEK_SET)!=0 ||
-                       std::fread(frames,sizeof frames[0],count,file)!=count) return false;
-            sceKernelDcacheWritebackRange(frames,count*sizeof frames[0]);
+                       std::fread(frames,sizeof(Frame),count,file)!=count) return false;
+            sceKernelDcacheWritebackRange(frames,count*sizeof(Frame));
         }
         loaded=slot;
         return true;
@@ -85,7 +95,8 @@ public:
         if (!entry.phases) return nullptr;
         area=entry.area;
         const unsigned state=(signal%entry.signals)*entry.phases+phase%entry.phases;
-        return frames[state*FlagFrames+tick/5%FlagFrames];
+        const auto offset=(state*FlagFrames+tick/5%FlagFrames)*sizeof(Frame);
+        return std::launder(reinterpret_cast<const Frame*>(frames+offset))->pixels;
     }
 
 private:
@@ -107,7 +118,9 @@ private:
     static_assert(sizeof(Entry)==24);
     static unsigned textures(const Entry& entry) { return entry.phases*entry.signals*FlagFrames; }
     Entry entry{};
-    alignas(64) uint16_t frames[SignalCount*FieldFrames*FlagFrames][Size*Size]{};
+    struct Frame { uint16_t pixels[Size*Size]; };
+    static_assert(sizeof(Frame)==Size*Size*sizeof(uint16_t));
+    alignas(64) unsigned char frames[ScratchBytes]{};
     std::string path;
     unsigned courses=0,loaded=0;
 };

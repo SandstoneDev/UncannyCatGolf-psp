@@ -37,3 +37,4 @@ void drawCosmicRing611(const GameplayView& view,const Round& round) {
     const auto* pixels=parkArt.ringTexture(workspace,generation);
     if (pixels) drawSmileyRing(view,CosmicRing611,round.smiley,round.ticks,CosmicShade611,CosmicShade611,pixels);
 }
+

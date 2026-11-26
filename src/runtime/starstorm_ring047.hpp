@@ -8,3 +8,4 @@ void drawStarstormRing047(const GameplayView& view,const Round& round) {
     drawSmileyRing(view,CosmicRings605[0],round.smiley,round.ticks,
                    starstormTint047(CosmicRingTint605),starstormTint047(CosmicRingCoinTint605),pixels);
 }
+

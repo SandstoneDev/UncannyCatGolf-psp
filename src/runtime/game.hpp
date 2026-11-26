@@ -93,6 +93,9 @@ public:
     unsigned bounces = 0;
     bool won = false, pushed = false, passiveBounce = false;
     bool goalEnabled = true;
+    // Default-off per-instance campaign hooks; Editor/Endless retain original paths.
+    bool modifierKinesis=false,modifierSticky=false,modifierStickyContact=false,modifierWallInside=false,modifierParryFrozen=false;
+    float modifierStickySpeed=0,modifierDizzyAngle=0;
 
     void setGoal(Vec2 next) { goal=next; movingGoal=true; }
     int passiveBounceIndex=-1;
@@ -129,16 +132,18 @@ public:
              Vec2 additionalVelocity={},bool drifting=false,
              WallContact (*solidObstacle)(Vec2,Vec2,float)=nullptr) {
         if (switches) switches->hitBlock=-1;
-        pushed=passiveBounce=fixedTileBounce=false;
+        pushed=passiveBounce=fixedTileBounce=modifierStickyContact=modifierWallInside=false;
         passiveBounceIndex=-1;
         if (won) return -1;
         const Vec2 beforeRecovery=position;
         const Vec2 overlapNormal=switches?switches->recover(position,course.playerRadius,tiles,auxiliaryWalls):Vec2{};
+        // PTelekinetic and PParry never consume PMoving's additional_velocity.
+        if (modifierKinesis || modifierParryFrozen) additionalVelocity={};
         const float windSquared=dot(additionalVelocity,additionalVelocity);
         const bool windy=windSquared>0.0f;
         if (windy) velocity=velocity+additionalVelocity;
         const float speed = moving() ? length(velocity) : 0.0f;
-        if (!windy && speed<=course.stopSpeed && (!drifting || speed==0.0f)) {
+        if (!modifierKinesis && !windy && speed<=course.stopSpeed && (!drifting || speed==0.0f)) {
             velocity = {};
             const bool movedByEnemy=recoverFromEnemies(enemies,enemyCount);
             const bool movedByExtraEnemy=recoverFromEnemies(extraEnemies,extraEnemyCount);
@@ -152,9 +157,14 @@ public:
 
         // Wind drives idle motion without friction. A moving player skips drag
         // only when their total speed equals the speed added by this tick's wind.
-        if (speed>0.0f && !(windy && (drifting || speed==std::sqrt(windSquared)))) {
+        if (!modifierKinesis && speed>0.0f && !(windy && (drifting || speed==std::sqrt(windSquared)))) {
             const float loss = course.maxDrag * std::pow(course.frictionCoeff / speed, course.frictionPow);
             velocity = velocity * (1.0f - loss);
+        }
+        // PMoving rotates after wind and friction, immediately before motion.
+        if (modifierDizzyAngle!=0 && !(windy && (drifting || speed==std::sqrt(windSquared)))) {
+            const float cosine=std::cos(modifierDizzyAngle),sine=std::sin(modifierDizzyAngle);
+            velocity={velocity.x*cosine-velocity.y*sine,velocity.x*sine+velocity.y*cosine};
         }
         const Vec2 motion = velocity * (1.0f / 60.0f);
         const unsigned previousBounces=bounces;
@@ -220,7 +230,14 @@ public:
             }
             position = position + motion * std::min(1.0f, contact.time);
             if (contact.time <= 1.0f) {
-                velocity = velocity - contact.normal * (2.0f * dot(velocity, contact.normal));
+                const bool stick=modifierSticky && (!modifierKinesis || speed>32) && !passiveBounce &&
+                    (hit<0 || (hit>=static_cast<int>(count) && hit<static_cast<int>(count+doorCount)));
+                if (stick) {
+                    modifierStickySpeed=length(velocity);
+                    modifierStickyContact=true;
+                    modifierWallInside=length(tiles->recoverCircle(position,.1f))>.05f;
+                    velocity={};
+                } else velocity = velocity - contact.normal * (2.0f * dot(velocity, contact.normal));
                 ++bounces;
                 fixedTileBounce=contact.time==fixedContact.time && dot(overlapNormal,overlapNormal)==0;
                 if (switchHit>=0) switches->strike(static_cast<unsigned>(switchHit));
@@ -229,6 +246,9 @@ public:
             }
         } else {
             moveInRectangle(motion);
+            if (modifierSticky && bounces!=previousBounces && (!modifierKinesis || speed>32)) {
+                modifierStickySpeed=length(velocity);modifierStickyContact=true;velocity={};
+            }
         }
 
         if (bounces!=previousBounces) {
@@ -239,7 +259,7 @@ public:
                 velocity=velocity*std::sqrt(minimumSquared/speedSquared);
         }
         checkGoal();
-        return drifting?-1:hit;
+        return drifting || (modifierKinesis && speed<=32)?-1:hit;
     }
 
 private:
@@ -344,3 +364,5 @@ private:
         return 2.0f;
     }
 };
+
+

@@ -39,3 +39,4 @@ void drawCosmicDoor602(const GameplayView& view,const Round& round) {
         drawDestruction(view,center,round.ticks-state.openedAt[0],doorScore(currentCourse));
     }
 }
+

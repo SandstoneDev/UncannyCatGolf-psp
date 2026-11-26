@@ -28,3 +28,4 @@ inline uint32_t starstormTint047(uint32_t color) {
     return (color&0xff000000u) | (((color&0xffu)*204/255)) |
            ((((color>>8)&0xffu)*204/255)<<8) | ((((color>>16)&0xffu)*204/255)<<16);
 }
+

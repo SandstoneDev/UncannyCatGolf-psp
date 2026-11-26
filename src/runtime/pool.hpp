@@ -53,3 +53,4 @@ struct PoolAssets {
         return true;
     }
 };
+

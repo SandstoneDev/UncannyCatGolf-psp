@@ -49,7 +49,7 @@ public:
         return {static_cast<int16_t>(344+32*frame),0,32,32,-16,-16};
     }
 
-    bool load(const char* path) {
+    bool load(const char* path,void* video=nullptr,void* scratch=nullptr) {
         unload();
         const auto input=openAssetFile(path);
         auto* file=input.get();
@@ -57,20 +57,31 @@ public:
         if (!file || std::fread(magic,sizeof magic,1,file)!=1 ||
             std::memcmp(magic,"UCR1",sizeof magic)!=0) return false;
 
-        std::unique_ptr<Atlas> loaded(new (std::nothrow) Atlas);
-        if (!loaded || std::fread(loaded->pixels,sizeof loaded->pixels,1,file)!=1 ||
+        std::unique_ptr<Atlas> loaded;
+        if (!video) loaded.reset(new (std::nothrow) Atlas);
+        auto* pixelData=video?scratch:loaded?loaded->pixels:nullptr;
+        constexpr unsigned bytes=Width*Height*sizeof(uint32_t);
+        if (!pixelData || std::fread(pixelData,bytes,1,file)!=1 ||
             std::fgetc(file)!=EOF || std::ferror(file)) return false;
 #ifdef __PSP__
-        sceKernelDcacheWritebackRange(loaded->pixels,sizeof loaded->pixels);
+        if (video) {
+            auto* uncached=reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(video)|0x40000000u);
+            std::memcpy(uncached,pixelData,bytes);
+        } else sceKernelDcacheWritebackRange(pixelData,bytes);
+#else
+        if (video) std::memcpy(video,pixelData,bytes);
 #endif
+        borrowed=static_cast<const uint32_t*>(video);
         atlas=std::move(loaded);
         return true;
     }
 
-    void unload() { atlas.reset(); }
-    const uint32_t* pixels() const { return atlas ? atlas->pixels : nullptr; }
+    void unload() { atlas.reset(); borrowed=nullptr; }
+    const uint32_t* pixels() const { return borrowed?borrowed:atlas?atlas->pixels:nullptr; }
 
 private:
     struct alignas(64) Atlas { uint32_t pixels[Width*Height]; };
     std::unique_ptr<Atlas> atlas;
+    const uint32_t* borrowed=nullptr;
 };
+

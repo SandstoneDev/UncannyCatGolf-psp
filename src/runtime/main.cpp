@@ -1,12 +1,29 @@
+#include "home_exit067.hpp"
+#include "release_paths.hpp"
 #include "asset_layout.hpp"
+#include "frame_profile066.hpp"
+#include "chapter_loading066.inc"
+#include "course_sidebar056.hpp"
+#include "startup_settings.hpp"
+#include "startup_intro_state.hpp"
+#include "startup_commit.hpp"
+#include "phone_settings054.hpp"
+#include "startup_intro_art.hpp"
+#include "storage_hooks.hpp"
+#include "storage_diagnostic.hpp"
 #include "live_result_art.hpp"
 #include "controls.hpp"
+#include "campaign_modifier_art_data.hpp"
+#include "editor_costume_sounds.hpp"
 #include "dense_blocks.hpp"
 #include "gameplay_view.hpp"
 #include "pause_menu.hpp"
 #include "goal_flag.hpp"
 #include "park_art.hpp"
 #include "park_stage_art.hpp"
+#include "transition_trace.hpp"
+#include "io_audit.hpp"
+#include "loss_probe.hpp"
 #include "park_dog_screen.hpp"
 #include "park_switch_patches031.hpp"
 #include "switch_courses.hpp"
@@ -90,7 +107,6 @@
 #include "slot_machine_art.hpp"
 #include "billboards.hpp"
 #include "level_select_art.hpp"
-#include "selector_transition.hpp"
 #include "profile_art.hpp"
 #include "profile_keyboard.hpp"
 #include "selector_details.hpp"
@@ -104,10 +120,14 @@
 #include "selector-extra-park-titles.hpp"
 #include "selector-final-park-titles.hpp"
 #include "selector_gifts.hpp"
+#include "campaign_mod_options.hpp"
+#include "campaign_mod_selection.hpp"
 #include "visual.hpp"
 #include "world_transition.hpp"
 #include "media.hpp"
 #include "course_objects.hpp"
+#include "menu_streaming.hpp"
+#include "menu_tv.hpp"
 #include "results.hpp"
 #include "golf.hpp"
 #include "locale.hpp"
@@ -128,8 +148,12 @@
 #include <pspkernel.h>
 #include <malloc.h>
 
+#include "editor_builder_audio.hpp"
+#include "editor_builder_gift_raster.hpp"
+#include "editor_builder_present.hpp"
 #include <atomic>
 #include <cerrno>
+#include <ctime>
 #include <cstdlib>
 #include <string>
 
@@ -137,7 +161,7 @@ PSP_MODULE_INFO("UCG_028", PSP_MODULE_USER, 1, 28);
 PSP_MAIN_THREAD_ATTR(PSP_THREAD_ATTR_USER);
 // libvorbis allocates its transform tables when the title track opens.
 PSP_HEAP_SIZE_KB(-1);
-PSP_HEAP_THRESHOLD_SIZE_KB(288);
+PSP_HEAP_THRESHOLD_SIZE_KB(192);
 
 namespace {
 
@@ -172,6 +196,113 @@ IntroPose stagePositions[87]{};
 alignas(64) uint32_t stageTexture[128*64]{};
 alignas(64) unsigned displayList[32*1024];
 std::atomic<bool> running{true};
+ParkTransitionTrace parkTransitionTrace;
+bool pendingLoadIoAudit=false;
+bool parkLoadAuditStarted=false;
+
+#ifdef UCG_VICTORY_PROBE
+bool writeLossProfiles(const char* path,LossProbe::Recorder& recorder,unsigned resident,unsigned total) {
+    auto* file=std::fopen(path,"a");
+    if (!file) return false;
+    const unsigned count=recorder.pending();
+    bool ok=std::fprintf(file,"build=053 event=loss_probe_summary records=%u dropped=%u course=3_05 target_id=11\n",
+                         count,recorder.dropped())>0;
+    for (unsigned i=0;ok && i<count;++i) {
+        LossProbe::Record r{};
+        if (!recorder.peek(i,r)) { ok=false; break; }
+        const auto& a=r.audio;
+        const auto stamp=[&](unsigned mask,unsigned value) {
+            return a.stampMask&mask?static_cast<int>(value-r.caught):-1;
+        };
+        const auto mainStamp=[&](unsigned mask,unsigned value) {
+            return r.flags&mask?static_cast<int>(value-r.caught):-1;
+        };
+        const char* reason=r.reason==LossProbe::EndReason::RetrySettled?"retry_settled":
+            r.reason==LossProbe::EndReason::NextCaught?"next_caught":r.reason==LossProbe::EndReason::Menu?"menu":
+            r.reason==LossProbe::EndReason::Exit?"exit":"other";
+        ok=std::fprintf(file,
+            "build=053 event=loss_profile course=3_05 cycle=%u end=%s duration_us=%u frames=%u render_max_us=%u command_us=%d mixer_start_us=%d first_mix_us=%d first_submit_call_us=%d mixed_complete_us=%d retry_begin_us=%d retry_end_us=%d first_gameplay_frame_us=%d flags=%u stamp_mask=%u stopped_us=%d\n",
+            r.sequence,reason,static_cast<unsigned>(r.durationUs),r.frames,r.renderMaxUs,
+            stamp(LossProbe::Command,a.command),stamp(LossProbe::MixerStart,a.mixerStart),
+            stamp(LossProbe::FirstMixed,a.firstMixed),stamp(LossProbe::Submitted,a.submitted),stamp(LossProbe::Completed,a.completed),
+            mainStamp(LossProbe::HasRetryBegin,r.retryBegin),mainStamp(LossProbe::HasRetryEnd,r.retryEnd),
+            mainStamp(LossProbe::HasFirstGameplayFrame,r.firstGameplayFrame),r.flags,a.stampMask,stamp(LossProbe::Stopped,a.stopped))>0;
+        ok=ok && std::fprintf(file,
+            "build=053 event=loss_audio cycle=%u id=%u starts=%u missing_blocks=%u resident_frames=%u total_frames=%u first_missing_us=%d missing_frame=%u ready_pages_at_missing=%u mixed_completed=%u pre_retry_blocks=%u pre_retry_missing=%u pre_retry_music_missing=%u pre_retry_sfx_missing=%u start_ready_pages=%u start_capacity=%u\n",
+            r.sequence,a.targetId,a.targetStarted,a.targetMissing,resident,total,stamp(LossProbe::FirstMissing,a.firstMissing),
+            a.targetMissingFrame,a.readyPagesAtMissing,static_cast<unsigned>((a.stampMask&LossProbe::Completed)!=0),
+            r.preRetryBlocks,r.preRetryTargetMissing,r.preRetryMusicMissing,r.preRetrySfxMissing,a.startReadyPages,a.startCapacity)>0;
+        ok=ok && std::fprintf(file,
+            "build=053 event=loss_audio_io cycle=%u blocks=%u music_underruns=%u effect_underruns=%u read_errors=%u output_error=%d gap_max_us=%u audio_late=%u target_read_calls=%u target_io_max_us=%u target_work_max_us=%u target_read_errors=%u music_io_max_us=%u music_work_max_us=%u effect_io_max_us=%u effect_work_max_us=%u\n",
+            r.sequence,a.blocks,a.musicMissing,a.sfxMissing,a.readErrors,a.outputError,a.gapMax,a.late,
+            a.targetReadCalls,a.targetIoMax,a.targetWorkMax,a.targetReadErrors,
+            a.musicIoMax,a.musicWorkMax,a.effectIoMax,a.effectWorkMax)>0;
+        ok=ok && std::fprintf(file,
+            "build=053 event=loss_inflight_read cycle=%u flags=%u id=%u start_us=%d end_us=%d\n",
+            r.sequence,a.inflightFlags,a.inflightId,
+            a.inflightFlags&1?static_cast<int>(a.inflightStart-r.caught):-1,
+            a.inflightFlags&4?static_cast<int>(a.inflightEnd-r.caught):-1)>0;
+        const auto span=[](unsigned flags,unsigned required,unsigned begin,unsigned end) {
+            return (flags&required)==required?static_cast<int>(end-begin):-1;
+        };
+        ok=ok && std::fprintf(file,
+            "build=053 event=retry_stages cycle=%u course=3_05 write_attempted=%u persist_us=%d reset_us=%d journal_us=%d work_us=%d first_frame_us=%d flags=%u\n",
+            r.sequence,static_cast<unsigned>((r.flags&LossProbe::RetryWrote)!=0),
+            span(r.flags,LossProbe::HasRetryPersistence,r.retryPersistBegin,r.retryPersistEnd),
+            span(r.flags,LossProbe::HasRetryPersistence|LossProbe::HasRetryReset,r.retryPersistEnd,r.retryResetEnd),
+            span(r.flags,LossProbe::HasRetryReset|LossProbe::HasRetryJournal,r.retryResetEnd,r.retryJournalEnd),
+            span(r.flags,LossProbe::HasRetryBegin|LossProbe::HasRetryEnd,r.retryBegin,r.retryEnd),
+            span(r.flags,LossProbe::HasRetryBegin|LossProbe::HasFirstGameplayFrame,r.retryBegin,r.firstGameplayFrame),r.flags)>0;
+    }
+    const int flushed=std::fflush(file);
+    const int closed=std::fclose(file);
+    if (ok && !flushed && !closed) recorder.discard(count);
+    return ok && !flushed && !closed;
+}
+#endif
+
+void logLoadIoAudit(const char* path) {
+    const auto snapshot=LoadIoAudit::snapshot();
+    const auto first=LoadIoAudit::first();
+    const int descriptor=sceIoOpen(path,PSP_O_WRONLY|PSP_O_APPEND|PSP_O_CREAT,0666);
+    if (descriptor<0) return; // Original errors remain in RAM for the shutdown retry.
+    const auto emit=[&](const char* text,int bytes) {
+        if (bytes<0 || bytes>=512) return false;
+        int done=0;
+        while (done<bytes) {
+            const int count=sceIoWrite(descriptor,text+done,bytes-done);
+            if (count<=0 || count>bytes-done) return false;
+            done+=count;
+        }
+        return true;
+    };
+    char line[512];
+    bool ok=emit(line,std::snprintf(line,sizeof line,
+        "build=053 event=load_io_audit open=%u high_water=%u opens=%u closes=%u errors=%u dropped=%u untracked=%u short_reads=%u\n",
+        snapshot.openCount,snapshot.highWater,snapshot.opens,snapshot.closes,
+        snapshot.errors,snapshot.dropped,snapshot.untracked,snapshot.shortReads));
+    const auto error=[&](const LoadIoAudit::Error& value,const char* kind) {
+        return emit(line,std::snprintf(line,sizeof line,
+            "build=053 event=load_io_error kind=%s phase=%s op=%s uid=%d raw=0x%08X offset=%lld wanted=%u got=%u path_hash=%08X path=%s observation=%u\n",
+            kind,value.phase,value.op,value.uid,static_cast<unsigned>(value.raw),
+            static_cast<long long>(value.offset),value.wanted,value.got,value.pathHash,value.path,
+            static_cast<unsigned>(value.observation)));
+    };
+    if (ok && first.valid) ok=error(first,"first");
+    for (unsigned i=0;ok && i<16;++i) {
+        LoadIoAudit::Error value{};
+        if (!LoadIoAudit::errorAt(i,value)) break;
+        ok=error(value,"recent");
+    }
+    for (unsigned i=0;ok && i<64;++i) {
+        LoadIoAudit::Handle value{};
+        if (!LoadIoAudit::handleAt(i,value) || value.uid==descriptor) continue;
+        ok=emit(line,std::snprintf(line,sizeof line,
+            "build=053 event=load_io_handle uid=%d offset=%lld flags=%u path_hash=%08X path=%s\n",
+            value.uid,static_cast<long long>(value.offset),value.flags,value.pathHash,value.path));
+    }
+    sceIoClose(descriptor);
+}
 VisualHeader visual{};
 TileField walls,santaWalls;
 LateCosmicWalls053 lateWalls053;
@@ -240,10 +371,15 @@ static_assert(sizeof(PursuitBalloonPoint)==4);
 std::unique_ptr<PursuitBalloonPoint[]> pursuitMotion;
 ParkPatchBank<128,64,5> jumbleFlag;
 ChuckleArt chuckleArt;
+constexpr unsigned CoasterMotionOffset=2*Stride*Height*sizeof(uint16_t);
+constexpr unsigned CoasterMotionCapacity=0x20000;
+constexpr unsigned CoasterChuckleOffset=CoasterMotionOffset+CoasterMotionCapacity;
+static_assert(CoasterMotionOffset==0x88000);
+static_assert(CoasterChuckleOffset+ChuckleArt::TextureBytes==0xc8000);
 CoasterArt coasterArt;
 CoasterSpringArt coasterSprings;
 DenseBlocks denseBlocks;
-ParkPatchBank<256,128,DenseBlocks::Capacity> denseBlockArt;
+ParkPatchBank<256,128,60> denseBlockArt;
 constexpr bool hasCoaster(unsigned index) { return index==CoasterCourse || index==DenseCourse || index==PursuitCourse; }
 constexpr Sound coasterSound(unsigned index) {
     if (index==PursuitCourse) return Sound::CoasterFlyby312;
@@ -313,7 +449,9 @@ alignas(64) uint32_t keyDoorSprites[KeyDoorAtlasWidth*KeyDoorAtlasHeight]{};
 alignas(64) uint32_t roundKeySprites[256*256]{};
 alignas(64) uint32_t bubbleTexture[128*32]{};
 alignas(64) uint16_t blockTexture[BlockAtlasWidth*BlockAtlasHeight]{};
-alignas(64) uint32_t splashTexture[512*256]{};
+// Swizzled rows 0–167 contain every splash and destruction sprite.
+constexpr unsigned SplashTextureStride=512,SplashTextureRows=168;
+alignas(64) uint32_t splashTexture[SplashTextureStride*SplashTextureRows]{};
 alignas(64) uint32_t interactiveTexture[256*256]{};
 constexpr unsigned PondCourse=TutorialCount+8, PondFrames=16, BackroomsCourse=TutorialCount+11;
 constexpr unsigned PoolCourse=TutorialCount+15;
@@ -331,14 +469,18 @@ BackgroundPreference backgroundPreference{},backgroundDraft{};
 unsigned backgroundBeforeSettings=0;
 bool settingsPreviewError=false;
 unsigned activeBackground=UINT32_MAX;
-alignas(64) uint32_t menuLabels[256*128]{},settingsWidgets[256*256]{};
+constexpr unsigned SettingsAtlasRows=176;
+alignas(64) uint32_t menuLabels[256*128]{},settingsWidgets[256*SettingsAtlasRows]{};
 alignas(64) uint32_t localeFont[512*128]{};
 uint8_t glyphAdvance[LocaleGlyphs]{};
 Language language=Language::English;
 Language languageDraft=Language::English;
 bool settingsError=false;
-enum class SettingsRow : unsigned { Language, Background, Random, Save, Count };
+enum class SettingsRow : unsigned { Language, Background, Random, Sensitivity, Invert, Buffer, Master, Music, Sounds, Save, Count };
 SettingsRow settingsRow=SettingsRow::Language;
+unsigned settingsFirst=0;
+StartupEditorBus::Values gameSettings{},settingsDraft{};
+ShotSettings shotSettings{};
 
 bool russian() { return language==Language::Russian; }
 const char* lang(const char* english,const char* ru) { return russian()?ru:english; }
@@ -356,10 +498,11 @@ bool loadLocaleFont(const char* path) {
     return true;
 }
 
-bool loadUiTexture(const char* path,void* pixels,unsigned bytes) {
+bool loadUiTexture(const char* path,void* pixels,unsigned bytes,unsigned padding=0) {
     std::FILE* file=std::fopen(path,"rb");
     if (!file) return false;
     const bool ok=std::fread(pixels,bytes,1,file)==1 &&
+                  (!padding || std::fseek(file,padding,SEEK_CUR)==0) &&
                   std::fgetc(file)==EOF && !std::ferror(file);
     std::fclose(file);
     if (ok) sceKernelDcacheWritebackRange(pixels,bytes);
@@ -427,10 +570,12 @@ bool loadGolf(const char* path) {
     std::FILE* file=std::fopen(path,"rb");
     if (!file) return false;
     constexpr long legacyPauseBytes=512*128*sizeof(uint32_t);
+    constexpr long splashPadding=SplashTextureStride*(256-SplashTextureRows)*sizeof(uint32_t);
     const bool ok=readGolfData(file,golf) && std::fread(bubbleTexture,sizeof bubbleTexture,1,file)==1 &&
                   std::fseek(file,legacyPauseBytes,SEEK_CUR)==0 &&
                   std::fread(blockTexture,sizeof blockTexture,1,file)==1 &&
                   std::fread(splashTexture,sizeof splashTexture,1,file)==1 &&
+                  std::fseek(file,splashPadding,SEEK_CUR)==0 &&
                   std::fread(interactiveTexture,sizeof interactiveTexture,1,file)==1 &&
                   std::fgetc(file)==EOF && !std::ferror(file);
     std::fclose(file);
@@ -556,14 +701,27 @@ bool changeBackground(const BackgroundFile& file,unsigned id,bool random) {
 }
 ObjectAssets objects;
 ThoughtPlayer thoughts;
+MenuStreaming menuStreaming;
+MenuTv menuTv;
 ResultAssets resultAssets;
 RankPlayer ranks;
 Progress progress;
+void applySharedWorldProgress();
+bool rememberSharedWorldProgress();
+uint64_t campaignUnlockFlags();
+bool worldOwns(unsigned id);
+int sharedAttractWorld();
+void worldGiftSubmitted(bool success);
+void worldGiftPresented();
+bool worldGiftActive();
 
 bool earnedSwim045() {
     return progress.next>=CosmicFirstCourse || progress.best[Elysian518Course].rank>0;
 }
 bool chillMode=false;
+CampaignMods::Options campaignOptions{};
+uint16_t campaignAvailableMods();
+bool campaignPeakAvailable();
 unsigned menuCourse=0;
 WorldResultsState worldResults;
 unsigned currentCourse = 0;
@@ -584,12 +742,18 @@ ParkPatchBank<Selector047Width,Selector047Height,Selector047Count> cosmicTitles0
 unsigned playableCourseCount=CourseCount;
 LevelSelectState levelSelect;
 LevelSelectArt levelSelectArt;
-SelectorTransitionArt selectorTransitionArt;
+constexpr unsigned MapTravelMs=800;
+int pendingWorldDirection=0;
+uint64_t worldRequestTime=0;
+bool worldReadyOnPress=false,worldAnimatingOnPress=false;
+struct WorldTravelSample { unsigned from,to,wait; bool readyOnPress,animatingOnPress,duringXmb; };
+std::array<WorldTravelSample,12> worldTravelSamples{};
+unsigned worldTravelCount=0;
 bool selectorGoArmed=false,selectorGoDown=false;
 MenuButtonArt menuButtonArt;
 ProfileArt profileArt;
 std::string menuScrollPack;
-bool menuButtonDown=false;
+bool menuButtonDown=false,titleMenuPending=false;
 alignas(64) uint32_t selectorDetails[SelectorDetails::Width*SelectorDetails::Height]{};
 alignas(64) uint32_t selectorFrontierTitles[128*256]{};
 alignas(64) uint32_t selectorNextWorldTitles[SelectorDetails::NextWorldTitleWidth*SelectorDetails::NextWorldTitleHeight]{};
@@ -610,6 +774,7 @@ void openLevelSelect(Flow& flow,unsigned preferred=LevelSelectState::NoCourse) {
     const unsigned available=chillMode?std::min(playableCourseCount,ElysianFieldsCourse):playableCourseCount;
     levelSelect.open(progress,available,preferred);
     selectorGoArmed=selectorGoDown=false;
+    pendingWorldDirection=0;
     menuCourse=levelSelect.course();
     flow.screen=Screen::LevelSelect;
 }
@@ -699,6 +864,23 @@ RideAtlas033<SnowSwitchAtlasSize034[1][0],SnowSwitchAtlasSize034[1][1],switchPat
 RideAtlas033<128,64,4> frontierLateFaces;
 RideAtlas033<128,64,2> wholesomePortalArt;
 ClipPlayer clips;
+
+uint8_t* mainMenuLayers=nullptr;
+uint8_t* mainMenuForeground=nullptr;
+
+bool prepareMainMenuArt(bool russian) {
+    return ClipPlayer::readMenu(menuScrollPack.c_str(),2*static_cast<unsigned>(russian),
+                                mainMenuLayers,mainMenuForeground,true) && menuButtonArt.load(russian,true);
+}
+
+void preloadMainMenu() {
+    static_assert(MenuScroll::TileBytes+MenuScroll::HudBytes+MenuScroll::StripBytes<=sizeof profileArt.base);
+    static_assert(MenuScroll::ForegroundBytes<=LevelSelectArt::PanelBytes);
+    mainMenuLayers=profileArt.baseWorkspace();
+    mainMenuForeground=levelSelectArt.panelWorkspace(1);
+    menuStreaming.requestArt(russian());
+}
+
 AudioMixer audio;
 
 void stopRideAudio033() {
@@ -823,7 +1005,18 @@ bool hasUnskippableFrontierHole(unsigned index) {
 WallContact sweepCosmic053(Vec2 position,Vec2 motion,float radius);
 void stopLastHurrahSounds053();
 
+#include "bunker_jumpy.hpp"
+#include "course_bounds.hpp"
+
+unsigned campaignBuddySound();
+
 struct Round {
+    CampaignModifiers::State campaignMods{};
+    bool attractDemo=false;
+    float demoScale=1;
+    bool campaignActive() const { return !endlessReplay && !attractDemo; }
+    BunkerJumpy bunkerJumpy{};
+    bool endlessReplay=false,endlessPharaoh=false;
     Game game;
     HorseBroadcast039 horseBroadcast;
     Controls controls;
@@ -878,6 +1071,7 @@ struct Round {
     Metronome048 rhythm;
     Polyrhythm049 polyrhythm;
     BaddieRun cosmicSkulls;
+    ActorPronouns054::Tag goalFaceLabel{};
     MovingGoal051 movingGoal;
     SantaRun052 santa;
     LastHurrah053 lastHurrah;
@@ -900,6 +1094,8 @@ struct Round {
     bool horseGhostCaught=false;
     bool nextCarHorn=false;
     unsigned ticks = 0, totalTicks = 0;
+    HoldToSkip skipHold;
+    unsigned skipSpawnTicks=0,skipHudTicks=0;
     bool caught = false, inSand = false, paused = false, cleanPause = false, waterDead = false, backrooms = false;
     BlockMask brokenBlocks;
     unsigned blockMultiplier=0,blockBonus=0,splashTick=0;
@@ -920,6 +1116,14 @@ struct Round {
     unsigned tvTick() const { return totalTicks+tvPauseOffset+tvPausedTicks; }
 
     void restart() {
+        stopCampaignAudio();
+        campaignMods.reset(attractDemo?CampaignMods::Options{}:campaignOptions,scene.spawn);
+        game.modifierKinesis=game.modifierSticky=game.modifierParryFrozen=false;game.modifierDizzyAngle=0;
+        bunkerJumpy={};
+        bunkerJumpy.enabled=!attractDemo && campaignOptions.enabled(CampaignMods::Jumpy);
+        endlessReplay=endlessPharaoh=false;
+        clearSkip();
+        skipSpawnTicks=0;
         game.restart();
         game.goalEnabled=currentCourse!=CosmicSeventeenthCourse && currentCourse!=CataclysmCourse && currentCourse!=TheWallCourse &&
             currentCourse!=HorseBroadcastCourse && !isHorseCourse039(currentCourse);
@@ -960,7 +1164,7 @@ struct Round {
         finale417.restart(currentCourse==CataclysmCourse && progress.quest>=2 && !progress.frontierKey);
         if (currentCourse==CataclysmCourse) audio.stageCue(StageCue::None);
         controls = {};
-        ride.restart(false,chillMode);
+        ride.restart(campaignOptions.enabled(CampaignMods::Panic),chillMode);
         if (currentCourse==ChuckleCoasterCourse) {
             stopRideAudio033();
             audio.rideVolume(1,-80,-80);
@@ -1221,6 +1425,7 @@ struct Round {
             for (unsigned i=0;i<extraGhostCount;++i) extraGhosts[i]={CosmicGhosts608[i+1],{}};
         }
         movingGoal={};
+        goalFaceLabel=currentCourse==CosmicThirteenthCourse ? ActorPronouns054::session.ready(ActorPronouns054::Kind::GoalFace) : ActorPronouns054::Tag{};
         santa={};
         lastHurrah.restart(CosmicFinalGhost617);
         rhythmRecovery617=false;
@@ -1239,6 +1444,13 @@ struct Round {
         if (currentCourse==UncannyValleyCourse) {
             extraGhostCount=0;
             for (const auto& position:FrontierExtraGhosts409) extraGhosts[extraGhostCount++]={position,{}};
+        }
+        if (!chillMode && currentCourse!=ChuckleCoasterCourse && currentCourse!=CosmicEighteenthCourse &&
+            (currentCourse>=CosmicFirstCourse || !hasUnskippableFrontierHole(currentCourse)) &&
+            (!isHorseCourse039(currentCourse) || hasHorseCourseGhost040(currentCourse))) {
+            ghost.label=ActorPronouns054::session.ready(ActorPronouns054::Kind::Ghost);
+            for (unsigned i=0;i<extraGhostCount;++i) extraGhosts[i].label=ActorPronouns054::session.ready(ActorPronouns054::Kind::Ghost);
+            if (currentCourse==CosmicSeventeenthCourse) lastHurrah.hunter.label=ActorPronouns054::session.ready(ActorPronouns054::Kind::Ghost);
         }
         ticks = 0;
         caught = false;
@@ -1286,14 +1498,59 @@ struct Round {
     }
 
     ControlEvent updateControls(Vec2 aim,bool cross,bool retry) {
+        const ShotSettings inputSettings=attractDemo?ShotSettings{}:shotSettings;
+        controls.setPhysicsFrame(totalTicks);
+        if (!retry && (paused || caught || game.won)) { controls.cancel(cross);return ControlEvent::None; }
         if (wall418.bedActive || horse.flying() ||
             (currentCourse==Elysian518Course && !retry && finale518.phase!=FinalePhase518::Hunt &&
-             finale518.phase!=FinalePhase518::TeeReady)) return ControlEvent::None;
+             finale518.phase!=FinalePhase518::TeeReady)) { controls.cancel(cross);return ControlEvent::None; }
+        auto* mods=campaignActive() && campaignMods.any()?&campaignMods:nullptr;
+        if (mods && !retry && !game.won) {
+            mods->aim(wizard.input(aim));
+            const bool press=cross && !mods->lastPrimary;
+            mods->lastPrimary=cross;
+            if (mods->enabled(CampaignMods::Telekinesis)) {
+                // PTelekinetic scales transformed delta; drag inversion never applies.
+                // Keep God free-cursor movement in aim() independent of sensitivity.
+                if (inputSettings.sensitivity!=1.f) mods->pointerDelta=mods->pointerDelta*inputSettings.sensitivity;
+                controls.cancel(cross);
+                if (press && mods->primaryPressed(game)) audio.play(static_cast<Sound>(298));
+                return ControlEvent::None;
+            }
+            if (mods->parryFreeze || bunkerJumpy.flightTicks || jump.airborne()) {
+                controls.cancel(cross);return ControlEvent::None;
+            }
+        }
         const auto event=controls.update(game,scene,wizard.input(aim),cross,retry,
-                                         frontierWind.drifting() || wizard.drifting());
+                                         frontierWind.drifting() || wizard.drifting(),mods,inputSettings);
         if (currentCourse==Elysian516Course && event==ControlEvent::Shot) wizard.beginMove();
         if (event==ControlEvent::Shot) frontierWind.beginMove();
         return event;
+    }
+
+    // Root calls this immediately after each fixed physics step, and dispatches
+    // Shot through the same audio/coin/thought path as updateControls.
+    ControlEvent consumeBufferedControls() {
+        if (attractDemo || !shotSettings.buffer || paused) return ControlEvent::None;
+        if (caught || game.won || wall418.bedActive || horse.flying() ||
+            bunkerJumpy.flightTicks || jump.airborne()) { controls.cancel();return ControlEvent::None; }
+        auto* mods=campaignActive() && campaignMods.any()?&campaignMods:nullptr;
+        if (mods && (mods->parryFreeze || mods->enabled(CampaignMods::Telekinesis))) return ControlEvent::None;
+        const auto event=controls.consumeBuffered(game,scene,totalTicks,
+            frontierWind.drifting() || wizard.drifting(),mods);
+        if (currentCourse==Elysian516Course && event==ControlEvent::Shot) wizard.beginMove();
+        if (event==ControlEvent::Shot) frontierWind.beginMove();
+        return event;
+    }
+
+    void stopCampaignAudio() {
+        if (campaignMods.tkAudioOn) { audio.stop(static_cast<Sound>(333));campaignMods.tkAudioOn=false; }
+    }
+
+    void campaignSecondary(bool heldCross=false) {
+        if (!campaignActive() || caught || game.won) return;
+        campaignMods.secondaryPressed();
+        if (campaignMods.teleport(game)) controls.cancel(heldCross);
     }
 
     void togglePause() {
@@ -1325,11 +1582,23 @@ struct Round {
     void chaseGhosts(bool vulnerable) {
         if (chillMode || currentCourse==CosmicEighteenthCourse) return;
         bool caughtByGhost=false;
-        if (usesMetronome048(currentCourse) || currentCourse>=CosmicTwelfthCourse) {
-            const unsigned count=1+extraGhostCount;
-            unsigned mask=0;
-            for (unsigned i=0;i<count;++i) if (rhythmGhostActive(i)) mask|=1u<<i;
-            caughtByGhost=stepFrontierGhosts409(ghost,extraGhosts,extraGhostCount,game.position,nullptr,mask);
+        const bool campaign=campaignActive() && campaignMods.any();
+        const bool rhythmChase=usesMetronome048(currentCourse) || currentCourse>=CosmicTwelfthCourse;
+        uint32_t activeMask=UINT32_MAX;
+        if (rhythmChase) {
+            activeMask=0;
+            for (unsigned i=0;i<=extraGhostCount;++i) if (rhythmGhostActive(i)) activeMask|=1u<<i;
+        }
+        std::array<Vec2,CampaignModifiers::State::GhostCapacity> previous{};
+        if (campaign) for (unsigned i=0;i<=extraGhostCount;++i) {
+            if (!(activeMask&(1u<<i))) { campaignMods.ghostInside[i]=false;continue; }
+            auto& g=i?extraGhosts[i-1]:ghost;
+            g.panic=campaignMods.enabled(CampaignMods::Panic);
+            previous[i]=g.position;
+            if (campaignMods.ghostStun[i]) g.velocity={};
+        }
+        if (rhythmChase) {
+            caughtByGhost=stepFrontierGhosts409(ghost,extraGhosts,extraGhostCount,game.position,nullptr,activeMask);
         } else if (currentCourse==CataclysmCourse) {
             caughtByGhost=stepFrontierGhosts417(ghost,extraGhosts,extraGhostCount,finale417,game.position,scene.playerRadius);
         } else if (currentCourse==UncannyValleyCourse || currentCourse==FrontierPatrolCourse ||
@@ -1342,6 +1611,49 @@ struct Round {
         }
         if (currentCourse==CosmicSeventeenthCourse)
             caughtByGhost|=lastHurrah.chase(game.position,scene.playerRadius);
+        if (campaign) {
+            bool ordinaryCaught=false;
+            for (unsigned i=0;i<=extraGhostCount;++i) {
+                if (!(activeMask&(1u<<i))) { campaignMods.ghostInside[i]=false;continue; }
+                auto& g=i?extraGhosts[i-1]:ghost;
+                if (campaignMods.ghostStun[i]) {
+                    g.position=previous[i];g.velocity={};
+                    if (!--campaignMods.ghostStun[i]) g.velocity=campaignMods.ghostVelocity[i];
+                }
+                campaignMods.recordGhost(i,g.position,g.velocity);
+                if (campaignMods.buddyTouch(g.position,12.1655f)) audio.playTuned(static_cast<Sound>(campaignBuddySound()),0,3);
+                const Vec2 gap=game.position-g.position;
+                const bool contact=dot(gap,gap)<=27.9655f*27.9655f;
+                if (vulnerable && contact && !campaignMods.ghostInside[i]) {
+                    campaignMods.ghostVelocity[i]=g.velocity;
+                    if (campaignMods.parryContact(game,i)) {
+                        g.velocity={};controls={};audio.play(static_cast<Sound>(339));
+                    } else ordinaryCaught=true;
+                }
+                campaignMods.ghostInside[i]=vulnerable && contact;
+            }
+            // FinalGhost inherits Ghost's hitbox handler, but its own physics does
+            // not consume parry_stun: zero it on touch, then let authored motion resume.
+            bool specialCaught=false;
+            GhostMotion* special=currentCourse==CataclysmCourse?&finale417.finalGhost:
+                currentCourse==CosmicSeventeenthCourse?&lastHurrah.hunter:nullptr;
+            constexpr unsigned SpecialSlot=CampaignModifiers::State::GhostCapacity-1;
+            if (special) {
+                const float hitRadius=currentCourse==CataclysmCourse?FrontierFinalGhostHitRadius417:90.f;
+                if (campaignMods.buddyTouch(special->position,hitRadius))
+                    audio.playTuned(static_cast<Sound>(campaignBuddySound()),0,3);
+                const Vec2 gap=game.position-special->position;
+                const float reach=hitRadius+scene.playerRadius;
+                const bool contact=dot(gap,gap)<=reach*reach;
+                if (vulnerable && contact && !campaignMods.ghostInside[SpecialSlot]) {
+                    if (campaignMods.parryContact(game,SpecialSlot,false)) {
+                        special->velocity={};controls={};audio.play(static_cast<Sound>(339));
+                    } else specialCaught=true;
+                }
+                campaignMods.ghostInside[SpecialSlot]=vulnerable && contact;
+            }
+            caughtByGhost=ordinaryCaught || specialCaught;
+        }
         if (vulnerable && caughtByGhost) {
             caught=true;
             game.velocity={};
@@ -1571,7 +1883,58 @@ struct Round {
 
 #include "elysian_finale045_runtime.hpp"
 
+    void clearSkip() {
+        skipHold.update(false);
+        skipHudTicks=0;
+    }
+
+    bool updateSkip(bool held) {
+        // The PC player becomes active after growing from .003 to .064 at .001 per tick.
+        constexpr unsigned SpawnTicks=61;
+        if (skipSpawnTicks<SpawnTicks) ++skipSpawnTicks;
+        if (!held || game.won || wall418.bedActive || horseBroadcast.active() ||
+            (!caught && skipSpawnTicks<SpawnTicks)) {
+            clearSkip();
+            return false;
+        }
+        if (!skipHudTicks && !cannotSkipCourse(currentCourse)) thoughts.play(Thought::Idle,tvTick());
+        if (skipHudTicks<60) ++skipHudTicks;
+        return !cannotSkipCourse(currentCourse) && skipHold.update(true);
+    }
+
     void step(bool skipRide=false,bool parryRide=false,bool horseLift=false) {
+        const bool campaign=campaignActive() && campaignMods.any();
+        if (!campaign) { game.modifierKinesis=game.modifierSticky=game.modifierParryFrozen=false;game.modifierDizzyAngle=0;stepBase(skipRide,parryRide,horseLift);return; }
+        if (paused) { stopCampaignAudio();return; }
+        if (campaignMods.wallBlast && ++campaignMods.wallBlast>44) campaignMods.wallBlast=0;
+        if (caught && campaignMods.missile.blast && ++campaignMods.missile.blast>44) campaignMods.missile.blast=0;
+        const bool live=!caught && !game.won && !wall418.bedActive;
+        const bool airborne=jump.airborne() || EndlessModifiers::jumpInFlight(bunkerJumpy) || horse.flying();
+        if (live) {
+            campaignMods.beforeStep(game,airborne);
+            campaignMods.stepBuddy(game.position);
+            if (campaignMods.enabled(CampaignMods::Telekinesis) && !airborne && !campaignMods.parryFreeze) {
+                const auto sound=static_cast<Sound>(333);
+                if (!campaignMods.tkAudioOn) { audio.playTuned(sound,4,campaignMods.tkPitch);campaignMods.tkAudioOn=true; }
+                else audio.retune(sound,4,campaignMods.tkPitch);
+            } else stopCampaignAudio();
+        } else stopCampaignAudio();
+        stepBase(skipRide,parryRide || campaignMods.parryActive>23,horseLift);
+        if (live) {
+            if (game.modifierStickyContact) {
+                audio.playTuned(static_cast<Sound>(341),0,std::clamp(.8f+.2f*game.modifierStickySpeed/500,.8f,1.f));
+                if (game.modifierWallInside) { campaignMods.wallDeath=true;campaignMods.wallBlast=1;caught=true;game.velocity={};controls={}; }
+            }
+            const unsigned events=campaignMods.stepMissile(game.position,scene.playerRadius,
+                !jump.airborne() && !EndlessModifiers::jumpInFlight(bunkerJumpy) && !horse.flying());
+            if (events&EndlessModifiers::MissileWarning) audio.play(Sound::EndlessMissileDing);
+            if (events&EndlessModifiers::MissileBlast) { audio.stop(Sound::EndlessMissileDing);audio.play(Sound::EndlessMissileBoom); }
+            if (!game.won && (events&EndlessModifiers::MissileHit)) { campaignMods.wallDeath=true;campaignMods.wallBlast=1;caught=true;game.velocity={};controls={}; }
+            campaignMods.afterStep(game);
+        }
+    }
+
+    void stepBase(bool skipRide=false,bool parryRide=false,bool horseLift=false) {
         if (paused) return;
         ++totalTicks;
         if (currentCourse==Elysian518Course) {
@@ -1622,10 +1985,25 @@ struct Round {
             return;
         }
         ++ticks;
+        if (bunkerJumpy.enabled && (!jump.airborne() || (!endlessReplay && !campaignMods.enabled(CampaignMods::Jumpy)))) {
+            const bool sand=courseHazards(currentCourse).onSand(game.position,scene.playerRadius);
+            const auto jumpEvent=bunkerJumpy.step(game,scene,walls,sand?golf.damping:endlessPharaoh?.85f:1.0f);
+            if (jumpEvent==BunkerJumpy::Event::WallStuck || jumpEvent==BunkerJumpy::Event::OutOfBounds) {
+                fellOut=jumpEvent==BunkerJumpy::Event::OutOfBounds;
+                caught=true;
+                controls={};
+                game.velocity={};
+                return;
+            }
+            if (jumpEvent!=BunkerJumpy::Event::Grounded) {
+                if (jumpEvent==BunkerJumpy::Event::Takeoff) audio.play(endlessReplay || (campaignActive() && campaignMods.enabled(CampaignMods::Jumpy))?Sound::EndlessModJump:Sound::JumpPad);
+                chaseGhosts(false);
+                return;
+            }
+        }
         const bool santaCourse=currentCourse==CosmicFifteenthCourse;
         const bool singularity=currentCourse==CosmicSixteenthCourse;
         const bool hurrah=currentCourse==CosmicSeventeenthCourse;
-        const bool farewell=currentCourse==CosmicEighteenthCourse;
         if (singularity) lateWalls053.setRotation(ticks);
         if (hurrah) {
             const unsigned beat=rhythmTestClock?Metronome048::testBeat(ticks):
@@ -1779,9 +2157,10 @@ struct Round {
         if (currentCourse>=HighwayCourse && currentCourse<=AlleyCourse &&
             news.x(ticks)+newsArt.width(russian(),news.headline)<NewsArt::ClipLeft)
             news.reset(ticks);
-        if ((!santaCourse || santa.boundsArmed) &&
-            (jumpStage || currentCourse==CosmicFourteenthCourse || currentCourse==CosmicThirteenthCourse || currentCourse==CosmicTenthCourse || currentCourse==Elysian514Course || currentCourse>=Elysian516Course || currentCourse==DoubleDogCourse || frontierWind.active || currentCourse==CataclysmCourse) && jump.outside(game.position,scene)) {
-            fellOut=hurrah || currentCourse==CosmicNinthCourse || currentCourse==CosmicTenthCourse || (currentCourse>=CosmicThirdCourse && currentCourse!=CosmicThirteenthCourse && currentCourse!=CosmicFourteenthCourse && !singularity && !farewell && !usesMetronome048(currentCourse)) || jump.airborne() || jump.deathBuffer;
+        const auto boundsDeath=CourseBounds::death(currentCourse,game.position,jump.airborne(),
+                                                  jump.deathBuffer,santa.boundsArmed);
+        if (boundsDeath!=CourseBounds::Death::None) {
+            fellOut=boundsDeath==CourseBounds::Death::OutOfBounds;
             backrooms=!fellOut;
             if (isHorseCourse039(currentCourse)) horse.lose();
             caught=true;
@@ -1818,6 +2197,7 @@ struct Round {
             } else chaseGhosts(false);
             return;
         }
+        if (endlessPharaoh && currentCourse<TutorialCount) game.velocity=game.velocity*.85f;
         if (currentCourse>=TutorialCount) {
             const auto& golfStage=courseHazards(currentCourse);
             const bool pursuit=currentCourse==PursuitCourse;
@@ -1826,7 +2206,7 @@ struct Round {
             if (overlaps) {
                 if (!inSand) thoughts.play(Thought::Sand,tvTick());
                 game.velocity=game.velocity*(pursuit?ParkPursuitSandDamping:golf.damping);
-            }
+            } else if (endlessPharaoh) game.velocity=game.velocity*.85f;
             inSand=overlaps;
             if (currentCourse==Elysian514Course)
                 stepElysianThreats514(baddies,chuckles,walls,switches,game.position,ticks);
@@ -2223,22 +2603,9 @@ struct Round {
     }
 };
 
-int exitCallback(int, int, void*) {
-    running.store(false,std::memory_order_relaxed);
-    return 0;
-}
-
-int callbackThread(SceSize, void*) {
-    const int cb = sceKernelCreateCallback("ucg-exit",exitCallback,nullptr);
-    if (cb >= 0) {
-        sceKernelRegisterExitCallback(cb);
-        sceKernelSleepThreadCB();
-    }
-    return 0;
-}
-
 [[maybe_unused]] std::string companion(const char* executable,const char* filename) {
     const std::string path = executable ? executable : "";
+    if(ReleasePaths::disc(path))return ReleasePaths::assetDirectory(executable)+filename;
     const auto slash = path.find_last_of("/\\");
     return slash == std::string::npos ? filename : path.substr(0,slash+1)+filename;
 }
@@ -2250,12 +2617,7 @@ bool organizedAssets=false;
 #endif
 
 std::string statePath(const char* executable,const char* filename) {
-#ifdef UCG_DISC_BUILD
-    (void)executable;
-    return std::string("ms0:/PSP/UCG053-ISO/")+filename;
-#else
-    return companion(executable,filename);
-#endif
+    return ReleasePaths::state(executable,filename);
 }
 
 std::string assetPath(const char* executable,const char* filename) {
@@ -2274,25 +2636,57 @@ bool validPatch(const Patch& p,int w,int h) {
 }
 
 bool loadAssets(const char* path,Course& course,bool extraCourse) {
+    LoadIoAudit::setPhase("field_open");
+    errno=0;
     std::FILE* f=std::fopen(path,"rb");
-    if (!f) return false;
+    if (!f) { LoadIoAudit::failure("field_open",errno,0,0); return false; }
+    const auto failed=[&](const char* step,unsigned wanted=0,unsigned got=0) {
+        LoadIoAudit::failure(step,errno,wanted,got);
+        std::fclose(f);
+        return false;
+    };
+    const auto read=[&](void* output,unsigned bytes,const char* step) {
+        LoadIoAudit::setPhase(step);
+        errno=0;
+        const auto got=std::fread(output,1,bytes,f);
+        if (got==bytes) return true;
+        LoadIoAudit::failure(step,errno,bytes,static_cast<unsigned>(got));
+        return false;
+    };
+    const auto seek=[&](long offset,int origin,const char* step) {
+        LoadIoAudit::setPhase(step);
+        errno=0;
+        if (std::fseek(f,offset,origin)==0) return true;
+        LoadIoAudit::failure(step,errno,static_cast<unsigned>(offset),0);
+        return false;
+    };
     walls = {};
     constexpr long legacySize=CourseBytes+VisualBytes+sizeof resultFont+sizeof stagePositions+sizeof stageTexture;
     const unsigned page=extraCourse ? static_cast<unsigned>(Screen::Hole) : 0;
     constexpr long pagePadding=StoredPageBytes-sizeof gameplayPage;
-    bool ok=(extraCourse || (std::fseek(f,0,SEEK_END)==0 && std::ftell(f)==legacySize)) &&
-            readCourse(f,course) && std::fread(&visual,sizeof visual,1,f)==1 &&
-            visual.magic==0x32564355 && visual.spinnerCount>=1 && visual.spinnerCount<=MaxSpinner &&
-            validPatch(visual.cat,ActorsWidth,ActorsHeight) && validPatch(visual.ghost,ActorsWidth,ActorsHeight);
+    if (!extraCourse && (!seek(0,SEEK_END,"field_legacy_seek") || std::ftell(f)!=legacySize))
+        return failed("field_legacy_size");
+    LoadIoAudit::setPhase("field_course");
+    errno=0;
+    if (!readCourse(f,course)) return failed("field_course");
+    if (!read(&visual,sizeof visual,"field_visual_read")) { std::fclose(f); return false; }
+    if (visual.magic!=0x32564355 || visual.spinnerCount<1 || visual.spinnerCount>MaxSpinner ||
+        !validPatch(visual.cat,ActorsWidth,ActorsHeight) || !validPatch(visual.ghost,ActorsWidth,ActorsHeight))
+        return failed("field_visual_validate");
     const long skippedPages=StoredPageBytes*(ScreenPages-page-1);
-    ok=ok && std::fseek(f,skippedPages,SEEK_CUR)==0 &&
-            std::fread(gameplayPage,sizeof gameplayPage,1,f)==1 && std::fseek(f,pagePadding,SEEK_CUR)==0 &&
-            std::fread(hud,sizeof hud,1,f)==1 &&
-            std::fseek(f,sizeof actors,SEEK_CUR)==0 &&
-            (extraCourse || std::fread(resultFont,sizeof resultFont,1,f)==1) &&
-            std::fread(stagePositions,sizeof stagePositions,1,f)==1 &&
-            std::fread(stageTexture,sizeof stageTexture,1,f)==1 &&
-            (!extraCourse || walls.read(f));
+    bool ok=seek(skippedPages,SEEK_CUR,"field_pages_seek") &&
+            read(gameplayPage,sizeof gameplayPage,"field_page_read") && seek(pagePadding,SEEK_CUR,"field_padding_seek") &&
+            read(hud,sizeof hud,"field_hud_read") &&
+            seek(sizeof actors,SEEK_CUR,"field_actors_seek") &&
+            (extraCourse || read(resultFont,sizeof resultFont,"field_font_read")) &&
+            read(stagePositions,sizeof stagePositions,"field_positions_read") &&
+            read(stageTexture,sizeof stageTexture,"field_texture_read");
+    if (ok && extraCourse) {
+        LoadIoAudit::setPhase("field_collision");
+        errno=0;
+        ok=walls.read(f);
+        if (!ok) LoadIoAudit::failure("field_collision",errno,0,0);
+    }
     std::fclose(f);
     if (!ok) return false;
     for (unsigned i=0;i<visual.spinnerCount;++i) {
@@ -2302,6 +2696,7 @@ bool loadAssets(const char* path,Course& course,bool extraCourse) {
     for (const auto& cells:visual.clock) {
         for (const Patch& p:cells) ok=ok && validPatch(p,VisualWidth,HudHeight);
     }
+    if (!ok) LoadIoAudit::failure("field_patch_validate",0,0,0);
     if (ok) {
         sceKernelDcacheWritebackRange(gameplayPage,sizeof gameplayPage);
         sceKernelDcacheWritebackRange(hud,sizeof hud);
@@ -2344,6 +2739,42 @@ const uint16_t* backroomsBackdrop() {
     return fallbackPage;
 }
 
+struct PlayEvent {
+    const char* name;
+    unsigned course,strokes,bounces;
+    Vec2 position;
+};
+
+std::array<PlayEvent,128> playEvents{};
+unsigned playEventFirst=0,playEventCount=0,playEventsDropped=0;
+
+void queuePlayEvent(const char* name,const Game& game) {
+    if (playEventCount==playEvents.size()) {
+        playEventFirst=(playEventFirst+1)%playEvents.size();
+        --playEventCount;
+        ++playEventsDropped;
+    }
+    playEvents[(playEventFirst+playEventCount++)%playEvents.size()]=
+        {name,currentCourse,game.strokes,game.bounces,game.position};
+}
+
+void flushPlayEvents(const char* path) {
+    if (!playEventCount) return;
+    if (auto* file=std::fopen(path,"a")) {
+        std::array<char,4096> buffer{};
+        std::setvbuf(file,buffer.data(),_IOFBF,buffer.size());
+        for (unsigned i=0;i<playEventCount;++i) {
+            const auto& event=playEvents[(playEventFirst+i)%playEvents.size()];
+            std::fprintf(file,"build=053 event=%s course=%s strokes=%u bounces=%u x=%.2f y=%.2f buffered=1\n",
+                         event.name,CourseIds[event.course],event.strokes,event.bounces,event.position.x,event.position.y);
+        }
+        if (playEventsDropped)
+            std::fprintf(file,"build=053 event=play_events_dropped count=%u\n",playEventsDropped);
+        std::fclose(file);
+        playEventFirst=playEventCount=playEventsDropped=0;
+    }
+}
+
 void logEvent(const char* path,const char* event,const Game& game,const char* mode="a") {
     if (std::FILE* f=std::fopen(path,mode)) {
         std::fprintf(f,"build=053 event=%s course=%s strokes=%u bounces=%u x=%.2f y=%.2f\n",
@@ -2351,6 +2782,16 @@ void logEvent(const char* path,const char* event,const Game& game,const char* mo
         std::fclose(f);
     }
 }
+
+void playControlShot(Round& round) {
+    round.coins.multiplier=0;
+    if (round.campaignActive() && round.campaignMods.burstShot) audio.play(static_cast<Sound>(298));
+    else if (round.campaignActive() && round.campaignMods.enabled(CampaignMods::Dizzy)) audio.play(static_cast<Sound>(337));
+    else audio.play(Sound::Shot);
+    thoughts.play(Thought::Moving,round.tvTick());
+    queuePlayEvent("shot",round.game);
+}
+
 
 void logMemory(const char* path,const char* event,unsigned effectBytes,const char* mode="a") {
     const auto heap=mallinfo();
@@ -2391,8 +2832,46 @@ unsigned flagSlot(unsigned index) { return index+(russian()?CourseCount:0); }
 
 const uint8_t* titleArt=nullptr;
 bool titleReusedCourseVram=false;
+bool courseResourcesValid=false;
+bool localizedReloadRequired=false;
+
+void releaseCourseTransitionStreams();
 
 bool loadCourseAt(const char* executable,unsigned index,Course& course) {
+    courseResourcesValid=false;
+    // This course borrows otherwise idle VRAM. Never carry that pointer into a
+    // different course's VRAM layout or a fresh load of the same course.
+    if (chuckleArt.borrowed()) chuckleArt.unload();
+    // The previous frame has finished in endFrame(). Retire the Casino borrower
+    // before any new flag load, same-course locale reload or rollback.
+    slotArt.unload();
+    // Preserve the first failure across rollback and repeated presses of ×,
+    // including a failure that also prevented the diagnostic file from opening.
+    if ((index==SwitchCourse || index==JumbleCourse) && !parkLoadAuditStarted) {
+        LoadIoAudit::resetErrors();
+        parkLoadAuditStarted=true;
+    }
+    // The next course must not compete with completed menu/result streams.
+    // Waiting for the map's async operation also ends its ownership of staging.
+    releaseCourseTransitionStreams();
+
+    // A failed field load must not leave the previous/partial Jumble bundle
+    // alive: rollback itself needs a descriptor and heap space to read a field.
+    jumbleVideo.close();
+    jumbleTiles.close();
+    jumbleFlag.unload();
+    struct JumbleLoadTransaction {
+        bool committed=false;
+        ~JumbleLoadTransaction() {
+            if (!committed) {
+                jumbleVideo.close();
+                jumbleTiles.close();
+                jumbleFlag.unload();
+            }
+        }
+    } jumbleLoad;
+    if (index==JumbleCourse) parkTransitionTrace.record("load_begin","3_03","3_04");
+    glowstickArt.discardPreparedCourse();
     titleArt=nullptr;
     titleReusedCourseVram=false;
     cosmicTitles046.unload();
@@ -2430,6 +2909,8 @@ bool loadCourseAt(const char* executable,unsigned index,Course& course) {
     if (index>=CourseCount) return false;
     const std::string filename=std::string(CourseIds[index])+".bin";
     const auto failed=[&](const char* part) {
+        pendingLoadIoAudit=true;
+        if (index==JumbleCourse) parkTransitionTrace.record(part,"3_03","3_04");
         const auto file=statePath(executable,"session.log");
         if (auto* out=std::fopen(file.c_str(),"ab")) {
             const auto memory=mallinfo();
@@ -2438,9 +2919,22 @@ bool loadCourseAt(const char* executable,unsigned index,Course& course) {
                          static_cast<unsigned>(memory.fordblks));
             std::fclose(out);
         }
+        if (index==SwitchCourse || index==JumbleCourse) logLoadIoAudit(file.c_str());
         return false;
     };
+    if (index==JumbleCourse) parkTransitionTrace.record("field_begin","3_03","3_04");
     if (!loadAssets(localizedPath(executable,language,filename.c_str()).c_str(),course,index!=0)) return failed("field");
+    if (index>=Elysian508Course && index<CourseCount) {
+        // Terrain-only final-stage captures omitted persistent Master HUD.
+        // Previous GE work is fenced at the load boundary; this scratch is
+        // reused only before the actor/flag loaders publish their data.
+        fallbackPageIndex=ScreenPages;
+        horseMeter039.invalidateShared();
+        if (!CourseSidebar056::restore(gameplayPage,language==Language::Russian,index==CosmicSeventeenthCourse,
+                                      fallbackPage,sizeof fallbackPage)) return failed("field_sidebar");
+        sceKernelDcacheWritebackRange(gameplayPage,sizeof gameplayPage);
+    }
+    if (index==JumbleCourse) parkTransitionTrace.record("field_ready","3_03","3_04");
     if (index==CosmicSixthCourse) walls.setOffset(CosmicGridOffset606);
     cosmicRhythmFields048.load(nullptr,0,nullptr,0);
     if (usesMetronome048(index)) {
@@ -2480,10 +2974,8 @@ bool loadCourseAt(const char* executable,unsigned index,Course& course) {
         horseObjects039.unload();
         horseMeter039.unload();
     }
-    if (index!=SlotMachineCourse) slotArt.unload();
     if (index<ChuckleParkFirstCourse || index==JumbleCourse ||
         (index>=DenseCourse && !usesRingTimers(index) && index!=BalloonDogCourse)) parkArt.unload();
-    if (index!=JumbleCourse) { jumbleVideo.close(); jumbleTiles.close(); jumbleFlag.unload(); }
     if (index<PursuitCourse || index>=FinalFrontierFirstCourse) pursuitTiles.unload();
     if (index!=FrontierSwitchCourse) frontierSwitchTiles.unload();
     if (index!=FrontierSwitchCourse && index!=WholesomeCourse && index!=CubeTownCourse) frontierSwitchFaces.unload();
@@ -2540,6 +3032,10 @@ bool loadCourseAt(const char* executable,unsigned index,Course& course) {
         (index==FrontierDogCourse || currentCourse==FrontierDogCourse))) chuckleArt.unload();
     if (index!=ArcadeCourse) arcadeDoors.unload();
     if (index!=LightsCourse) { darkHoleArt.unload(); ashArt.unload(); }
+    if (index==ChuckleParkFirstCourse || (index>ChuckleParkFirstCourse && index<FinalFrontierFirstCourse)) {
+        parkArt.unload();
+        fallbackPageIndex=ScreenPages;
+    }
     if (index!=MartCourse) {
         marcySpillArt.unload();
         marcyHudArt.unload();
@@ -2551,12 +3047,41 @@ bool loadCourseAt(const char* executable,unsigned index,Course& course) {
         if (!multiDogStage(index)) factorySpawner.unload();
         factoryDecor.unload();
     }
-    if (index==SlotMachineCourse && !slotArt.load()) return false;
-    if (index==ChuckleParkFirstCourse && !parkArt.load()) return false;
+    if (index==SlotMachineCourse) {
+        auto* tail=goalFlags.unusedFrameTail(flagSlot(index),SlotMachineArt::CacheBytes);
+        if (!slotArt.loadBorrowed(tail,SlotMachineArt::CacheBytes)) return failed("slot_machine_art");
+    }
+    auto* parkVideo=index!=MartCourse && index>=ChuckleParkFirstCourse && index<FinalFrontierFirstCourse?
+        vram045(0x1c0000):nullptr;
+    if (index==ChuckleParkFirstCourse && !parkArt.load(nullptr,false,parkVideo,fallbackPage))
+        return failed("park_first_art");
     if ((index>ChuckleParkFirstCourse && index!=JumbleCourse && index<DenseCourse) ||
         usesParkRingStage(index) || index==BalloonDogCourse) {
         const std::string stage=multiDogStage(index)?"park-stage-3_11.pak":std::string("park-stage-")+CourseIds[index]+".pak";
-        if (!parkArt.load(assetPath(executable,stage.c_str()).c_str(),usesParkRingStage(index))) return failed("park_stage");
+        constexpr unsigned motionOffset=0x180000,motionBytes=0x20000;
+        static_assert(motionOffset>=ParkBlockVramOffset+128*64*sizeof(uint32_t));
+        static_assert(motionOffset+motionBytes<=0x1c0000);
+        static_assert(3*ParkArt::MotionTrackBytes<=motionBytes);
+        const bool borrowMotion=index==SwitchCourse || index==CoasterCourse;
+        const unsigned selectedMotionOffset=index==CoasterCourse?CoasterMotionOffset:motionOffset;
+        if (borrowMotion && static_cast<unsigned>(sceGeEdramGetSize())<selectedMotionOffset+motionBytes)
+            return failed("park_motion_vram");
+        auto* motion=borrowMotion?
+            reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(vram045(selectedMotionOffset))|0x40000000u):nullptr;
+        const char* failure="park_stage";
+        const bool stageReady=parkArt.load(assetPath(executable,stage.c_str()).c_str(),usesParkRingStage(index),
+                          parkVideo,fallbackPage,motion,motion?motionBytes:0,&failure);
+        if (index==SwitchCourse || !stageReady) {
+            const auto log=statePath(executable,"session.log");
+            if (auto* out=std::fopen(log.c_str(),"a")) {
+                const auto& io=parkArt.io;
+                std::fprintf(out,"build=053 event=park_atlas_io course=%s phase=%s result=0x%08x errno=%d offset=%u requested=%u completed=%u calls=%u close=0x%08x path=%s\n",
+                    CourseIds[index],io.phase,static_cast<unsigned>(io.result),io.error,io.offset,
+                    io.requested,io.completed,io.calls,static_cast<unsigned>(io.closeResult),parkArt.atlasPath().c_str());
+                std::fclose(out);
+            }
+        }
+        if (!stageReady) return failed(failure);
     }
     const auto path=[executable](const char* name) { return assetPath(executable,name); };
     if (index==ChuckleCoasterCourse) {
@@ -2711,9 +3236,25 @@ bool loadCourseAt(const char* executable,unsigned index,Course& course) {
         if (!switchFaces.load(path("park-switch-faces.pak")) || switchFaces.size()!=2)
             return failed("switch_faces");
     }
-    if (index==JumbleCourse && (!jumbleVideo.open(path("park-video-3_04.pak").c_str()) ||
-        !jumbleTiles.open(path("park-tiles-3_04.pak").c_str()) ||
-        !jumbleFlag.load(path("park-flag-3_04.pak")) || jumbleFlag.size()!=5)) return false;
+    if (index==JumbleCourse) {
+        // These walls do not share storage with the results animation or framebuffer.
+        constexpr unsigned videoOffset=FrontierLightVramOffset;
+        constexpr unsigned tilesOffset=2*1024*1024-ParkSwitchTiles::Bytes;
+        static_assert(videoOffset+ParkVideo::Bytes<=LiveResultVramOffset);
+        static_assert(tilesOffset>=ParkBlockVramOffset && tilesOffset%64==0);
+        if (static_cast<unsigned>(sceGeEdramGetSize())<tilesOffset+ParkSwitchTiles::Bytes)
+            return failed("jumble_tiles_vram");
+        switchTiles.unload();
+        auto* video=reinterpret_cast<uint16_t*>(vram045(videoOffset));
+        auto* tiles=reinterpret_cast<uint32_t*>(vram045(tilesOffset));
+        parkTransitionTrace.record("video_begin","3_03","3_04");
+        if (!jumbleVideo.open(path("park-video-3_04.pak").c_str(),video)) return failed("jumble_video");
+        parkTransitionTrace.record("video_ready","3_03","3_04");
+        if (!jumbleTiles.open(path("park-tiles-3_04.pak").c_str(),tiles)) return failed("jumble_tiles");
+        parkTransitionTrace.record("tiles_ready","3_03","3_04");
+        if (!jumbleFlag.load(path("park-flag-3_04.pak")) || jumbleFlag.size()!=5) return failed("jumble_flag");
+        parkTransitionTrace.record("flag_ready","3_03","3_04");
+    }
     if (multiDogStage(index) && !dualGateFields) {
         std::unique_ptr<TileField[]> fields(new(std::nothrow) TileField[3]);
         if (!fields) return failed("dual_gate_memory");
@@ -2829,8 +3370,15 @@ bool loadCourseAt(const char* executable,unsigned index,Course& course) {
             pursuitMotion=std::move(motion);
         }
     }
-    if (hasCoaster(index) && !coasterArt.pixels() && !coasterArt.load(path("coaster.pak").c_str())) return failed("coaster");
-    if (index==FrontierDogCourse || index==Elysian513Course || index==Elysian514Course || index==CosmicSecondCourse || (index>=CosmicFourteenthCourse && index<=CosmicSeventeenthCourse)) {
+    if (hasCoaster(index) && !coasterArt.load(path("coaster.pak").c_str(),vram045(0x180000),fallbackPage))
+        return failed("coaster");
+    // Mart's field/motion are in RAM; this same idle VRAM range ends before
+    // results and below Marcy's three atlases. Avoid a second 128 KiB RAM atlas.
+    if (index==CoasterCourse || index==MartCourse) {
+        if (static_cast<unsigned>(sceGeEdramGetSize())<CoasterChuckleOffset+ChuckleArt::TextureBytes ||
+            !chuckleArt.loadBorrowed(path("chuckle.pak").c_str(),vram045(CoasterChuckleOffset)))
+            return failed(index==MartCourse?"mart_chuckle_vram":"coaster_chuckle_vram");
+    } else if (index==FrontierDogCourse || index==Elysian513Course || index==Elysian514Course || index==CosmicSecondCourse || (index>=CosmicFourteenthCourse && index<=CosmicSeventeenthCourse)) {
         if (!chuckleArt.openShared(path("chuckle.pak").c_str())) return failed("frontier_chuckle");
     } else if (needsChuckles && !chuckleArt.pixels() && !chuckleArt.load(path("chuckle.pak").c_str())) {
         return failed("chuckle");
@@ -2840,11 +3388,20 @@ bool loadCourseAt(const char* executable,unsigned index,Course& course) {
     if (index==LightsCourse &&
         (!darkHoleArt.load(path("park-lights-3_10.pak")) || darkHoleArt.size()!=1 ||
          !ashArt.load(path("park-ash-3_10.pak")) || ashArt.size()!=3)) return false;
-    if (index==MartCourse &&
-        (!marcySpillArt.load(path("park-marcy-spill-3_06.pak")) || marcySpillArt.size()!=16 ||
-         !marcyHudArt.load(path("park-marcy-hud-3_06.pak")) || marcyHudArt.size()!=4 ||
-         !marcyTextArt.load(localizedPath(executable,language,"park-marcy-text-3_06.pak")) ||
-         marcyTextArt.size()!=2)) return false;
+    if (index==MartCourse) {
+        constexpr unsigned bytes=256*128*sizeof(uint32_t);
+        constexpr unsigned offset=0x200000-3*bytes;
+        marcySpillArt.unload();
+        marcyHudArt.unload();
+        marcyTextArt.unload();
+        if (static_cast<unsigned>(sceGeEdramGetSize())<offset+3*bytes) return failed("marcy_vram");
+        if (!marcySpillArt.loadDirect(path("park-marcy-spill-3_06.pak"),
+                                     reinterpret_cast<uint32_t*>(vram045(offset)))) return failed("marcy_spill");
+        if (!marcyHudArt.loadDirect(path("park-marcy-hud-3_06.pak"),
+                                    reinterpret_cast<uint32_t*>(vram045(offset+bytes)))) return failed("marcy_hud");
+        if (!marcyTextArt.loadDirect(localizedPath(executable,language,"park-marcy-text-3_06.pak"),
+                                     reinterpret_cast<uint32_t*>(vram045(offset+2*bytes)))) return failed("marcy_text");
+    }
     if (index==FactoryCourse &&
         (!factoryDoors.load(path("park-doors-3_07.pak")) || factoryDoors.size()!=4 ||
          !factoryBalloons.load(path("park-balloons-3_07.pak")) || factoryBalloons.size()!=3 ||
@@ -2853,7 +3410,15 @@ bool loadCourseAt(const char* executable,unsigned index,Course& course) {
     if (parkSwitchStage && (index<FinalFrontierFirstCourse || index==Elysian512Course)) {
         const std::string overlay=std::string("park-switch-")+CourseIds[index]+".pak";
         if (!switchFaces.load(path("park-switch-faces.pak")) || switchFaces.size()!=2) return false;
-        if (index<PursuitCourse && index!=JumbleCourse && !switchTiles.load(path(overlay.c_str()))) return false;
+        constexpr unsigned overlayOffset=0x1a0000,overlayBytes=256*256*sizeof(uint16_t);
+        static_assert(overlayOffset+overlayBytes==0x1c0000);
+        static_assert(0x180000+0x20000<=overlayOffset);
+        static_assert(overlayOffset+256*256*sizeof(uint16_t)<=0x1c0000);
+        if (index==SwitchCourse && static_cast<unsigned>(sceGeEdramGetSize())<overlayOffset+256*256*sizeof(uint16_t))
+            return failed("switch_overlay_vram");
+        auto* overlayMemory=index==SwitchCourse?reinterpret_cast<uint16_t*>(vram045(overlayOffset)):nullptr;
+        if (index<PursuitCourse && index!=JumbleCourse && !switchTiles.load(path(overlay.c_str()),overlayMemory))
+            return failed("switch_overlay");
         if (index==JumbleCourse || index>=PursuitCourse) switchTiles.unload();
     } else {
         switchTiles.unload();
@@ -2865,9 +3430,13 @@ bool loadCourseAt(const char* executable,unsigned index,Course& course) {
     if (index==Elysian513Course && (!dogArt.load(path("park-dogs-3_16-17.pak")) || dogArt.size()!=12))
         return failed("elysian_traffic_art");
     if (index==DenseCourse) {
-        if (!coasterSprings.load(path("coaster-springs.pak").c_str()) ||
-            !denseBlocks.load(path("dense-blocks-3_08.pak").c_str()) || denseBlocks.size()!=60 ||
-            !denseBlockArt.load(path("park-blocks-3_08.pak")) || denseBlockArt.size()!=denseBlocks.size()) return false;
+        if (!coasterSprings.load(path("coaster-springs.pak").c_str(),vram045(0x1c0000),fallbackPage))
+            return failed("dense_springs");
+        if (!denseBlocks.load(path("dense-blocks-3_08.pak").c_str()) || denseBlocks.size()!=60)
+            return failed("dense_blocks");
+        if (!denseBlockArt.loadDirect(path("park-blocks-3_08.pak"),
+                                      reinterpret_cast<uint32_t*>(vram045(0x1e0000))) ||
+            denseBlockArt.size()!=denseBlocks.size()) return failed("dense_block_art");
     } else {
         coasterSprings.unload();
         denseBlocks.unload();
@@ -2881,7 +3450,7 @@ bool loadCourseAt(const char* executable,unsigned index,Course& course) {
         const char* failure="park_block_art";
         uint32_t* vram=nullptr;
         uint32_t* scratch=nullptr;
-        if (index==Elysian506Course) {
+        if (index==Elysian506Course || index==SwitchCourse) {
             constexpr unsigned scratchOffset=HorseMeter039Width*HorseMeter039Height;
             static_assert(scratchOffset+128*64*sizeof(uint32_t)<=sizeof fallbackPage);
             if (static_cast<unsigned>(sceGeEdramGetSize())<ParkBlockVramOffset+128*64*sizeof(uint32_t))
@@ -2918,21 +3487,30 @@ bool loadCourseAt(const char* executable,unsigned index,Course& course) {
     } else {
         carouselDecal.unload();
     }
+    jumbleLoad.committed=true;
+    courseResourcesValid=true;
     return true;
 }
 
-bool loadLocalizedAssets(const char* executable,Course& course,Language selected,const char** error=nullptr) {
+bool loadLocalizedAssets(const char* executable,Course& course,Language selected,const char** error=nullptr,
+                         unsigned index=currentCourse) {
     language=selected;
     const auto fail=[error](const char* asset) {
+        courseResourcesValid=false;
+        localizedReloadRequired=true;
         if (error) *error=asset;
         return false;
     };
-    if (!loadCourseAt(executable,currentCourse,course)) return fail("course.bin");
+    if (!loadCourseAt(executable,index,course)) return fail("course.bin");
     if (!clips.open(localizedPath(executable,selected,"anim.pak").c_str())) return fail("anim.pak");
     if (!objects.load(localizedPath(executable,selected,"objects.pak").c_str())) return fail("objects.pak");
     if (!loadGolf(localizedPath(executable,selected,"golf.pak").c_str())) return fail("golf.pak");
     if (!resultAssets.load(localizedPath(executable,selected,"results.pak").c_str())) return fail("results.pak");
-    if (!ranks.open(localizedPath(executable,selected,"ranks.pak").c_str())) return fail("ranks.pak");
+    // Identical rank pixels in a sequential loose bank avoid re-decoding the
+    // shared outer window while result art and rank animation alternate.
+    if (!ranks.open(localizedPath(executable,selected,"ranks-raw.pak").c_str()) &&
+        !ranks.open(localizedPath(executable,selected,"ranks.pak").c_str())) return fail("ranks.pak");
+    localizedReloadRequired=false;
     return true;
 }
 
@@ -2944,13 +3522,30 @@ bool changeLanguage(const char* executable,Course& course,const LanguageFile& co
     return false;
 }
 
-void preloadTutorialVictory();
+void preloadCommonVictory();
+void prepareCityField(unsigned index);
 
+void stopCoasterLocalSounds() {
+    // Children of the old 3_05 scene in the original. Join is replaced by its
+    // new play command; global music and transition/UI sounds are preserved.
+    for(Sound sound:{Sound::Coin,Sound::KeyCollect,Sound::ParkBlockBreak,
+                     Sound::SmileyRing,Sound::SmileyCoin,Sound::SmileyPass,
+                     Sound::SmileyFail,Sound::ChuckleDeath,Sound::CoasterFlyby}) audio.stop(sound);
+}
+
+bool loadCampaignModifierArt(const char* executable);
 bool enterCourse(const char* executable,unsigned index,Course& course,Round& round) {
+    if ((campaignOptions.modifiers&(CampaignMods::Missiles|CampaignMods::Sticky)) && !loadCampaignModifierArt(executable)) return false;
+    if(currentCourse==CoasterCourse) stopCoasterLocalSounds();
+    audio.stop(Sound::Loss);
     clips.resetTextureWorkspace();
-    const bool modeChanged=(index==TheWallCourse && round.wall418.easyMode!=chillMode) || index>=Elysian518Course;
-    if (index>=CourseCount ||
-        ((index!=currentCourse || modeChanged || titleReusedCourseVram) && !loadCourseAt(executable,index,course))) return false;
+    const bool modeChanged=(index>=ChuckleParkFirstCourse && index<FinalFrontierFirstCourse) || (index==TheWallCourse && round.wall418.easyMode!=chillMode) || index>=Elysian518Course;
+    if (index>=CourseCount) return false;
+    if (localizedReloadRequired) {
+        if (!loadLocalizedAssets(executable,course,language,nullptr,index)) return false;
+    } else if (!courseResourcesValid || index!=currentCourse || modeChanged || titleReusedCourseVram) {
+        if (!loadCourseAt(executable,index,course)) return false;
+    }
     if (currentCourse==Elysian516Course && index!=currentCourse) {
         audio.stageCue(StageCue::None);
         audio.rideVolume(1,-80,-80);
@@ -2968,8 +3563,10 @@ bool enterCourse(const char* executable,unsigned index,Course& course,Round& rou
     if (currentCourse==CosmicThirteenthCourse) audio.stageCue(StageCue::None);
     if (currentCourse==CosmicSeventeenthCourse) stopLastHurrahSounds053();
     currentCourse=index;
-    preloadTutorialVictory();
+    prepareCityField(index);
+    preloadCommonVictory();
     round.restart();
+    if(index==CoasterCourse) audio.resetLossForReplay();
     return true;
 }
 
@@ -3092,6 +3689,10 @@ void patch(const Patch& p,float x,float y,float scale=1.0f,uint32_t tint=White,b
 void hudPatch(const Patch& p) { patch(p,ViewX+p.x,p.y); }
 
 #include "menu_scroll_draw.hpp"
+#include "modifier_hud061.hpp"
+
+#include "actor_pronoun_clut_draw054.hpp"
+#include "theme067.hpp"
 
 // Use rasterScale=1 for patches extracted from this course's PC capture.
 void actor(const GameplayView& view,const Patch& p,Vec2 world,float rasterScale=1.0f,uint32_t tint=White,bool projectedTexture=false) {
@@ -3102,6 +3703,22 @@ void actor(const GameplayView& view,const Patch& p,Vec2 world,float rasterScale=
     vertices[0]={sprite.uvTopLeft.x,sprite.uvTopLeft.y,tint,sprite.topLeft.x,sprite.topLeft.y,0};
     vertices[1]={sprite.uvBottomRight.x,sprite.uvBottomRight.y,tint,sprite.bottomRight.x,sprite.bottomRight.y,0};
     sceGuDrawArray(GU_SPRITES,GU_TEXTURE_32BITF|GU_COLOR_8888|GU_VERTEX_32BITF|GU_TRANSFORM_2D,2,nullptr,vertices);
+}
+
+void actorRotated(const GameplayView& view,const Patch& p,Vec2 world,float scale,uint32_t tint,float angle) {
+    const auto center=view.position(world);
+    const float extent=(std::abs(p.x)+std::abs(p.y)+p.width+p.height)*scale;
+    if (center.x+extent<ViewX+GameplayView::HudWidth || center.x-extent>ViewX+GameplayView::Width ||
+        center.y+extent<0 || center.y-extent>GameplayView::Height) return;
+    const float cs=std::cos(angle),sn=std::sin(angle);
+    const auto at=[&](float x,float y) { return center+Vec2{x*cs-y*sn,x*sn+y*cs}*scale; };
+    const Vec2 points[]={at(p.x,p.y),at(p.x+p.width,p.y),at(p.x+p.width,p.y+p.height),at(p.x,p.y+p.height)};
+    const unsigned order[]={0,1,2,0,2,3};
+    const float u[]={float(p.u),float(p.u+p.width),float(p.u+p.width),float(p.u)};
+    const float v[]={float(p.v),float(p.v),float(p.v+p.height),float(p.v+p.height)};
+    auto* vertices=static_cast<TextureVertex*>(sceGuGetMemory(6*sizeof(TextureVertex)));
+    for (unsigned i=0;i<6;++i) { const auto j=order[i];vertices[i]={u[j],v[j],tint,points[j].x,points[j].y,0}; }
+    sceGuDrawArray(GU_TRIANGLES,GU_TEXTURE_32BITF|GU_COLOR_8888|GU_VERTEX_32BITF|GU_TRANSFORM_2D,6,nullptr,vertices);
 }
 
 void sharedActor(const GameplayView& view,const Patch& p,Vec2 world,uint32_t tint=White) {
@@ -3133,13 +3750,23 @@ void drawClock(unsigned centis,int first,bool hours) {
     for (unsigned digit:values) hudPatch(visual.clock[first++][digit]);
 }
 
+#include "costume_runtime054.hpp"
+#include "backrooms057.hpp"
+#include "master_thinker056.hpp"
+#include "unique_hud057.hpp"
+#include "peak_trophy056.hpp"
+unsigned campaignBuddySound() {
+    const auto pair=Costumes054::selected==VillaCostumes::Id::Copycat?ArtistCopycat::costume():VillaCostumes::actorPair(Costumes054::selected);
+    return Costumes054::costumeSoundForPlayback056(pair.ghost);
+}
+
 void drawGhostIndicator(const GameplayView& view,Vec2 world,uint32_t tint=White) {
     Vec2 indicator{};
     if (!view.ghostIndicator(world,indicator)) return;
     const float scale=std::max(0.25f,-0.4f+1.15f*dot(indicator,indicator)/dot(world,world));
     const Vec2 point=view.position(indicator);
     if (point.x<ViewX+136-10 || point.x>ViewX+ViewWidth+10) return;
-    actor(view,visual.ghost,indicator,scale,tint,true);
+    Costumes054::drawActor(view,true,indicator,scale,tint);
 
     const Vec2 direction=world-indicator;
     const Vec2 forward=view.delta(direction)*(1.0f/length(direction));
@@ -3197,6 +3824,28 @@ void localeText(const char* text,float x,float y,float scale=1.0f,uint32_t color
                     ViewX+x,y,scale,keepHeight?requestedScale:scale,color);
         x+=glyphAdvance[glyph]*scale;
     }
+}
+
+#include "readable_text.hpp"
+
+void localeParagraph(const char* text,float x,float y,float scale,unsigned width,
+                     float leading,bool centered=false,unsigned revealed=~0u) {
+    unsigned row=0;
+    ReadableText::lines(text,static_cast<unsigned>(width/scale),[&](const ReadableText::Line& line) {
+        if (revealed>line.offset) {
+            const char* end=line.first;
+            const unsigned visible=std::min(line.characters,revealed-line.offset);
+            for (unsigned i=0;i<visible;++i) nextGlyph(end);
+            char buffer[512];
+            const auto bytes=static_cast<std::size_t>(end-line.first);
+            if (bytes<sizeof buffer) {
+                std::memcpy(buffer,line.first,bytes);
+                buffer[bytes]=0;
+                localeText(buffer,centered?x-line.width*scale*0.5f:x,y+row*leading,scale);
+            }
+        }
+        ++row;
+    });
 }
 
 // Stretch a clean column of the current HUD backdrop across the baked text.
@@ -3263,7 +3912,7 @@ void resultLabel(const char* text,int x,int y,bool small=false,uint32_t color=Wh
         }
         pen-=width/16.0f;
     }
-    setTexture(GU_PSM_8888,256,256,resultAssets.letters);
+    setTexture(GU_PSM_8888,ResultAssets::LettersWidth,ResultAssets::LettersHeight,resultAssets.letters);
     for (;*text;++text) {
         const unsigned i=static_cast<unsigned char>(*text)-32u;
         if (i>=96) continue;
@@ -3464,7 +4113,8 @@ void drawCoins(const GameplayView& view,const Round& round) {
 void drawDestruction(const GameplayView& view,Vec2 world,unsigned age,unsigned value) {
     if (age>=50) return;
     if (age<40) {
-        setTexture(GU_PSM_8888,512,256,splashTexture);
+        static_assert(144+20<SplashTextureRows);
+        setTexture(GU_PSM_8888,SplashTextureStride,256,splashTexture);
         sharedActor(view,{static_cast<int16_t>(36*(age/4)),144,32,20,-16,-14},world);
     }
     if (value) drawScorePopup(view,world,age,value);
@@ -3549,8 +4199,10 @@ void drawBaddieRun(const GameplayView& view,const Round& round,const BaddieRun& 
                                   currentCourse==AbandonedWorkspaceCourse || run.velocities[i].x>0)?96:120),0,17,13,-8,-6};
             sharedActor(view,sprite,run.center(i),shade);
         }
+        ActorLabelDraw054::add(run.labels[i],view,run.center(i),ActorPronouns054::Kind::Baddie);
     }
     for (unsigned i=0;i<run.count;++i) {
+        if (run.defeatedAt[i] && drawTick-run.defeatedAt[i]<50) ActorLabelDraw054::add(run.labels[i],view,run.center(i),ActorPronouns054::Kind::Baddie);
         if (run.defeatedAt[i]) drawDestruction(view,run.center(i),drawTick-run.defeatedAt[i],0);
     }
     for (unsigned i=0;i<run.stage->spawnerCount;++i) {
@@ -3567,12 +4219,15 @@ void drawSkulls(const GameplayView& view,const Round& round) {
     const unsigned frame=drawTick*24/60%24;
     const Patch sprite{static_cast<int16_t>((frame%8)*32),static_cast<int16_t>((frame/8)*32),26,26,-13,-13};
     for (unsigned i=0;i<round.skullCount;++i) {
-        if (round.skulls.bodies[i].radius>0)
+        if (round.skulls.bodies[i].radius>0) {
             sharedActor(view,sprite,round.skulls.bodies[i].center,
                         currentCourse==CasinoCourse?GU_RGBA(191,191,191,255):elysianHazardTint040(currentCourse));
+            ActorLabelDraw054::add(round.skulls.labels[i],view,round.skulls.bodies[i].center,ActorPronouns054::Kind::Baddie);
+        }
     }
     for (unsigned i=0;i<round.skullCount;++i) {
         if (round.skulls.defeatedAt[i]) {
+            if (drawTick-round.skulls.defeatedAt[i]<50) ActorLabelDraw054::add(round.skulls.labels[i],view,round.skulls.bodies[i].center,ActorPronouns054::Kind::Baddie);
             drawDestruction(view,round.skulls.bodies[i].center,
                             drawTick-round.skulls.defeatedAt[i],SkullRun::Bonus);
         }
@@ -3940,7 +4595,8 @@ void drawSplash(const GameplayView& view,const Round& round) {
     const unsigned sprite=frame-1;
     const Vec2 center=view.position(round.game.position);
     const float zoom=view.worldZoom();
-    setTexture(GU_PSM_8888,512,256,splashTexture);
+    static_assert(72+67<SplashTextureRows);
+    setTexture(GU_PSM_8888,SplashTextureStride,256,splashTexture);
     patch({static_cast<int16_t>((sprite%4)*72),static_cast<int16_t>((sprite/4)*72),68,67,0,0},
           center.x-34*zoom,center.y-33*zoom-48*view.worldScale(),zoom);
 }
@@ -3963,7 +4619,9 @@ void drawGoalFlag(const Round& round,unsigned signal,unsigned phase,unsigned wei
     if (weight) draw(phase+1,weight);
 }
 
-void drawGlowstick(const Round& round) {
+struct GlowstickPhase { unsigned phase,weight,signal; };
+
+GlowstickPhase glowstickPhase(const Round& round) {
     const bool dimlit=currentCourse==DimlitCourse, jumpCourse=currentCourse==JumpCourse;
     const bool police=round.police.triggeredAt!=0, staticBank=currentCourse==BankCourse && !police;
     const bool highway=currentCourse==HighwayCourse, city=currentCourse==CityCourse;
@@ -3974,18 +4632,29 @@ void drawGlowstick(const Round& round) {
     const bool staticField=staticBank || currentCourse==GlowstickFinaleCourse;
     const unsigned phase=staticField?0:(fieldTick/step+startPhase)%GlowstickArt::Frames;
     const unsigned weight=staticField?0:255*(fieldTick%step)/step;
-    const unsigned level=currentCourse-GlowstickFirstCourse;
     const bool stoplight=currentCourse==TrafficCourse || dimlit || jumpCourse || highway || city ||
                          currentCourse==LightboxCourse;
     const unsigned signal=police?1:stoplight?(round.ticks/31)%3:0;
+    return {phase,weight,signal};
+}
+
+void drawGlowstick(const Round& round) {
+    const auto [phase,weight,signal]=glowstickPhase(round);
+    const bool jumpCourse=currentCourse==JumpCourse, city=currentCourse==CityCourse;
+    const unsigned level=currentCourse-GlowstickFirstCourse;
     const auto* base=glowstickArt.frame(level,phase,signal);
     const auto* next=weight?glowstickArt.frame(level,phase+1,signal):nullptr;
     const Patch field{0,0,272,272,0,0};
     if (base) {
-        setTexture(GU_PSM_5650,512,512,base);
+        const auto bind=[stride=glowstickArt.textureStride(level,signal)](const uint16_t* pixels) {
+            sceGuEnable(GU_TEXTURE_2D);
+            sceGuTexMode(GU_PSM_5650,0,0,GU_TRUE);
+            sceGuTexImage(0,512,512,stride,pixels);
+        };
+        bind(base);
         patch(field,ViewX+136,0);
         if (next) {
-            setTexture(GU_PSM_5650,512,512,next);
+            bind(next);
             patch(field,ViewX+136,0,1,GU_RGBA(255u,255u,255u,weight));
         }
     }
@@ -4131,10 +4800,13 @@ void drawDog(const GameplayView& view,const Round& round,const DogGolfScene& sce
     if (legacy) patch(house,ViewX+GameplayView::HudWidth+house.x,house.y);
     else actor(view,house,scene.goal);
     actor(view,dogArt.patch(11),round.dog.body.center,round.dog.graphicScale/scene.graphicScale);
+    ActorLabelDraw054::add(round.dog.label,view,round.dog.body.center,ActorPronouns054::Kind::Dog);
 }
 
 void drawMultiDogs(const GameplayView& view,const Round& round,const DogCourseStage& stage) {
-    const auto& counts=DualGatePatches[currentCourse-DoubleDogCourse];
+    const unsigned courseIndex=currentCourse-DoubleDogCourse;
+    if (courseIndex>=std::size(DualGatePatches)) return;
+    const auto& counts=DualGatePatches[courseIndex];
     const bool race=currentCourse==RacetrackCourse;
     setTexture(GU_PSM_8888,128,race?32:128,race?raceGateArt.texture():dualGateArt.texture());
     unsigned first=0;
@@ -4150,9 +4822,11 @@ void drawMultiDogs(const GameplayView& view,const Round& round,const DogCourseSt
     setTexture(GU_PSM_8888,256,128,dogArt.texture());
     const auto& house=dogArt.patch((round.ticks+3)/6%11);
     for (unsigned i=0;i<stage.goalCount;++i) sharedActor(view,house,stage.goals[i].center);
-    for (unsigned i=0;i<stage.dogCount;++i)
+    for (unsigned i=0;i<stage.dogCount;++i) {
         actor(view,dogArt.patch(11),round.dogs.bodies[i].center,
               view.worldZoom()*round.dogs.graphicScales[i]/stage.dogs[i].graphicScale);
+        ActorLabelDraw054::add(round.dogs.labels[i],view,round.dogs.bodies[i].center,ActorPronouns054::Kind::Dog);
+    }
 }
 
 void drawLateParkDecor(const GameplayView& view,const Round& round) {
@@ -4222,12 +4896,17 @@ void drawChuckles(const GameplayView& view,const Round& round) {
         if (chuckleArt.useShared(workspace,generation)) {
             setTexture(GU_PSM_8888,ChuckleArt::Width,ChuckleArt::Height,chuckleArt.pixels());
             for (unsigned i=0;i<run.count;++i)
-                if (run.bodies[i].radius>0)
+                if (run.bodies[i].radius>0) {
                     actor(view,ChuckleArt::frame(run.actorTick(i,tick)),run.bodies[i].center,
                           view.worldScale(),tint,true);
+                    ActorLabelDraw054::add(run.labels[i],view,run.bodies[i].center,ActorPronouns054::Kind::Baddie);
+                }
         }
         for (unsigned i=0;i<run.count;++i)
-            if (run.defeatedAt[i]) drawDestruction(view,run.defeatedPosition[i],tick-run.defeatedAt[i],0);
+            if (run.defeatedAt[i]) {
+                if (tick-run.defeatedAt[i]<50) ActorLabelDraw054::add(run.labels[i],view,run.defeatedPosition[i],ActorPronouns054::Kind::Baddie);
+                drawDestruction(view,run.defeatedPosition[i],tick-run.defeatedAt[i],0);
+            }
         return;
     }
     if (currentCourse==PlentifulChucklesCourse) {
@@ -4239,12 +4918,15 @@ void drawChuckles(const GameplayView& view,const Round& round) {
         for (unsigned i=0;i<round.chuckles.count;++i) {
             const auto& body=round.chuckles.bodies[i];
             const auto frame=round.chuckles.actorTick(i,round.ticks)/2%25;
+            if (body.radius>0) ActorLabelDraw054::add(round.chuckles.labels[i],view,body.center,ActorPronouns054::Kind::Baddie);
             if (body.radius>0) sharedActor(view,frontier408Chuckles.patch(frame),body.center);
         }
         for (unsigned i=0;i<round.chuckles.count;++i) {
             const unsigned at=round.chuckles.defeatedAt[i];
-            if (at && round.ticks-at<50)
+            if (at && round.ticks-at<50) {
+                ActorLabelDraw054::add(round.chuckles.labels[i],view,round.chuckles.defeatedPosition[i],ActorPronouns054::Kind::Baddie);
                 drawDestruction(view,round.chuckles.defeatedPosition[i],round.ticks-at,0);
+            }
         }
         return;
     }
@@ -4264,12 +4946,14 @@ void drawChuckles(const GameplayView& view,const Round& round) {
     setTexture(GU_PSM_8888,ChuckleArt::Width,ChuckleArt::Height,chuckleArt.pixels());
     for (unsigned i=0;i<round.chuckles.count;++i) {
         const auto& body=round.chuckles.bodies[i];
+        if (body.radius>0) ActorLabelDraw054::add(round.chuckles.labels[i],view,body.center,ActorPronouns054::Kind::Baddie);
         if (body.radius>0) actor(view,ChuckleArt::frame(round.chuckles.actorTick(i,round.ticks)),
                                  body.center,view.worldScale());
     }
     for (unsigned i=0;i<round.chuckles.count;++i) {
         const unsigned at=round.chuckles.defeatedAt[i];
         if (!at || round.ticks-at>=50) continue;
+        ActorLabelDraw054::add(round.chuckles.labels[i],view,round.chuckles.defeatedPosition[i],ActorPronouns054::Kind::Baddie);
         if (currentCourse==CoasterCourse)
             drawScorePopup(view,round.chuckles.defeatedPosition[i],round.ticks-at,round.chuckles.points());
         else
@@ -4646,16 +5330,21 @@ void drawLiveStats(const Round& round,const uint16_t* backdrop,bool includeBonus
     }
 }
 
-void drawTv(const uint16_t* tv) {
+#include "tv_caption059.hpp"
+
+void drawTv(const uint16_t* tv,bool thinker=true) {
     if (tv) {
         setTexture(GU_PSM_5650,64,64,tv);
         patch({0,0,58,48,0,0},ViewX+21,186);
     }
+    if (thinker) MasterThinker056::draw();
+    TvCaption059::draw();
 }
 
 void drawThoughtAndKey(const Round& round) {
-    if (currentCourse==CataclysmCourse && !round.backrooms) drawFrontierThinker417(round);
-    else if (currentCourse!=CosmicSeventeenthCourse) drawTv(round.backrooms?backroomsTv:thoughts.frame(round.tvTick()));
+    if (currentCourse==CataclysmCourse && !round.backrooms) {drawFrontierThinker417(round);TvCaption059::draw();}
+    else drawTv(round.backrooms?backroomsTv:thoughts.frame(round.tvTick()),
+                currentCourse!=CosmicSeventeenthCourse && currentCourse!=CataclysmCourse);
     if (!round.terry.running && !round.questKeyTick) return;
     const unsigned age=round.totalTicks-(round.questKeyTick?round.questKeyTick:round.terry.keyTick);
     if (age>=210) return;
@@ -4669,6 +5358,31 @@ void drawThoughtAndKey(const Round& round) {
     setTexture(GU_PSM_8888,512,256,objects.key);
     const Patch key{0,static_cast<int16_t>(128*((round.totalTicks/3)%2)),272,102,0,0};
     patch(key,ViewX+136,85,1,GU_RGBA(255u,255u,255u,alpha));
+}
+
+void drawSkipHud(const Round& round) {
+    if (!round.skipHudTicks || round.game.won) return;
+    const bool denied=cannotSkipCourse(currentCourse);
+    const unsigned age=round.skipHudTicks-1;
+    const unsigned frame=denied ? (age<30?0:age<45?1:2) : std::min(age/10%4,2u);
+    const unsigned index=(2*static_cast<unsigned>(russian())+static_cast<unsigned>(denied))*3+frame;
+    constexpr float scale=17.0f/32.0f;
+    if (!denied) {
+        const float width=512*scale*round.skipHold.progress()/(HoldToSkip::RequiredTicks-1);
+        rectangle(ViewX+256*scale,504*scale,width,8*scale,GU_RGBA(0,255,255,165));
+    }
+    const auto* palette=profileArt.skipPalette();
+    if (!palette) {
+        localeText(denied?lang("Can't skip this level!","Пропуск запрещён"):
+                           lang("Skipping...","ПРОПУСК"),371,249,0.79f,White,true);
+        return;
+    }
+    sceGuClutMode(GU_PSM_8888,0,255,0);
+    sceGuClutLoad(32,palette);
+    sceGuBlendFunc(GU_ADD,GU_FIX,GU_ONE_MINUS_SRC_ALPHA,0x00ffffff,0);
+    setTexture(GU_PSM_T8,ProfileArt::SkipWidth,ProfileArt::SkipHeight,profileArt.skipTexture());
+    hudPatch({static_cast<int16_t>(128*(index%4)),static_cast<int16_t>(40*(index/4)),108,34,300,238});
+    sceGuBlendFunc(GU_ADD,GU_SRC_ALPHA,GU_ONE_MINUS_SRC_ALPHA,0,0);
 }
 
 void drawPause(const Round& round) {
@@ -4705,6 +5419,12 @@ void drawPause(const Round& round) {
     }
     hudPatch(Dancer[age/200%4]);
     hudPatch((russian()?RuPrompt:EnPrompt)[0]);
+    if (campaignPeakAvailable()) {
+        const bool selected=menu.choice==PauseMenuState::Choice::PeakHunter;
+        localeText(campaignOptions.peakHunter?lang("Peak Hunter: ON","Охотник за пиками: вкл."):
+                   lang("Peak Hunter: OFF","Охотник за пиками: выкл."),
+                   142,184,.65f,selected?Gold:White);
+    }
     layer(filterPixels(age*3/100%FilterFrames));
 }
 
@@ -4713,10 +5433,31 @@ void drawFull(const uint16_t* texture) {
     patch({0,0,ViewWidth,Height,0,0},ViewX,0);
 }
 
-void beginFrame() {
-    sceGuStart(GU_DIRECT,displayList);
+#include "editor_legacy_gift_blast.hpp"
+#include "editor_builder_main.hpp"
+EditorBuilderMain::Bridge builderPresent({
+    EditorLegacyGiftBlast::borrowBuilderBuffer,EditorLegacyGiftBlast::returnBuilderBuffer
+});
+
+FrameProfile066::State phaseProfile066;
+std::string phaseProfilePath066;
+void flushPhaseProfile066(){
+ if(phaseProfilePath066.empty()||(!phaseProfile066.count&&!phaseProfile066.pending.frames))return;
+ if(auto*f=std::fopen(phaseProfilePath066.c_str(),"a")){bool good=phaseProfile066.dump(f);int closed=std::fclose(f);if(good&&!closed)phaseProfile066.clear();}
+}
+bool beginFrame(bool builderMenu=false) {
+    if(phaseProfile066.enabled)phaseProfile066.begin(sceKernelGetSystemTimeLow());
+    if (builderMenu && builderPresent.graphicsFailed()) return false;
+    if (sceGuStart(GU_DIRECT,displayList)<0 && ((builderMenu && builderPresent.hasOverlay()) || worldGiftActive())) {
+        worldGiftSubmitted(false);
+        if (builderMenu && builderPresent.hasOverlay()) builderPresent.abortGraphics("Cannot start Main Builder frame");
+        running.store(false,std::memory_order_relaxed);
+        return false;
+    }
     sceGuClearColor(GU_RGBA(0,0,0,255));
     sceGuClear(GU_COLOR_BUFFER_BIT);
+    ModifierHud061::framePresented=false;
+    return true;
 }
 
 #ifdef UCG_VICTORY_PROBE
@@ -4726,16 +5467,45 @@ struct VictoryRenderSample {
 } victoryRenderSample;
 #endif
 
-void endFrame() {
+void endFrame(bool builderMenu=false) {
+    if (builderPresent.graphicsFailed()) return;
+    if (!ModifierHud061::framePresented) ModifierHud061::present(sceKernelGetSystemTimeWide());
+    const bool builderFrame=builderMenu && builderPresent.hasOverlay();
+    if (builderFrame) {
+        sceGuScissor(ViewX,0,ViewX+ViewWidth,Height);
+        if (!builderPresent.draw()) {
+            if (builderPresent.graphicsFailed()) {
+                running.store(false,std::memory_order_relaxed);
+                return;
+            }
+            rectangle(76,98,328,76,0xf0301820u);
+            localeText(lang("Could not display the present.","Не удалось показать подарок."),240,116,0.65f,White,true,300);
+            localeText(lang("X: retry","X: повторить"),240,144,0.65f,White,true,300);
+        }
+    }
     sceGuScissor(0,0,Width,Height);
     setTexture(GU_PSM_5650,128,512,sidebars);
     patch({0,0,ViewX,Height,0,0},0,0);
     patch({64,0,ViewX,Height,0,0},ViewX+ViewWidth,0);
-    sceGuFinish();
+    if(phaseProfile066.enabled)phaseProfile066.built(sceKernelGetSystemTimeLow());
+    const int finished=sceGuFinish();
+    if (finished<0 && builderFrame) {
+        worldGiftSubmitted(false);
+        builderPresent.abortGraphics("Cannot finish Main Builder frame");
+        running.store(false,std::memory_order_relaxed);
+        return;
+    }
 #ifdef UCG_VICTORY_PROBE
     const unsigned geStart=victoryRenderSample.active?sceKernelGetSystemTimeLow():0;
 #endif
-    sceGuSync(GU_SYNC_FINISH,GU_SYNC_WHAT_DONE);
+    const int synchronized=sceGuSync(GU_SYNC_FINISH,GU_SYNC_WHAT_DONE);
+    if(phaseProfile066.enabled)phaseProfile066.synced(sceKernelGetSystemTimeLow());
+    worldGiftSubmitted(finished>=0 && synchronized>=0);
+    if (synchronized<0 && builderFrame) {
+        builderPresent.abortGraphics("Cannot fence Main Builder frame");
+        running.store(false,std::memory_order_relaxed);
+        return;
+    }
 #ifdef UCG_VICTORY_PROBE
     if (victoryRenderSample.active)
         victoryRenderSample.geMax=std::max(victoryRenderSample.geMax,sceKernelGetSystemTimeLow()-geStart);
@@ -4745,15 +5515,59 @@ void endFrame() {
 bool selectorTravelling(unsigned elapsedMs) {
     const auto& travel=levelSelect.transition();
     return travel.from!=LevelSelectState::NoCourse &&
-           elapsedMs-travel.startMs<SelectorTransitionArt::DurationMs;
+           elapsedMs-travel.startMs<MapTravelMs;
 }
 
-bool moveLevelSelection(uint32_t pressed,unsigned elapsedMs) {
+unsigned latestMapWorld() {
+    unsigned latest=levelSelect.world();
+    while (levelSelect.unlocked(latest+1,0)) ++latest;
+    return latest;
+}
+
+int requestMapWorld(uint32_t pressed,unsigned elapsedMs,uint64_t now) {
+    const int direction=pressed&PSP_CTRL_LTRIGGER?-1:pressed&PSP_CTRL_RTRIGGER?1:0;
+    if (direction && levelSelect.canChangeWorld(direction)) {
+        pendingWorldDirection=direction;
+        worldRequestTime=now;
+        const unsigned next=static_cast<unsigned>(static_cast<int>(levelSelect.world())+direction);
+        worldReadyOnPress=levelSelectArt.ready(next,latestMapWorld(),russian());
+        worldAnimatingOnPress=selectorTravelling(elapsedMs);
+    }
+    return direction;
+}
+
+bool moveLevelSelection(uint32_t pressed,unsigned elapsedMs,uint64_t now,bool allowRead,bool duringXmb=false) {
+    const int direction=requestMapWorld(pressed,elapsedMs,now);
     if (selectorTravelling(elapsedMs)) return false;
+    const unsigned world=levelSelect.world();
+    const unsigned latest=latestMapWorld();
+    const int ahead=pendingWorldDirection?pendingWorldDirection:levelSelect.canChangeWorld(1)?1:-1;
+    if (levelSelect.canChangeWorld(ahead)) {
+        const unsigned next=static_cast<unsigned>(static_cast<int>(world)+ahead);
+        // Frontier and later title atlases can still require disk I/O even when
+        // their map cards and panels are resident.
+        const bool ready=duringXmb?
+            LevelSelectState::firstCourse(std::max(world,next))<FinalFrontierFirstCourse &&
+            levelSelectArt.ready(world,latest,russian()) && levelSelectArt.ready(next,latest,russian()):
+            levelSelectArt.prefetch(next,latest,russian(),world,allowRead && audio.menuIoReady(AudioMixer::MapReadReserve));
+        if (pendingWorldDirection && ready) {
+            levelSelect.changeWorld(ahead,elapsedMs);
+            menuCourse=levelSelect.course();
+            pendingWorldDirection=0;
+            if (!duringXmb) levelSelectArt.cancelPrefetch();
+            if (worldTravelCount<worldTravelSamples.size())
+                worldTravelSamples[worldTravelCount++]={world,next,static_cast<unsigned>(now-worldRequestTime),
+                                                        worldReadyOnPress,worldAnimatingOnPress,duringXmb};
+            return true;
+        }
+        if (!duringXmb && pendingWorldDirection && levelSelectArt.prefetchFailed()) {
+            pendingWorldDirection=0;
+            levelSelectArt.cancelPrefetch();
+        }
+    }
+    if (pendingWorldDirection || direction) return false;
     bool moved=false;
-    if (pressed&PSP_CTRL_LTRIGGER) moved=levelSelect.changeWorld(-1,elapsedMs);
-    else if (pressed&PSP_CTRL_RTRIGGER) moved=levelSelect.changeWorld(1,elapsedMs);
-    else if (pressed&PSP_CTRL_UP) moved=levelSelect.move(LevelSelectDirection::Up);
+    if (pressed&PSP_CTRL_UP) moved=levelSelect.move(LevelSelectDirection::Up);
     else if (pressed&PSP_CTRL_DOWN) moved=levelSelect.move(LevelSelectDirection::Down);
     else if (pressed&PSP_CTRL_LEFT) moved=levelSelect.move(LevelSelectDirection::Left);
     else if (pressed&PSP_CTRL_RIGHT) moved=levelSelect.move(LevelSelectDirection::Right);
@@ -4761,10 +5575,10 @@ bool moveLevelSelection(uint32_t pressed,unsigned elapsedMs) {
     return moved;
 }
 
-bool updateLevelSelector(uint32_t pressed,uint32_t released,uint32_t held,unsigned elapsedMs) {
+bool updateLevelSelector(uint32_t pressed,uint32_t released,uint32_t held,unsigned elapsedMs,uint64_t now,bool allowRead) {
     selectorGoDown=false;
-    if (!selectorGoArmed && moveLevelSelection(pressed,elapsedMs)) audio.play(Sound::Select);
-    if (selectorTravelling(elapsedMs) || menuCourse==LevelSelectState::NoCourse) return false;
+    if (!selectorGoArmed && moveLevelSelection(pressed,elapsedMs,now,allowRead)) audio.play(Sound::Select);
+    if (pendingWorldDirection || selectorTravelling(elapsedMs) || menuCourse==LevelSelectState::NoCourse) return false;
     if (pressed&PSP_CTRL_CROSS) selectorGoArmed=true;
     selectorGoDown=selectorGoArmed && (held&PSP_CTRL_CROSS);
     if (!selectorGoArmed || !(released&PSP_CTRL_CROSS)) return false;
@@ -4774,11 +5588,34 @@ bool updateLevelSelector(uint32_t pressed,uint32_t released,uint32_t held,unsign
 
 #include "selector_details_draw.hpp"
 #include "live_result_draw.hpp"
+#include "costume_scares056.hpp"
+static_assert(CoasterChuckleOffset+ChuckleArt::TextureBytes<=LiveResultVramOffset);
 
-void preloadTutorialVictory() {
-    if (currentCourse>=TutorialCount || clips.count(resultClip(true)) ||
-        commonResultArt.hasPreloadedFrames()) return;
+bool cityFieldCourse(unsigned index) {
+    return index==FirstBaddieCourse || index==DimlitCourse;
+}
+
+void prepareCityField(unsigned index) {
+    if (!cityFieldCourse(index)) return;
+    const unsigned level=index-GlowstickFirstCourse;
+    if (glowstickArt.preparedFor(level)) return;
+    const unsigned bytes=index==DimlitCourse?GlowstickArt::DimlitVramBytes:GlowstickArt::RushHourVramBytes;
+    if (static_cast<unsigned>(sceGeEdramGetSize())<FrontierLightVramOffset+bytes) return;
+    auto* vram=reinterpret_cast<uint16_t*>(vram045(FrontierLightVramOffset));
+    liveResultLarge=liveResultClear=liveResultConfetti={};
+    if (index==DimlitCourse) {
+        auto* workspace=reinterpret_cast<uint16_t*>(levelSelectArt.panelWorkspace());
+        glowstickArt.prepareDimlit(vram,workspace,LevelSelectArt::PanelBytes);
+    } else glowstickArt.prepareCourse(level,vram);
+}
+
+void preloadCommonVictory() {
+    const auto clip=resultClip(true);
+    const auto id=static_cast<unsigned>(clip);
+    if (!authoredConfetti040() || clips.count(clip) || !isCommonWinClip040(id) ||
+        isPilotResultClip040(id) || isNativeLossClip041(id) || commonResultArt.hasPreloadedFrames()) return;
     if (!commonResultArt.preloadFrames(3,59,levelSelectArt.victoryWorkspace(),LevelSelectArt::VictoryWorkspaceBytes)) return;
+    if (currentCourse>=TutorialCount) return;
     auto* vram=static_cast<uint8_t*>(sceGeEdramGetAddr())+LiveResultVramOffset;
     auto* scratch=reinterpret_cast<uint8_t*>(fallbackPage)+ResultScratchOffset;
     fallbackPageIndex=ScreenPages;
@@ -4808,6 +5645,38 @@ void preloadTutorialVictory() {
 #include "cosmic_draw050.hpp"
 
 #include "gift_ui.hpp"
+#include "world_gift_ui.hpp"
+
+void worldGiftSubmitted(bool success) {
+    WorldGift::submitted(success);
+    if (!success && WorldGift::sequence.active()) {
+        giftGeFailure="Cannot submit gift frame";
+        running.store(false,std::memory_order_relaxed);
+    }
+}
+void worldGiftPresented() {WorldGift::presented();}
+bool worldGiftActive() {return WorldGift::sequence.active();}
+
+void drawOriginalLoading067(unsigned elapsedMs,float x,float y,const char* loading) {
+    alignas(64) static uint32_t prism[10*32*32]{};
+    static bool ready=false;
+    if(!ready){
+        uLongf bytes=sizeof prism;
+        ready=uncompress(reinterpret_cast<Bytef*>(prism),&bytes,ChapterLoading066::PrismDeflate,sizeof ChapterLoading066::PrismDeflate)==Z_OK && bytes==sizeof prism;
+        if(ready)sceKernelDcacheWritebackRange(prism,sizeof prism);
+    }
+    if(ready){
+        const unsigned frame=(elapsedMs/25)%10;
+        setTexture(GU_PSM_8888,32,32,prism+frame*32*32);
+        sceGuTexMode(GU_PSM_8888,0,0,GU_FALSE);
+        patch({0,0,32,32,0,0},ViewX+x,y,17.f/32);
+    }
+    resultText(loading,x+24,y+1,GU_RGBA(0,0,0,255));
+    resultText(loading,x+26,y+1,GU_RGBA(0,0,0,255));
+    resultText(loading,x+25,y,GU_RGBA(0,0,0,255));
+    resultText(loading,x+25,y+2,GU_RGBA(0,0,0,255));
+    resultText(loading,x+25,y+1,White);
+}
 
 void drawSelectorCards(unsigned world,const LevelSelectArt::CardAtlas& atlas,float offset,
                        bool moving=false,bool focused=true) {
@@ -4843,39 +5712,39 @@ void drawSelectorCards(unsigned world,const LevelSelectArt::CardAtlas& atlas,flo
 }
 
 void drawLevelSelect(unsigned elapsedMs) {
+    ranks.clearPrefetch();
     if (commonResultArt.hasPreloadedFrames()) {
         commonResultArt.dropPreloadedFrames();
         liveResultLarge=liveResultClear=liveResultConfetti={};
     }
-    const unsigned world=levelSelect.world();
-    unsigned latest=world;
-    while (levelSelect.unlocked(latest+1,0)) ++latest;
+    const unsigned world=levelSelect.world(),latest=latestMapWorld();
     const bool moving=selectorTravelling(elapsedMs);
-    if (!moving) selectorTransitionArt.closeStream();
     const auto& travel=levelSelect.transition();
     const auto* cards=levelSelectArt.loadCards(world,moving?travel.from:LevelSelectState::NoCourse);
-    if (!cards || !levelSelectArt.loadBase(moving?travel.from:world,latest,russian())) return;
+    const auto* panel=levelSelectArt.loadBase(world,latest,russian());
+    if (!cards || !panel) return;
 
-    const auto* outgoing=moving ? levelSelectArt.loadCards(travel.from,world) : nullptr;
-    const unsigned frame=moving ? (elapsedMs-travel.startMs)*SelectorTransitionArt::Fps/1000 : 0;
-    const auto* panel=outgoing ? selectorTransitionArt.frame(travel.from,world,latest,russian(),frame) : nullptr;
+    const auto* outgoing=moving?levelSelectArt.loadCards(travel.from,world):nullptr;
+    const auto* oldPanel=outgoing?levelSelectArt.loadBase(travel.from,latest,russian()):nullptr;
     unsigned details=menuCourse;
-    if (panel) {
-        setTexture(GU_PSM_5650,VisualWidth,VisualHeight,levelSelectArt.base);
-        patch({0,0,136,272,0,0},ViewX,0);
-        setTexture(GU_PSM_5650,VisualWidth,VisualHeight,panel);
-        patch({0,0,272,272,0,0},ViewX+136,0);
-
-        // Godot lerps the camera and the card strip by 0.15 on each 60 Hz tick.
+    unsigned titleOpacity=255;
+    if (oldPanel) {
+        // Match the original 60 Hz card easing. Blend the two resident world
+        // backgrounds so the animation never needs to read or inflate a frame.
+        const unsigned ticks=(elapsedMs-travel.startMs)*60/1000;
+        const float remaining=std::pow(0.85f,static_cast<float>(ticks));
         constexpr float worldStep=456*17.0f/32.0f;
-        const float delta=world>travel.from ? worldStep : -worldStep;
-        const float remaining=std::pow(0.85f,2.0f*frame);
+        const float delta=world>travel.from?worldStep:-worldStep;
+        const auto alpha=static_cast<unsigned>((1-remaining)*255+0.5f);
+        drawFull(oldPanel);
+        setTexture(GU_PSM_5650,VisualWidth,VisualHeight,panel);
+        patchScaled({136,0,272,272,0,0},ViewX+136,0,1,1,GU_RGBA(255,255,255,alpha));
         drawSelectorCards(travel.from,*outgoing,delta*(remaining-1.0f),true);
         drawSelectorCards(world,*cards,delta*remaining,true,false);
         details=levelSelect.course(travel.from);
+        titleOpacity=alpha;
     } else {
-        if (moving && !levelSelectArt.loadBase(world,latest,russian())) return;
-        drawFull(levelSelectArt.base);
+        drawFull(panel);
         drawSelectorCards(world,*cards,0);
         if (selectorGoDown) {
             if (const auto* pixels=levelSelectArt.goFrame(world,latest,russian())) {
@@ -4884,9 +5753,12 @@ void drawLevelSelect(unsigned elapsedMs) {
             }
         }
     }
-    drawCosmicWorldTitle046(panel!=nullptr,world,travel.from,frame);
+    drawCosmicWorldTitle046(world,oldPanel?travel.from:world,titleOpacity);
     drawSelectorDetails(selectorDetails,progress,details,russian());
-    setTexture(GU_PSM_5650,VisualWidth,VisualHeight,levelSelectArt.base);
+    if (pendingWorldDirection) {
+        drawOriginalLoading067(elapsedMs,185,248,lang("Loading world...","Загрузка мира..."));
+    }
+    setTexture(GU_PSM_5650,VisualWidth,VisualHeight,panel);
     patchHudGradient(0,70,103,29);
     localeText(lang("Total Score","Общий счёт"),4,69,0.79f);
     char total[24];
@@ -4914,133 +5786,484 @@ void drawAnimatedBack(unsigned elapsedMs,bool profile=false) {
     sceGuBlendFunc(GU_ADD,GU_SRC_ALPHA,GU_ONE_MINUS_SRC_ALPHA,0,0);
 }
 
-void drawMenuTv() {
-    const auto tick=static_cast<unsigned>(sceKernelGetSystemTimeWide()*60/1000000);
-    drawTv(thoughts.menuFrame(tick));
+void drawMenuTv(unsigned tick=UINT32_MAX) {
+    if (tick==UINT32_MAX) tick=static_cast<unsigned>(sceKernelGetSystemTimeWide()*60/1000000);
+    drawTv(menuTv.cachedFrames()?menuTv.frame(tick):thoughts.menuFrame(tick));
 }
 
+#include "avatar_clicks058.hpp"
+#include "avatar_idle059.hpp"
+AvatarClicks058::Session avatarClicks058;
+#include "avatar_speech058_draw.hpp"
+AvatarSpeech058::Layout avatarSpeechLayout058;
+unsigned avatarSpeechPreparedCode058=0,avatarSpeechCourse058=CourseCount;
+uint64_t avatarSpeechPreparedCount058=0;
+AvatarSpeech058::Layout avatarIdleLayout059;
+AvatarIdle059::Context idleRound059(const Round& r){
+ AvatarIdle059::Context c;c.active=true;c.paused=r.paused;c.spawning=r.ticks<61;
+ c.moving=r.game.moving()&&!r.frontierWind.drifting()&&!r.wizard.drifting();
+ c.airborne=r.jump.airborne()||EndlessModifiers::jumpInFlight(r.bunkerJumpy)||r.horse.flying();
+ c.parry=r.game.modifierParryFrozen||r.ride.parryFrozen();c.telekinetic=r.game.modifierKinesis;
+ c.dead=r.caught;c.won=r.game.won;c.demo=r.attractDemo;
+ c.cinematic=r.wall418.bedActive||r.horseBroadcast.active()||
+  (currentCourse==Elysian518Course&&r.finale518.phase!=FinalePhase518::Hunt);
+ return c;
+}
 #include "profile_ui.hpp"
 #include "xmb_profile.hpp"
 #include "hardware_probe.hpp"
+#include "attract_runtime.hpp"
 
 void drawSettings() {
-    constexpr int rows[]={63,110,157};
+    constexpr unsigned visible=6,items=static_cast<unsigned>(SettingsRow::Save);
     const auto localeU=static_cast<int16_t>(russian()?112:0);
+    static const char* en[]={"Language","Background","Random","Shot Sensitivity:","Invert Shot","Buffer Shot","Master Volume:","Music Volume:","SFX Volume:"};
+    static const char* ru[]={"Язык","Фон","Случайный фон","Чувствительность удара","Инверсия удара","Буферизация удара","Общая громкость:","Громкость музыки:","Громкость звуков:"};
+    for (unsigned n=0;n<visible && settingsFirst+n<items;++n) {
+        const unsigned i=settingsFirst+n;const auto row=static_cast<SettingsRow>(i);
+        const int y=52+25*n;const bool focus=settingsRow==row;
+        setTexture(GU_PSM_8888,256,256,settingsWidgets);
+        if (i<3) patch({localeU,static_cast<int16_t>(104+18*i),112,17,0,0},ViewX+152,y+3);
+        patch({0,static_cast<int16_t>(focus?24:0),130,23,0,0},ViewX+263,y);
+        if (i>=3) localeText(lang(en[i],ru[i]),152,y+5,.74f,White,false,108,true);
+        const bool boolean=row==SettingsRow::Random || row==SettingsRow::Invert || row==SettingsRow::Buffer;
+        if (boolean) {
+            const bool checked=row==SettingsRow::Random?backgroundDraft.random:
+                row==SettingsRow::Invert?settingsDraft.invert:settingsDraft.buffer;
+            setTexture(GU_PSM_8888,256,256,settingsWidgets);
+            patch({static_cast<int16_t>(checked?168:148),static_cast<int16_t>(focus?20:0),18,18,0,0},ViewX+319,y+3);
+        } else {
+            char label[96]{};
+            if (row==SettingsRow::Language) std::snprintf(label,sizeof label,"%s",languageDraft==Language::Russian?"Русский":"English");
+            else if (row==SettingsRow::Background) {
+                constexpr const char* english[]={"Black","Tutorial","Golf Central","Golf Central 1-08","Chuckle Park","Final Frontier","Cosmic Championship","Moon"};
+                constexpr const char* russianNames[]={"Чёрный","Обучение","Гольф-центр","Гольф-центр 1-08","Чакл-парк","Final Frontier","Cosmic Championship","Луна"};
+                if (activeBackground>=CatalogBackgroundBase) std::snprintf(label,sizeof label,"%03u",activeBackground-CatalogBackgroundBase);
+                else {const unsigned index=backgroundIndex(activeBackground);const auto* name=lang(english[index],russianNames[index]);
+                    if(activeBackground)std::snprintf(label,sizeof label,"G%02u %s",activeBackground,name);else std::snprintf(label,sizeof label,"%s",name);}
+            } else {
+                const unsigned percent=row==SettingsRow::Sensitivity?static_cast<unsigned>(std::round(settingsDraft.sensitivity*100)):
+                    (row==SettingsRow::Master?settingsDraft.master:row==SettingsRow::Music?settingsDraft.music:settingsDraft.sounds)*5;
+                std::snprintf(label,sizeof label,"%u%%",percent);
+            }
+            localeText(label,329,y+2,.94f,White,true,99,true);
+            localeText("←",267,y+3,.86f);localeText("→",381,y+3,.86f);
+            if (i>=3) {
+                const float fraction=row==SettingsRow::Sensitivity?settingsDraft.sensitivity*.5:
+                    (row==SettingsRow::Master?settingsDraft.master:row==SettingsRow::Music?settingsDraft.music:settingsDraft.sounds)/20.f;
+                Theme067::slider(284,y+17,87,float(fraction),focus);
+            }
+        }
+    }
+    Theme067::scroll(405,53,147,float(settingsFirst)/3.f,2.f/3);
     setTexture(GU_PSM_8888,256,256,settingsWidgets);
-    for (unsigned i=0;i<3;++i) {
-        patch({localeU,static_cast<int16_t>(104+18*i),112,17,0,0},ViewX+166,rows[i]+3);
-    }
-    const auto focused=[](SettingsRow row) { return settingsRow==row; };
-    patch({0,static_cast<int16_t>(focused(SettingsRow::Language)?24:0),130,23,0,0},ViewX+263,rows[0]);
-    patch({0,static_cast<int16_t>(focused(SettingsRow::Background)?24:0),130,23,0,0},ViewX+263,rows[1]);
-    patch({static_cast<int16_t>(languageDraft==Language::Russian?168:148),44,17,13,0,0},
-          ViewX+285,rows[0]+5);
-    patch({static_cast<int16_t>(backgroundDraft.random?168:148),
-           static_cast<int16_t>(focused(SettingsRow::Random)?20:0),18,18,0,0},
-          ViewX+348,rows[2]+3);
-    patch({0,static_cast<int16_t>(focused(SettingsRow::Save)?74:48),136,25,0,0},ViewX+204,240);
+    patch({0,static_cast<int16_t>(settingsRow==SettingsRow::Save?74:48),136,25,0,0},ViewX+204,240);
     patch({localeU,158,112,17,0,0},ViewX+216,244);
-    localeText(languageDraft==Language::Russian?"Русский":"English",336,rows[0]+2,1,White,true,68,true);
-    localeText("←",272,rows[0]+3,SmallUiText);
-    localeText("→",379,rows[0]+3,SmallUiText);
-    constexpr const char* english[]={"Black","Tutorial","Golf Central","Golf Central 1-08","Chuckle Park",
-                                      "Final Frontier","Cosmic Championship","Moon"};
-    constexpr const char* russianNames[]={"Чёрный","Обучение","Гольф-центр","Гольф-центр 1-08","Чакл-парк",
-                                           "Final Frontier","Cosmic Championship","Луна"};
-    static_assert(std::size(english)==RenderedBackgroundCount && std::size(russianNames)==RenderedBackgroundCount);
-    char label[96];
-    if (activeBackground>=CatalogBackgroundBase) {
-        std::snprintf(label,sizeof label,"%03u",activeBackground-CatalogBackgroundBase);
-    } else {
-        const unsigned index=backgroundIndex(activeBackground);
-        const char* name=lang(english[index],russianNames[index]);
-        if (activeBackground) std::snprintf(label,sizeof label,"G%02u %s",activeBackground,name);
-        else std::snprintf(label,sizeof label,"%s",name);
-    }
-    localeText(label,329,rows[1]+2,1,White,true,100,true);
-    localeText("←",267,rows[1]+2,1);
-    localeText("→",381,rows[1]+2,1);
-
     const char* hint=nullptr;
-    switch (settingsRow) {
-    case SettingsRow::Language: hint=lang("← / →  Language     × Save","← / →  Язык     × Сохранить"); break;
-    case SettingsRow::Background: hint=lang("← / →  Preview     × Save","← / →  Просмотр     × Сохранить"); break;
-    case SettingsRow::Random: hint=lang("× Random background at launch","× Случайный фон при запуске"); break;
-    case SettingsRow::Save: hint=lang("× Save settings","× Сохранить настройки"); break;
-    case SettingsRow::Count: break;
+    switch(settingsRow) {
+    case SettingsRow::Language:hint=lang("← / → Language  × Save","← / → Язык  × Сохранить");break;
+    case SettingsRow::Background:hint=lang("← / → Preview  × Save","← / → Просмотр  × Сохранить");break;
+    case SettingsRow::Random:hint=lang("× Random background at launch","× Случайный фон при запуске");break;
+    case SettingsRow::Sensitivity:hint=lang("← / → Shot power  0-200%","← / → Сила удара  0-200%");break;
+    case SettingsRow::Invert:hint=lang("× Reverse shot direction","× Обратить направление удара");break;
+    case SettingsRow::Buffer:hint=lang("× Queue a shot just before stopping","× Удар перед остановкой");break;
+    case SettingsRow::Master:case SettingsRow::Music:case SettingsRow::Sounds:hint=lang("← / → Volume  × Save","← / → Громкость  × Сохранить");break;
+    case SettingsRow::Save:hint=lang("× Save settings  ○ Cancel","× Сохранить  ○ Отмена");break;
+    case SettingsRow::Count:break;
     }
-    if (hint) localeText(hint,272,196,1,White,true,240,true);
-    if (settingsError) localeText(lang("Could not save settings","Не удалось сохранить настройки"),
-                                  272,217,SmallUiText,White,true,246);
-    if (settingsPreviewError) localeText(lang("Could not load background","Не удалось загрузить фон"),
-                                         272,217,SmallUiText,White,true,246);
+    if(hint)localeText(hint,272,207,.82f,White,true,246,true);
+    if(settingsError || settingsPreviewError)localeText(settingsPreviewError?lang("Could not load background","Не удалось загрузить фон"):
+        lang("Could not save settings","Не удалось сохранить настройки"),272,225,SmallUiText,White,true,246,true);
+}
+
+void keepSettingsVisible() {
+    const unsigned row=static_cast<unsigned>(settingsRow);
+    if(row>=static_cast<unsigned>(SettingsRow::Save))settingsFirst=3;
+    else if(row<settingsFirst)settingsFirst=row;
+    else if(row>=settingsFirst+6)settingsFirst=row-5;
+}
+
+void previewSharedSettings(const StartupEditorBus::Values& values) {
+    audio.userBusVolumes(values.master,values.music,values.sounds);
+    shotSettings={static_cast<float>(values.sensitivity),values.invert,values.buffer};
 }
 
 void beginSettingsDraft() {
-    languageDraft=language;
-    backgroundDraft=backgroundPreference;
-    backgroundBeforeSettings=activeBackground;
-    settingsRow=SettingsRow::Language;
+    languageDraft=language;backgroundDraft=backgroundPreference;
+    backgroundBeforeSettings=activeBackground;settingsDraft=gameSettings;
+    settingsRow=SettingsRow::Language;settingsFirst=0;
     settingsError=settingsPreviewError=false;
 }
 
 void updateSettings(Flow& flow,uint32_t pressed,const char* executable,Course& course,
                     const LanguageFile& languageFile,const BackgroundFile& backgroundFile,const char* log,
                     const Game& game) {
-    if (pressed&PSP_CTRL_CIRCLE) {
-        selectBackground(backgroundBeforeSettings);
-        return;
+    if(pressed&PSP_CTRL_CIRCLE) {
+        selectBackground(backgroundBeforeSettings);previewSharedSettings(gameSettings);
+        flow.screen=Screen::Main;return;
     }
     const bool up=pressed&PSP_CTRL_UP,down=pressed&PSP_CTRL_DOWN;
     constexpr unsigned rows=static_cast<unsigned>(SettingsRow::Count);
-    if (up!=down) {
+    if(up!=down) {
         settingsRow=static_cast<SettingsRow>((static_cast<unsigned>(settingsRow)+(down?1:rows-1))%rows);
-        settingsError=settingsPreviewError=false;
-        audio.play(Sound::Select);
-        return;
+        keepSettingsVisible();settingsError=settingsPreviewError=false;audio.play(Sound::Select);return;
     }
     const bool left=pressed&PSP_CTRL_LEFT,right=pressed&PSP_CTRL_RIGHT,confirm=pressed&PSP_CTRL_CROSS;
-    if (left!=right && settingsRow==SettingsRow::Language) {
-        languageDraft=languageDraft==Language::English?Language::Russian:Language::English;
+    if(left!=right) {
         settingsError=false;
-        audio.play(Sound::Select);
-    } else if (left!=right && settingsRow==SettingsRow::Background) {
-        const unsigned index=(backgroundIndex(activeBackground)+(right?1:BackgroundCount-1))%BackgroundCount;
-        const unsigned id=BackgroundIds[index];
-        settingsPreviewError=!selectBackground(id);
-        settingsError=false;
-        if (!settingsPreviewError) backgroundDraft={id,id,backgroundDraft.random};
-        audio.play(Sound::Select);
-    }
-    if (!confirm) return;
-    settingsError=settingsPreviewError=false;
-    if (settingsRow==SettingsRow::Random) {
-        backgroundDraft={activeBackground,activeBackground,!backgroundDraft.random};
-        audio.play(Sound::Select);
-        return;
-    }
-    if (backgroundDraft.encode()!=backgroundPreference.encode()) {
-        if (!changeBackground(backgroundFile,backgroundDraft.chosen,backgroundDraft.random)) {
-            settingsError=true;
-            return;
+        if(settingsRow==SettingsRow::Language) {
+            languageDraft=languageDraft==Language::English?Language::Russian:Language::English;audio.play(Sound::Select);
+        } else if(settingsRow==SettingsRow::Background) {
+            const unsigned index=(backgroundIndex(activeBackground)+(right?1:BackgroundCount-1))%BackgroundCount;
+            const unsigned id=BackgroundIds[index];settingsPreviewError=!selectBackground(id);
+            if(!settingsPreviewError)backgroundDraft={id,id,backgroundDraft.random};
+            audio.play(Sound::Select);
+        } else if(settingsRow==SettingsRow::Sensitivity) {
+            settingsDraft.sensitivity=std::clamp(std::round((settingsDraft.sensitivity+(right?.2:-.2))*5)/5,0.,2.);
+            previewSharedSettings(settingsDraft);
+        } else if(settingsRow==SettingsRow::Master || settingsRow==SettingsRow::Music || settingsRow==SettingsRow::Sounds) {
+            auto& value=settingsRow==SettingsRow::Master?settingsDraft.master:settingsRow==SettingsRow::Music?settingsDraft.music:settingsDraft.sounds;
+            const unsigned old=value;value=static_cast<unsigned>(std::clamp(static_cast<int>(value)+(right?1:-1),0,20));
+            previewSharedSettings(settingsDraft);
+            if(old!=value && settingsRow!=SettingsRow::Music)audio.play(static_cast<Sound>(357));
+        } else if(settingsRow==SettingsRow::Invert || settingsRow==SettingsRow::Buffer || settingsRow==SettingsRow::Random) {
+            if(settingsRow==SettingsRow::Random)backgroundDraft={activeBackground,activeBackground,right};
+            else {auto& value=settingsRow==SettingsRow::Invert?settingsDraft.invert:settingsDraft.buffer;value=right;previewSharedSettings(settingsDraft);}
+            audio.play(Sound::Select);return;
         }
-        backgroundBeforeSettings=activeBackground;
-        logBackground(log,"background_saved");
     }
-    if (languageDraft!=language) {
-        settingsError=!changeLanguage(executable,course,languageFile,languageDraft);
-        if (settingsError) return;
+    if(!confirm)return;
+    settingsError=settingsPreviewError=false;
+    if(settingsRow==SettingsRow::Random || settingsRow==SettingsRow::Invert || settingsRow==SettingsRow::Buffer) {
+        if(settingsRow==SettingsRow::Random)backgroundDraft={activeBackground,activeBackground,!backgroundDraft.random};
+        else {auto& value=settingsRow==SettingsRow::Invert?settingsDraft.invert:settingsDraft.buffer;value=!value;previewSharedSettings(settingsDraft);}
+        audio.play(Sound::Select);return;
+    }
+    if(backgroundDraft.encode()!=backgroundPreference.encode()) {
+        if(!changeBackground(backgroundFile,backgroundDraft.chosen,backgroundDraft.random)){settingsError=true;return;}
+        backgroundBeforeSettings=activeBackground;logBackground(log,"background_saved");
+    }
+    if(languageDraft!=language) {
+        settingsError=!changeLanguage(executable,course,languageFile,languageDraft);if(settingsError)return;
+        if(!cacheCosmicWorldTitle046(russian()))logEvent(log,"map_title_cache_error",game);
         logEvent(log,russian()?"language_saved_ru":"language_saved_en",game);
     }
-    flow.screen=Screen::Main;
+    std::string error;
+    if(!StartupEditorBus::mergeAll(statePath(executable,"editor-settings.json"),settingsDraft,error)){settingsError=true;return;}
+    gameSettings=settingsDraft;previewSharedSettings(gameSettings);
+    logEvent(log,"settings_saved",game);flow.screen=Screen::Main;
+}
+
+
+struct MenuFrameTiming {
+    unsigned art=0,tv=0,mapReadCalls=0,mapReadBytes=0,prefetchBytes=0;
+    bool mapReady=false;
+};
+MenuFrameTiming* menuFrameTiming=nullptr;
+
+struct RenderPhase {
+    explicit RenderPhase(unsigned* total) : total(total),start(total?sceKernelGetSystemTimeLow():0) {}
+    ~RenderPhase() { if (total) *total+=sceKernelGetSystemTimeLow()-start; }
+    unsigned* total;
+    unsigned start;
+};
+
+const char* menuScreenName(Screen screen) {
+    switch (screen) {
+    case Screen::Title: return "title";
+    case Screen::Main: return "main";
+    case Screen::GameMenu: return "game_menu";
+    case Screen::EndlessMenu: return "endless_menu";
+    case Screen::EndlessHole: return "endless_hole";
+    case Screen::EndlessResult: return "endless_result";
+    case Screen::ProfileSelect: return "profile_select";
+    case Screen::ProfileCreate: return "profile_create";
+    case Screen::LevelSelect: return "level_select";
+    case Screen::StartIntro: return "intro";
+    case Screen::Settings: return "settings";
+    case Screen::Hole: return "hole";
+    case Screen::Credits: return "credits";
+    case Screen::CatArtist: return "cat_artist";
+    case Screen::Meowls: return "meowls";
+    case Screen::MeowlsFilm: return "meowls_film";
+    case Screen::Dash: return "dash";
+    case Screen::Bort: return "bort";
+    case Screen::SoundTest: return "sound_test";
+    default: return "other";
+    }
+}
+
+struct MenuInputSample {
+    uint64_t input=0;
+    Screen from=Screen::Loading,to=Screen::Loading;
+    unsigned buttons=0,work=0,art=0,tv=0,render=0,xmb=0,present=0,mapReadCalls=0,mapReadBytes=0;
+    bool release=false;
+    bool xmbBusy=false,mapReady=false;
+    unsigned prefetchBytes=0;
+};
+
+class MenuInputProbe {
+public:
+    void observe(uint64_t now,Screen screen,unsigned pressed,unsigned released,bool busy) {
+        if (screen==Screen::Hole || screen==Screen::Loading) return;
+        constexpr unsigned mask=PSP_CTRL_CROSS|PSP_CTRL_CIRCLE|PSP_CTRL_UP|PSP_CTRL_DOWN|
+            PSP_CTRL_LEFT|PSP_CTRL_RIGHT|PSP_CTRL_LTRIGGER|PSP_CTRL_RTRIGGER|PSP_CTRL_START|PSP_CTRL_SELECT;
+        const unsigned down=pressed&mask;
+        const unsigned up=released&PSP_CTRL_CROSS;
+        if (!down && !up) return;
+        if (count==samples.size()) { ++dropped; return; }
+        auto& sample=samples[count++];
+        sample={};
+        sample.input=now;
+        sample.from=screen;
+        sample.buttons=down?down:up;
+        sample.release=!down;
+        sample.xmbBusy=busy;
+    }
+
+    void renderBegin(Screen screen) {
+        frameScreen=screen;
+        frameTiming={};
+        if (drawn<count) {
+            frameStart=sceKernelGetSystemTimeWide();
+            menuFrameTiming=&frameTiming;
+        }
+    }
+
+    void xmbUpdate(unsigned us) {
+        for (unsigned i=drawn;i<count;++i) samples[i].xmb+=us;
+    }
+
+    void renderEnd() {
+        if (!menuFrameTiming) return;
+        const auto end=sceKernelGetSystemTimeWide();
+        for (unsigned i=drawn;i<count;++i) {
+            auto& sample=samples[i];
+            sample.to=frameScreen;
+            sample.work=static_cast<unsigned>(frameStart-sample.input);
+            sample.art=frameTiming.art;
+            sample.tv=frameTiming.tv;
+            sample.mapReadCalls=frameTiming.mapReadCalls;
+            sample.mapReadBytes=frameTiming.mapReadBytes;
+            sample.mapReady=frameTiming.mapReady;
+            sample.prefetchBytes=frameTiming.prefetchBytes;
+            sample.render=static_cast<unsigned>(end-frameStart);
+        }
+        drawn=count;
+        menuFrameTiming=nullptr;
+    }
+
+    void presented(uint64_t now) {
+        for (;shown<drawn;++shown) samples[shown].present=static_cast<unsigned>(now-samples[shown].input);
+    }
+
+    void flush(const char* log) {
+        if (!shown) return;
+        if (auto* out=std::fopen(log,"a")) {
+            for (unsigned i=0;i<shown;++i) {
+                const auto& v=samples[i];
+                std::fprintf(out,"build=053 event=menu_input from=%s to=%s buttons=0x%04x edge=%s first_frame_us=%u before_render_us=%u render_us=%u art_us=%u tv_us=%u xmb_poll_us=%u xmb_busy=%u map_reads=%u map_bytes=%u map_ready=%u map_prefetch_bytes=%u\n",
+                             menuScreenName(v.from),menuScreenName(v.to),v.buttons,v.release?"up":"down",v.present,
+                             v.work,v.render,v.art,v.tv,v.xmb,static_cast<unsigned>(v.xmbBusy),v.mapReadCalls,v.mapReadBytes,static_cast<unsigned>(v.mapReady),v.prefetchBytes);
+            }
+            if (dropped) std::fprintf(out,"build=053 event=menu_samples_dropped count=%u\n",dropped);
+            std::fclose(out);
+            std::move(samples.begin()+shown,samples.begin()+count,samples.begin());
+            count-=shown;
+            drawn-=shown;
+            shown=dropped=0;
+        }
+    }
+private:
+    std::array<MenuInputSample,48> samples{};
+    unsigned count=0,drawn=0,shown=0;
+    unsigned dropped=0;
+    Screen frameScreen=Screen::Loading;
+    uint64_t frameStart=0;
+    MenuFrameTiming frameTiming{};
+};
+
+namespace Endless054 { VillaUnlocks::Flags unlockFlags(); }
+#include "villa054.hpp"
+#include "club_runtime054.hpp"
+#include "phone_runtime054.hpp"
+#include "cat_artist_runtime.hpp"
+#include "meowls_runtime.hpp"
+#include "dash_runtime.hpp"
+#include "bort_runtime.hpp"
+#include "sound_test_runtime.hpp"
+#include "endless_runtime.hpp"
+
+bool loadCampaignModifierArt(const char* executable) { return EndlessModifierArt::load(executable); }
+#include "editor_entry.hpp"
+
+VillaUnlocks::Flags legacyCampaignUnlockFlags(uint32_t legacyOpened=UINT32_MAX) {
+    using namespace VillaUnlocks;
+    const auto opened=legacyOpened==UINT32_MAX ? Villa054::openedGifts() : legacyOpened;
+    Flags flags=campaignFlags(progress,opened)|Endless054::unlockFlags();
+    const auto add=[&](const Progress& value) {
+        flags|=campaignFlags(value,opened);
+        if (value.quest>=5) flags|=bit(Id::Nothing);
+    };
+    for(unsigned slot=0;slot<Profiles::Count;++slot)
+        if(profiles.entry(slot).found) add(profiles.snapshot(slot));
+    if(EditorEntry::builderUnlocked(EditorEntry054::mainPath.c_str(),activeProfile)) flags|=bit(Id::Builder);
+    if(progress.quest>=5) flags|=bit(Id::Nothing);
+    const Flags required=((Flags{1}<<unsigned(Id::Count))-1)&~bit(Id::Godmode);
+    if((flags&required)==required) flags|=bit(Id::Godmode);
+    return flags;
+}
+
+#include "world_runtime054.hpp"
+
+VillaUnlocks::Flags campaignUnlockFlags() {
+    return worldReady ? worldData().owned & VillaUnlocks::KnownFlags : legacyCampaignUnlockFlags();
+}
+
+uint16_t campaignAvailableMods() {
+    using namespace CampaignMods;
+    using VillaUnlocks::Id;
+    constexpr struct { Mod mod; Id gate; } gates[]={
+        {Chill,Id::Chill},{Panic,Id::Panic},{Burst,Id::Burst},{Telekinesis,Id::Telekinesis},
+        {Buddy,Id::Buddy},{Parry,Id::Parry},{Jumpy,Id::Jumpy},{Dizzy,Id::Dizzy},
+        {Missiles,Id::Missiles},{Sticky,Id::Sticky},{God,Id::Godmode}
+    };
+    const auto flags=campaignUnlockFlags();
+    uint16_t mask=0;
+    for(const auto& gate:gates) if(VillaUnlocks::unlocked(flags,gate.gate)) mask|=gate.mod;
+    return mask;
+}
+
+bool campaignPeakAvailable() {
+    if (worldReady) return worldOwns(unsigned(VillaUnlocks::Id::PeakHunter));
+    const auto unlocked=[](const Progress& value) {
+        return value.next>CataclysmCourse || value.best[CataclysmCourse].time!=UINT32_MAX;
+    };
+    if(unlocked(progress)) return true;
+    for(unsigned slot=0;slot<Profiles::Count;++slot)
+        if(profiles.entry(slot).found && unlocked(profiles.snapshot(slot))) return true;
+    return false;
+}
+
+void releaseCourseTransitionStreams() {
+    levelSelectArt.closePrefetch();
+    liveResultArt.closeStream();
+    commonResultArt.closeStream();
+    elysianOutOfBoundsArt.closeStream();
+    cosmicWorldTitles046.closeStream();
+}
+
+bool prepareContentTransition(Screen destination) {
+    switch (destination) {
+    case Screen::CatArtist:
+    case Screen::Meowls:
+    case Screen::MeowlsFilm:
+    case Screen::Dash:
+    case Screen::Bort:
+    case Screen::SoundTest:
+        break;
+    default:
+        return true;
+    }
+    if (!audio.releaseMusicForContent()) return false;
+
+    // A same-course reload can keep cache keys for these borrowed VRAM addresses.
+    titleArt=nullptr;
+    titleReusedCourseVram=true;
+    switchTiles.unload();
+    parkBlockArt.unload();
+    denseBlockArt.unload();
+    wizardArt516.unload();
+    spellArt516.unload();
+    cosmicFieldSlot045=cosmicFlagSlot045={};
+    cosmicGateArt045.unload();
+    return true;
+}
+
+#include "startup_intro.hpp"
+#include "scene_clock.hpp"
+
+bool phoneIntroActive=false;
+
+SceneMilliseconds phoneSceneClock,clubSceneClock;
+bool queueAllWorldAwards();
+
+void handlePhoneAction(Phone054::Action action,Flow& flow,const char* executable) {
+    switch(action) {
+    case Phone054::Action::Cheater:
+        Phone054::saveFailed=!queueAllWorldAwards();
+        break;
+    case Phone054::Action::Cracktro: {
+        const StartupSettings::Values values{gameSettings.master,gameSettings.music,gameSettings.sounds,language};
+        phoneIntroActive=true;
+        flow.screen=Screen::StartIntro;
+        StartupIntro::begin(values,assetPath(executable,"startup-intro.bin").c_str());
+        audio.music(static_cast<Sound>(278));
+        break;
+    }
+    case Phone054::Action::Pronouns: ActorPronouns054::session.toggle(sceKernelGetSystemTimeLow());break;
+    case Phone054::Action::Quit: flow.quit=true;break;
+    case Phone054::Action::None: break;
+    }
+}
+
+bool finishPhoneIntro(Flow& flow,const char* executable,Course& course,
+                      const PhoneSettings054::Files& files,const StartupSettings::Values& values) {
+    const auto previous=language;
+    StartupIntro::leave();
+    const bool loaded=loadLocalizedAssets(executable,course,values.language) &&
+        cacheCosmicWorldTitle046(values.language==Language::Russian);
+    if (!loaded || !files.save(values)) {
+        const bool restored=loadLocalizedAssets(executable,course,previous) &&
+            cacheCosmicWorldTitle046(previous==Language::Russian);
+        StartupIntro::state.error=loaded && restored ? StartupIntro::Error::Save : StartupIntro::Error::Language;
+        return false;
+    }
+    StartupIntro::state.error=StartupIntro::Error::None;
+    gameSettings.master=values.master;gameSettings.music=values.music;gameSettings.sounds=values.sounds;
+    previewSharedSettings(gameSettings);
+    if (phoneIntroActive) {
+        audio.muteMusic();
+        phoneIntroActive=false;
+        Phone054::resume();
+        flow.screen=Screen::Phone;
+    }
+    return true;
 }
 
 void render(const Flow& flow,const Course& course,const Round& round,unsigned elapsedMs,
             unsigned levelClock=0,unsigned totalClock=0,unsigned resultMs=0,
-            unsigned menuTick=UINT32_MAX,unsigned menuElapsedMs=UINT32_MAX,bool fastEnding=false) {
-    if (flow.screen!=Screen::Hole) santaBackdropSlots[2]={};
+            unsigned menuTick=UINT32_MAX,unsigned menuElapsedMs=UINT32_MAX,bool fastEnding=false,
+            bool campaignSettingsOverlay=false) {
+    const auto modifierContext=((flow.screen==Screen::Hole || flow.screen==Screen::WorldResults ||
+        flow.screen==Screen::ElysianEnding || flow.screen==Screen::CosmicEnding) &&
+        !round.attractDemo && !Endless054::isReplay()) ||
+        (flow.screen==Screen::Settings && campaignSettingsOverlay) ? ModifierHud061::Context::Campaign :
+        flow.screen==Screen::LevelSelect ? ModifierHud061::Context::Selector : ModifierHud061::Context::None;
+    const auto modifierNow=sceKernelGetSystemTimeWide();
+    const bool endlessModifierHud=flow.screen==Screen::EndlessHole ||
+        (flow.screen==Screen::Hole && Endless054::isReplay());
+    ModifierHud061::state.observe(endlessModifierHud?ModifierHud061::Context::Endless:modifierContext,
+        endlessModifierHud?Endless054::modifierHudEpoch:activeProfile,
+        endlessModifierHud?ModifierHud061::fromEndless(Endless054::run.mods):campaignOptions.modifiers,modifierNow);
+    if (flow.screen==Screen::StartIntro) {StartupIntro::draw(elapsedMs);return;}
+    if (flow.screen==Screen::AttractDemo) {
+        auto demo=flow;demo.screen=Screen::Hole;
+        render(demo,course,round,elapsedMs,levelClock,totalClock,resultMs,menuTick,menuElapsedMs,fastEnding);
+        return;
+    }
+    UniqueHud057::prepare(flow.screen,elapsedMs*60/1000);
+    if (flow.screen==Screen::EndlessHole && Endless054::isReplay()) {
+        auto replay=flow;
+        replay.screen=Screen::Hole;
+        render(replay,course,round,elapsedMs,levelClock,totalClock,resultMs,menuTick,menuElapsedMs,fastEnding);
+        return;
+    }
+    Costumes054::prepareScreenActors056();
+    if (Endless054::draw(flow.screen,round)) return;
+    if (flow.screen==Screen::Hole) Costumes054::prepareGameplay();
+    else santaBackdropSlots[2]={};
     if (flow.screen!=Screen::LevelSelect) {
-        cosmicWorldSlot046={};
         cosmicTitles046.unload();
         cosmicTitles047.unload();
         cosmicTitles048.unload();
@@ -5050,6 +6273,7 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
         cosmicTitles052.unload();
         cosmicTitles053.unload();
     }
+    if (flow.screen!=Screen::Hole && flow.screen!=Screen::Settings) glowstickArt.discardPreparedCourse();
     if (flow.screen!=Screen::Hole) {
         elysianSwitchArt512.closeStream();
         elysianSwitchArt514.closeStream();
@@ -5058,33 +6282,71 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
         liveResultArt.closeStream();
         commonResultArt.closeStream();
     }
-    if (flow.screen==Screen::Title && titleArt && elapsedMs>=2400) {
+    if (flow.screen==Screen::Title && titleArt && (elapsedMs>=2400 || titleMenuPending)) {
         beginFrame();
         drawTitleArt(elapsedMs);
-        localeText(lang("Press × to start","Нажмите × для начала"),272,226,1,White,true);
+        localeText(titleMenuPending?lang("Loading...","Загрузка..."):
+                   lang("Press × to start","Нажмите × для начала"),272,226,1,White,true);
         localeText("v1.0.3b",142,250,0.85f);
         localeText("SH2K + Canny Crew + SandstoneDev, 2026",185,250,0.8f);
-        const auto tick=menuTick==UINT32_MAX ?
-            static_cast<unsigned>(sceKernelGetSystemTimeWide()*60/1000000) : menuTick;
-        drawTv(thoughts.menuFrame(tick));
+        drawMenuTv(menuTick);
         endFrame();
         return;
     }
+    if (flow.screen==Screen::Phone) { Phone054::draw(); return; }
+    if (flow.screen==Screen::Meowls) { Meowls::draw(); return; }
+    if (flow.screen==Screen::MeowlsFilm) { Meowls::drawFilm(); return; }
+    if (flow.screen==Screen::Dash) { Dash054::draw(); return; }
+    if (flow.screen==Screen::Bort) { Bort054::draw(); return; }
+    if (flow.screen==Screen::SoundTest) { SoundTest054::draw(); return; }
+    if (flow.screen==Screen::Club) { Club054::draw(); return; }
+    if (flow.screen==Screen::CatArtist) { CatArtist::draw(); return; }
+    if (flow.screen==Screen::Villa) { Villa054::drawVilla(elapsedMs); return; }
+    if (flow.screen==Screen::VillaChecklist) { Villa054::drawChecklist(elapsedMs); return; }
     if (flow.screen==Screen::ProfileSelect || flow.screen==Screen::ProfileCreate) {
         beginFrame();
-        drawProfiles(flow.screen==Screen::ProfileCreate,elapsedMs,menuElapsedMs==UINT32_MAX?elapsedMs:menuElapsedMs);
-        drawMenuTv();
+        {
+            RenderPhase phase(menuFrameTiming?&menuFrameTiming->art:nullptr);
+            drawProfiles(flow.screen==Screen::ProfileCreate,elapsedMs,menuElapsedMs==UINT32_MAX?elapsedMs:menuElapsedMs);
+        }
+        {
+            RenderPhase phase(menuFrameTiming?&menuFrameTiming->tv:nullptr);
+            drawMenuTv();
+        }
         hardwareProbe.draw();
         endFrame();
         return;
     }
     if (flow.screen==Screen::LevelSelect) {
-        beginFrame();
-        drawLevelSelect(elapsedMs);
-        drawAnimatedBack(elapsedMs,levelSelectArt.hasCleanBack() && profileArt.hasBackArt());
-        drawMenuTv();
-        drawGift(elapsedMs);
-        endFrame();
+        if (!beginFrame(true)) return;
+        {
+            RenderPhase phase(menuFrameTiming?&menuFrameTiming->art:nullptr);
+            const auto before=levelSelectArt.reads();
+            if (menuFrameTiming) {
+                const unsigned world=levelSelect.world();
+                unsigned latest=world;
+                while (levelSelect.unlocked(latest+1,0)) ++latest;
+                menuFrameTiming->mapReady=levelSelectArt.ready(world,latest,russian());
+                menuFrameTiming->prefetchBytes=levelSelectArt.prefetchReads().bytes;
+            }
+            drawLevelSelect(elapsedMs);
+            if (menuFrameTiming) {
+                const auto after=levelSelectArt.reads();
+                menuFrameTiming->mapReadCalls=after.calls-before.calls;
+                menuFrameTiming->mapReadBytes=after.bytes-before.bytes;
+            }
+            drawAnimatedBack(elapsedMs,levelSelectArt.hasCleanBack() && profileArt.hasBackArt());
+        }
+        {
+            RenderPhase phase(menuFrameTiming?&menuFrameTiming->tv:nullptr);
+            drawMenuTv();
+        }
+        ModifierHud061::present(modifierNow);
+        if (!builderPresent.blocksInput() && !EditorLegacyGiftBlast::builderOwnsBuffers()) WorldGift::draw(elapsedMs);
+        if (worldSaveFailed) localeText(worldBuilderBlocked?lang("Present error. Triangle: retry","Ошибка подарка. △: повторить"):
+            lang("Could not save unlocks.","Не удалось сохранить награды."),272,262,.6f,Gold,true);
+        if (giftGeFailure) {running.store(false,std::memory_order_relaxed);return;}
+        endFrame(true);
         return;
     }
     if (flow.screen==Screen::Hole && round.wall418.bedActive) {
@@ -5096,6 +6358,8 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
         drawStrokes(round.game.strokes);
         drawClock((round.ticks+round.wall418.endingTicks)*5/3,0,false);
         drawClock(totalClock,6,true);
+        MasterThinker056::draw();
+        TvCaption059::draw();
         endFrame();
         return;
     }
@@ -5122,12 +6386,13 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
         drawLiveStats(round,pixels,false);
         setTexture(GU_PSM_5650,VisualWidth,HudHeight,hud);
         drawClock(round.totalTicks*5/3,6,true);
+        MasterThinker056::draw();
+        TvCaption059::draw();
         if (elapsedMs>=worldResults.choiceTime()) {
             rectangle(ViewX+(worldResults.nextSelected()?352:181),263,34,2,Gold);
             if (golfClear && !worldResults.nextAvailable()) {
-                rectangle(ViewX+333,210,75,62,GU_RGBA(19,15,24,238));
-                localeText(lang("World 2","Мир 2"),370,224,0.78f,Gold,true);
-                localeText(lang("Next build","В след. сборке"),370,243,0.68f,White,true);
+                drawAnimatedBack(elapsedMs,true);
+                resultText(lang("Could not load next world","Не удалось загрузить мир"),169,238,White,.85f);
             }
         }
         endFrame();
@@ -5138,7 +6403,14 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
         beginFrame();
         if (pixels) drawFull(pixels);
         drawSettings();
+        if (round.paused && (currentCourse==CataclysmCourse || currentCourse==CosmicSeventeenthCourse)) {
+            UniqueHud057::clearThinker();
+            if (currentCourse==CataclysmCourse) drawFrontierThinker417(round);
+            else drawHurrahThinker053(round);
+        } else MasterThinker056::draw();
+        TvCaption059::draw();
         hardwareProbe.draw();
+        ModifierHud061::present(modifierNow);
         endFrame();
         return;
     }
@@ -5150,21 +6422,27 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
         patch({0,0,128,16,0,0},ViewX+4,78);
         if (russian()) localeText("○ Назад",5,98);
         else patch({112,16,86,16,0,0},ViewX+4,100);
+        MasterThinker056::draw();
+        TvCaption059::draw();
         endFrame();
         return;
     }
     const unsigned page=static_cast<unsigned>(flow.screen);
-    const bool result=flow.screen==Screen::Hole && (round.game.won || (round.caught && !round.waterDead && !round.backrooms && !round.finaleMineLoss));
+    const bool result=flow.screen==Screen::Hole && ((round.game.won && !round.attractDemo) || (round.caught && !round.waterDead && !round.backrooms && !round.finaleMineLoss));
     const bool menuScreen=flow.screen==Screen::Main || flow.screen==Screen::GameMenu;
+    if (flow.screen==Screen::GameMenu) EditorEntry054::prepare(flow.gameMenuChoice,menuButtonDown);
     MenuScroll::Textures menuTextures{};
+    const auto menuArtStart=menuScreen && menuFrameTiming?sceKernelGetSystemTimeLow():0;
     const bool scrolled=menuScreen && clips.menu(menuScrollPack.c_str(),
                                                 2*static_cast<unsigned>(russian())+(flow.screen==Screen::GameMenu),
                                                 menuTextures);
     const Patch* selectedMenuButton=nullptr;
     if (scrolled && menuButtonArt.load(russian())) {
         const unsigned button=flow.screen==Screen::Main?static_cast<unsigned>(flow.mainOption):3;
-        selectedMenuButton=&menuButtonArt.part(button,menuButtonDown);
+        if (flow.screen!=Screen::Main || flow.mainOption!=MainOption::Villa)
+            selectedMenuButton=&menuButtonArt.part(button,menuButtonDown);
     }
+    if (menuArtStart) menuFrameTiming->art+=sceKernelGetSystemTimeLow()-menuArtStart;
     const uint16_t* animated=nullptr;
     const bool horseGhostLoss=result && round.horseGhostCaught;
     const bool finaleHole=flow.screen==Screen::Hole && currentCourse==Elysian518Course;
@@ -5174,7 +6452,11 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
     const bool wizardBlind=wizardHole && round.wizard.blind();
     const bool wizardMirror=wizardHole && round.wizard.mirrored();
     const auto resultId=result?resultClip(round.game.won,round.parkScare.lightsOut):Clip::Loading;
-    const bool liveResult=result && !clips.count(resultId);
+    const bool selectedCostumeScare=result && !round.game.won && Costumes054::selected!=VillaCostumes::Id::Canny &&
+        !round.fellOut && !round.waterDead && !round.finaleMineLoss && !round.horseGhostCaught &&
+        round.horse.phase!=HorsePhase039::Lost && !round.horseBroadcast.active() &&
+        !(round.campaignActive() && round.campaignMods.wallDeath);
+    const bool liveResult=result && (selectedCostumeScare || !clips.count(resultId));
     const bool elysianOutOfBounds=liveResult && (currentCourse==Elysian511Course || currentCourse==Elysian515Course || finaleHole || cosmicNew) && round.fellOut;
     const bool commonResult=liveResult && !isPilotResultClip040(static_cast<unsigned>(resultId)) &&
                             !isNativeLossClip041(static_cast<unsigned>(resultId));
@@ -5198,11 +6480,26 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
 #ifdef UCG_VICTORY_PROBE
     const unsigned resultTime=victoryRenderSample.active?sceKernelGetSystemTimeLow():0;
 #endif
-    liveResultPrepared=liveResult && (elysianOutOfBounds?prepareElysianOutOfBounds041():
+    if (liveResult && cityFieldCourse(currentCourse)) {
+        const auto [phase,weight,signal]=glowstickPhase(round);
+        glowstickArt.freeze(currentCourse-GlowstickFirstCourse,phase,signal);
+    }
+    liveResultPrepared=selectedCostumeScare?CostumeScares056::prepare(finaleHole?HorseDefeatOffset518:LiveResultVramOffset):
+        liveResult && (elysianOutOfBounds?prepareElysianOutOfBounds041():
         prepareLiveResult(round.game.won,horseGhostLoss || cosmicHole,resultMs,commonResult,
                            finaleHole?HorseDefeatOffset518:LiveResultVramOffset,
-                           currentCourse<TutorialCount && commonResultArt.hasPreloadedFrames()?
+                           commonResult && round.game.won && commonResultArt.hasPreloadedFrames()?
                                levelSelectArt.victoryPixels():nullptr));
+    bool demoConfetti=false;
+    if (round.attractDemo && round.game.won && authoredConfetti040()) {
+        // Only the original on-course confetti; no CLEAR/score/rank panel.
+        fallbackPageIndex=ScreenPages;
+        auto* pixels=static_cast<uint8_t*>(sceGeEdramGetAddr())+LiveResultVramOffset+ResultLargeBytes+ResultClearBytes;
+        auto* scratch=reinterpret_cast<uint8_t*>(fallbackPage)+ResultScratchOffset;
+        demoConfetti=commonResultArt.prepare(3+(resultMs/40)%59,liveResultConfetti,
+            commonResultArt.hasPreloadedFrames()?levelSelectArt.victoryPixels():pixels,
+            ResultConfettiBytes,scratch,ResultScratchBytes,commonResultArt.hasPreloadedFrames());
+    }
     if (result && !liveResult) {
         const auto clipTime=round.horseBroadcast.active()?round.horseBroadcast.elapsedMs():resultMs;
         animated=clips.frame(horseGhostLoss?Clip::Loss:resultId,clipTime);
@@ -5213,6 +6510,14 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
     if (victoryRenderSample.active)
         victoryRenderSample.resultMax=std::max(victoryRenderSample.resultMax,sceKernelGetSystemTimeLow()-resultTime);
 #endif
+    if (flow.screen==Screen::Hole && avatarClicks058.speechCode) {
+        if (avatarSpeechPreparedCode058!=avatarClicks058.speechCode || avatarSpeechPreparedCount058!=avatarClicks058.speechCount) {
+            avatarSpeechLayout058=AvatarSpeech058::prepare(avatarClicks058.speechCode,avatarClicks058.speechCount);
+            avatarSpeechPreparedCode058=avatarClicks058.speechCode;
+            avatarSpeechPreparedCount058=avatarClicks058.speechCount;
+        }
+        AvatarSpeech058::publish();
+    } else avatarSpeechPreparedCode058=0;
     const bool elysianSwitchReady=flow.screen==Screen::Hole && (currentCourse==Elysian512Course || currentCourse==Elysian514Course) &&
                                   !round.backrooms && prepareElysianSwitch(round.switches.state);
     const bool elysianTreesReady=flow.screen==Screen::Hole && currentCourse==Elysian515Course &&
@@ -5230,7 +6535,9 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
     } else if (cosmicNew && result && usesMetronome048(currentCourse))
         prepareRhythmResult048(round);
     const uint16_t* backdrop=scrolled?nullptr:(animated && !horseGhostLoss?animated:fallbackBackdrop(page));
-    beginFrame();
+    Backrooms057::prepare(flow.screen==Screen::Hole && round.backrooms);
+    const auto* backroomsField057=flow.screen==Screen::Hole && round.backrooms?backroomsBackdrop():nullptr;
+    if (!beginFrame(menuScreen)) return;
     if (scrolled) drawMenuScroll(menuTextures,selectedMenuButton,
                                  menuElapsedMs==UINT32_MAX?elapsedMs:menuElapsedMs,elapsedMs);
     else if (backdrop) drawFull(backdrop);
@@ -5239,27 +6546,27 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
         patch({136,0,272,Height,0,0},ViewX+136,0);
     }
     if (flow.screen==Screen::Main) {
-        if (scrolled && !russian()) {
-            rectangle(ViewX+209,136,155,30,GU_RGBA(65,49,43,255));
-            localeText("Take a break, play a minigame",211,134,0.70f,White,false,150,true);
-            localeText("or try on a costume.",211,144,0.70f);
+        if (Villa054::available()) {
+            Villa054::drawButton(flow.mainOption==MainOption::Villa,menuButtonDown);
+        } else if (scrolled) {
+            drawMenuTile(menuTextures.tile,menuElapsedMs==UINT32_MAX?elapsedMs:menuElapsedMs,
+                         ViewX+166,121,ViewX+378,170);
         }
         setTexture(GU_PSM_8888,256,128,menuLabels);
         patch({0,0,128,16,0,0},ViewX+4,78);
 
     }
     if (flow.screen==Screen::GameMenu) {
-
-        if (russian()) {
+        if (EditorEntry054::available()) EditorEntry054::draw(flow.gameMenuChoice);
+        else if (Endless054::available()) Endless054::drawChoice(flow.endlessSelected);
+        if (!EditorEntry054::available() && !Endless054::available() && russian()) {
             setTexture(GU_PSM_8888,256,128,menuLabels);
             patch({0,84,154,14,0,0},ViewX+209,168);
             patch({0,102,154,14,0,0},ViewX+209,217);
         }
     }
     if (flow.screen==Screen::Title || flow.screen==Screen::Main || flow.screen==Screen::GameMenu) {
-        const auto tick=menuTick==UINT32_MAX ?
-            static_cast<unsigned>(sceKernelGetSystemTimeWide()*60/1000000) : menuTick;
-        drawTv(thoughts.menuFrame(tick));
+        drawMenuTv(menuTick);
     }
     if (flow.screen==Screen::Hole && !round.backrooms && isHorseCourse039(currentCourse))
         if (!finaleHole || !round.finale518.aftermath()) drawHorseMeter039(round.horse,round.totalTicks);
@@ -5332,15 +6639,20 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
             if (const auto* dogScene=dogSceneAt(currentCourse); dogScene && currentCourse!=CosmicSeventeenthCourse) drawDog(view,round,*dogScene);
             if (currentCourse==FrontierMineCourse && bindFrontierDogArt()) {
                 setFrontierTexture(frontierDogArt);
-                for (const auto& dog:round.mineDogs)
+                for (const auto& dog:round.mineDogs) {
                     sharedActor(view,frontierDogArt.patch(11),dog.body.center);
+                    ActorLabelDraw054::add(dog.label,view,dog.body.center,ActorPronouns054::Kind::Dog);
+                }
             }
             if (currentCourse==Elysian513Course) {
                 drawHorseTrails039(view,round.horse,elysianHazardTint040(currentCourse));
                 setTexture(GU_PSM_8888,256,128,dogArt.texture());
-                for (const auto& body:round.elysianTraffic.bodies)
-                    actor(view,dogArt.patch(11),body.center,view.worldScale()*32.768f/22,
+                for (unsigned i=0;i<std::size(round.elysianTraffic.bodies);++i) {
+                    const auto position=round.elysianTraffic.bodies[i].center;
+                    actor(view,dogArt.patch(11),position,view.worldScale()*32.768f/22,
                           elysianHazardTint040(currentCourse),true);
+                    ActorLabelDraw054::add(round.elysianTraffic.dogs[i].label,view,position,ActorPronouns054::Kind::Dog);
+                }
             }
             if (currentCourse==CarouselCourse) drawCarouselDecal(view,round.ticks);
             if (currentCourse==DenseCourse && coasterSprings.pixels()) {
@@ -5416,32 +6728,92 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
             if (currentCourse==CosmicTenthCourse) drawBaddieRun(view,round,round.cosmicSkulls);
             if (currentCourse>=CoasterCourse) drawChuckles(view,round);
         }
+        if (Endless054::isReplay()) {
+            EndlessModifierArt::drawGround(Endless054::modifiers);
+            Endless054::drawPanicTrails(view);
+            Endless054::drawDemon(view);
+        }
+        ActorLabelDraw054::flush();
         drawStageLights(view,round);
         if (currentCourse==CosmicSeventeenthCourse && !result) drawHurrahLights053(view,round);
         if (round.controls.aiming) {
             aimLine(view,round.game.position,round.controls.drag,
                     length(round.controls.drag)>=course.minDrag);
         }
-        setTexture(GU_PSM_8888,ActorsWidth,ActorsHeight,actors);
+        Costumes054::bindActorTexture();
         const uint32_t actorTint=finaleHole?finaleTint518(round):wizardBlind?GU_RGBA(105,105,105,255):
             round.parkScare.lightsOut?ParkScareTint:starstorm?starstormTint047(White):currentCourse==CosmicTwelfthCourse?CosmicShade611:
             usesMetronome048(currentCourse)?cosmicShade048(currentCourse):elysianHazardTint040(currentCourse);
         if (!round.game.won && !chillMode && currentCourse!=ChuckleCoasterCourse && currentCourse!=CosmicEighteenthCourse &&
             (cosmicHole || !hasUnskippableFrontierHole(currentCourse)) &&
             (!isHorseCourse039(currentCourse) || (hasHorseCourseGhost040(currentCourse) && !round.horse.flying()))) {
-            actor(view,visual.ghost,round.ghost.position,horseZoom,cosmicGhostTint048(round,0,actorTint),true);
-            for (unsigned i=0;i<round.extraGhostCount;++i)
-                actor(view,visual.ghost,round.extraGhosts[i].position,horseZoom,cosmicGhostTint048(round,i+1,actorTint),true);
+            Costumes054::drawActor(view,true,round.ghost.position,horseZoom,cosmicGhostTint048(round,0,actorTint));
+            ActorLabelDraw054::add(round.ghost.label,view,round.ghost.position,ActorPronouns054::Kind::Ghost);
+            for (unsigned i=0;i<round.extraGhostCount;++i) {
+                Costumes054::drawActor(view,true,round.extraGhosts[i].position,horseZoom,cosmicGhostTint048(round,i+1,actorTint));
+                ActorLabelDraw054::add(round.extraGhosts[i].label,view,round.extraGhosts[i].position,ActorPronouns054::Kind::Ghost);
+            }
+            if (ActorLabelDraw054::flush()) Costumes054::bindActorTexture();
         }
         if (!round.caught && (!finaleHole || round.finale518.phase!=FinalePhase518::Attract)) {
             const auto& activeJump=currentCourse==ChuckleCoasterCourse?round.ride.jump:round.jump;
-            actor(view,visual.cat,round.game.position,activeJump.scale/JumpRun::BaseScale*horseZoom,actorTint,true);
+            float renderScale=activeJump.scale/JumpRun::BaseScale*horseZoom;
+            if (round.attractDemo) renderScale*=round.demoScale;
+            if (round.endlessReplay || (round.campaignActive() && round.campaignMods.enabled(CampaignMods::Jumpy))) renderScale*=EndlessModifiers::jumpScale(round.bunkerJumpy);
+            Costumes054::drawActor(view,false,round.game.position,renderScale,
+                round.campaignActive() && round.campaignMods.parryFreeze?GU_RGBA(90,110,255,255):actorTint,
+                round.campaignActive()?round.campaignMods.rotation:0);
             if (round.pool.swimming) {
                 setTexture(GU_PSM_8888,256,64,poolAssets.sprites);
                 sharedActor(view,{0,0,29,29,-17,-16},round.game.position);
-                setTexture(GU_PSM_8888,ActorsWidth,ActorsHeight,actors);
+                Costumes054::bindActorTexture();
             }
         }
+        if (round.campaignActive() && round.campaignMods.any()) {
+            const auto& mods=round.campaignMods;
+            if (mods.enabled(CampaignMods::Buddy)) {
+                Costumes054::bindActorTexture();
+                if (mods.buddyAlive) Costumes054::drawActor(view,false,mods.buddyPosition,
+                    horseZoom*.484375f*std::min(mods.buddyTicks/60.f,1.f),actorTint);
+                else {
+                    static bool graveReady=false;
+                    if (!graveReady) {
+                        sceKernelDcacheWritebackRange(const_cast<uint32_t*>(CampaignModifierArt::GravePalette),sizeof CampaignModifierArt::GravePalette);
+                        sceKernelDcacheWritebackRange(const_cast<unsigned char*>(CampaignModifierArt::GravePixels),sizeof CampaignModifierArt::GravePixels);
+                        graveReady=true;
+                    }
+                    sceGuClutMode(GU_PSM_8888,0,255,0);sceGuClutLoad(32,CampaignModifierArt::GravePalette);
+                    setTexture(GU_PSM_T8,128,128,CampaignModifierArt::GravePixels);
+                    actor(view,{0,0,90,90,-45,-45},mods.buddyPosition,.25f*view.worldScale());
+                }
+            }
+            if (mods.enabled(CampaignMods::Panic)) {
+                Costumes054::bindActorTexture();
+                for (const auto& images:mods.trails) for (const auto& trail:images)
+                    if (const auto alpha=trail.opacity(mods.ticks))
+                        Costumes054::drawActor(view,true,trail.position,horseZoom,GU_RGBA(255,255,255,alpha));
+            }
+            if (mods.enabled(CampaignMods::Missiles) && EndlessModifierArt::loaded) {
+                EndlessModifierArt::bind();EndlessModifierArt::drawMissile(mods.missile,mods.ticks,view);
+            }
+            if (mods.wallBlast && EndlessModifierArt::loaded) {
+                EndlessModifierArt::bind();
+                EndlessModifierArt::sprite(EndlessModifierArt::explosion((mods.wallBlast-1)*25/60),
+                    view.position(round.game.position+Vec2{0,16}),208*view.worldScale(),224*view.worldScale());
+            }
+            if (mods.enabled(CampaignMods::Jumpy)) {
+                const auto at=view.position(round.game.position+Vec2{0,-24});
+                const float width=17*std::clamp(1-round.bunkerJumpy.charge/1024,0.f,1.f);
+                rectangle(at.x-width*.5f,at.y-1,width,2,GU_RGBA(255,133,55,255));
+            }
+            if (mods.enabled(CampaignMods::God)) {
+                const auto cursor=view.position(mods.cursor);
+                rectangle(cursor.x-5,cursor.y,11,1,GU_RGBA(255,255,90,255));
+                rectangle(cursor.x,cursor.y-5,1,11,GU_RGBA(255,255,90,255));
+            }
+        }
+        if (Endless054::isReplay()) EndlessModifierArt::drawWorld(
+            Endless054::modifiers,view,round.game.position,round.bunkerJumpy);
         if (!round.game.won) {
             if (!chillMode && currentCourse!=ChuckleCoasterCourse && currentCourse!=CosmicEighteenthCourse && (cosmicHole || !hasUnskippableFrontierHole(currentCourse)) &&
                 (!isHorseCourse039(currentCourse) || (hasHorseCourseGhost040(currentCourse) && !round.horse.flying()))) {
@@ -5459,6 +6831,7 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
                 GU_RGBA(230,207,255,255):actorTint;
             drawHorseObjects039(view,round.horse,actorTint,currentCourse!=Elysian513Course,horseTint);
         }
+        ActorLabelDraw054::flush();
         drawBubbles(view,round.ticks);
         drawRoundKeys(view,round);
         if (finaleHole) drawGoldenTee518(view,round);
@@ -5470,6 +6843,10 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
         drawNews(round);
         if (round.waterDead) drawSplash(view,round);
         if (currentCourse==PoolCourse) drawPoolSpeech(view,round);
+        if (avatarClicks058.speechCode && !round.attractDemo && !Endless054::isReplay())
+            AvatarSpeech058::draw(view,round.game.position,avatarSpeechLayout058);
+        if(flow.screen==Screen::EndlessHole&&Endless054::speech059.remaining)
+            AvatarSpeech058::draw(view,round.game.position,avatarIdleLayout059);
         if (currentCourse==CarouselCourse) drawCarouselLight(view,round.ticks);
         if (currentCourse>=ChuckleParkFirstCourse) drawParkBalloons(view,round);
         if (currentCourse==PursuitCourse) drawPursuitBalloons(view,round.ticks);
@@ -5484,9 +6861,10 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
         if (multiDogStage(currentCourse)) drawGoalFlag(round,0,0,0);
         if (currentCourse==MartCourse) drawMarcyHud(round);
         if (round.backrooms) {
-            if (const auto* field=backroomsBackdrop()) {
-                setTexture(GU_PSM_5650,512,512,field);
+            if (backroomsField057) {
+                setTexture(GU_PSM_5650,512,512,backroomsField057);
                 patch({0,0,272,Height,0,0},ViewX+136,0);
+                Backrooms057::draw();
             }
         }
         if (currentCourse==FrontierMazeCourse || currentCourse==FrontierDogCourse) drawFrontierShade0607(view);
@@ -5502,8 +6880,8 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
         if (currentCourse==TheWallCourse) drawWallLighting418(view,round);
         if (hidesElysianScoring(currentCourse)) drawElysianClouds501(round.ticks);
         if (currentCourse==CataclysmCourse) drawFrontierUfos417(view,round);
-        if (liveResultPrepared && round.game.won && authoredConfetti040())
-            drawLiveResultSprite(liveResultConfetti,0,commonResult?&view:nullptr,commonResult?horseZoom:1.0f);
+        if (demoConfetti || (liveResultPrepared && round.game.won && authoredConfetti040()))
+            drawLiveResultSprite(liveResultConfetti,0,(commonResult || demoConfetti)?&view:nullptr,(commonResult || demoConfetti)?horseZoom:1.0f);
         if (isHorseCourse039(currentCourse)) {
             const float coverage=round.horse.bounds/(256.0f*horseZoom);
             const unsigned cloudTick=round.horse.age+(liveResult && round.game.won?resultMs*60/1000:0);
@@ -5538,6 +6916,20 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
         else if (currentCourse>=FinalFrontierFirstCourse && currentCourse<TheWallCourse)
             drawSnow033(round.ticks,round.frontierWind.active?frontierSnowSeconds(round.ticks):-1.0f);
         if (!result && !hidesElysianScoring(currentCourse)) drawStageIntro(round.ticks);
+        if (!result && round.campaignActive() && round.campaignMods.any()) {
+            const auto& mods=round.campaignMods;
+            if (mods.enabled(CampaignMods::Telekinesis)) {
+                char fractional[48];std::snprintf(fractional,sizeof fractional,"%u.%u",round.game.strokes,unsigned(mods.tkFraction*10));
+                localeText(fractional,ViewX+7,248,.55f);
+                localeText(russian()?"Аналог: телекинез":"Analog: telekinesis",ViewX+140,258,.45f);
+            }
+            if (mods.enabled(CampaignMods::God) || mods.enabled(CampaignMods::Parry))
+                localeText(mods.enabled(CampaignMods::God)?
+                    (mods.enabled(CampaignMods::Parry)?(russian()?"Квадрат: телепорт / парирование":"Square: teleport / parry"):
+                        (russian()?"Квадрат: телепорт":"Square: teleport")):
+                    (russian()?"Квадрат: парирование":"Square: parry"),ViewX+140,249,.45f);
+            if (mods.parryFreeze) localeText(russian()?"ТЕХНИКА!":"TECH!",ViewX+150,28,.65f,GU_RGBA(100,150,255,255));
+        }
         if (wizardHole && !result) drawWizardSpell516(round.wizard);
         if (finaleHole) drawTeeFade518(round);
         if (starstorm && weatherReady) drawStarstorm047(round.ticks);
@@ -5548,7 +6940,8 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
         const float slide=round.game.won?liveResultSlide(resultMs):0;
         if (liveResultPrepared) {
             sceGuScissor(ViewX+GameplayView::HudWidth,0,ViewX+ViewWidth,Height);
-            if (!elysianOutOfBounds || (resultMs/200)%2==0) drawLiveResultSprite(liveResultLarge,slide);
+            if (!elysianOutOfBounds || (resultMs/200)%2==0)
+                drawLiveResultSprite(liveResultLarge,slide,nullptr,1,White,selectedCostumeScare && Costumes054::selected==VillaCostumes::Id::Rainbow);
             if (round.game.won) drawLiveResultSprite(liveResultClear,slide);
             sceGuScissor(0,0,Width,Height);
         }
@@ -5567,13 +6960,41 @@ void render(const Flow& flow,const Course& course,const Round& round,unsigned el
         if (currentCourse==CosmicSeventeenthCourse) drawHurrahHud053(round);
     }
     if (flow.screen==Screen::Hole) {
-        drawGiftIndicators(round.totalTicks*1000/60);
+        if (!round.attractDemo) WorldGift::indicators(round.totalTicks*1000/60);
         if (frontierNukeItems().count && !result) drawFrontierNukeExplosions(round);
         if (currentCourse==SlotMachineCourse) drawSlotScreenEffect(round.slots);
         if (currentCourse==LightsCourse && !result) drawParkAsh(round);
-        if (round.paused) drawPause(round);
+        if (!round.attractDemo) {
+            if (round.paused) drawPause(round);
+            else drawSkipHud(round);
+        }
+        if (!round.attractDemo && campaignOptions.peakHunter && !Endless054::isReplay() &&
+            progress.best[currentCourse].rank==5) PeakTrophy056::draw();
+        if (Endless054::isReplay()) {
+            Endless054::drawReplayEffects(course);
+            Endless054::drawHud();
+            EndlessModifierArt::drawHud(Endless054::modifiers);
+        }
+        else if (!round.attractDemo && currentCourse==TutorialCount+6 && progress.quest>=2 && !progress.golfKey &&
+                 progress.best[JumpCourse].rank==5 && !round.paused) {
+            localeText(round.bunkerJumpy.enabled?lang("□ Jumpy on","□ Прыжки вкл."):
+                       lang("□ Jumpy off","□ Прыжки выкл."),ViewX+68,246,.64f,Gold,true);
+        }
     }
-    endFrame();
+    if (round.attractDemo) {
+        const unsigned alpha=210+static_cast<unsigned>(45*(.5f+.5f*std::sin(elapsedMs*.005f)));
+        const auto tint=GU_RGBA(255,255,255,alpha);
+        localeText(lang("DEMO PLAY","ДЕМОИГРА"),272,15,1.05f,tint,true);
+        localeText(lang("Press × to return to the Title Screen","Нажмите ×, чтобы вернуться к заставке"),ViewX+272,256,.60f,tint,true);
+    }
+    if (menuScreen && !builderPresent.blocksInput() && !EditorLegacyGiftBlast::builderOwnsBuffers()) {
+        WorldGift::draw(elapsedMs);
+        if (worldSaveFailed) localeText(worldBuilderBlocked?lang("Present error. Triangle: retry","Ошибка подарка. △: повторить"):
+            lang("Could not save unlocks.","Не удалось сохранить награды."),272,262,.6f,Gold,true);
+        if (giftGeFailure) {running.store(false,std::memory_order_relaxed);return;}
+    }
+    ModifierHud061::present(modifierNow);
+    endFrame(menuScreen);
 }
 
 Vec2 aimInput(const SceCtrlData& pad) {
@@ -5583,10 +7004,31 @@ Vec2 aimInput(const SceCtrlData& pad) {
     return {(pad.Lx-128)/127.0f,(pad.Ly-128)/127.0f};
 }
 
+bool bunkerJumpyAvailable(const Round& round) {
+    return currentCourse==TutorialCount+6 && progress.quest>=2 &&
+           !progress.golfKey && progress.best[JumpCourse].rank==5 &&
+           !round.game.moving() && !round.caught && !round.game.won;
+}
+
+bool toggleBunkerJumpy(Round& round) {
+    if (round.campaignActive() && round.campaignMods.enabled(CampaignMods::Jumpy)) return false;
+    if (!bunkerJumpyAvailable(round)) return false;
+    const bool enable=!round.bunkerJumpy.enabled;
+    round.bunkerJumpy={};
+    if (round.game.strokes) round.bunkerJumpy.lastGroundPosition=round.game.position;
+    round.bunkerJumpy.enabled=enable;
+    audio.play(Sound::Select);
+    return true;
+}
+
 void persistProgress(SaveFile& save,const Round& round,const char* log) {
+    if(activeProfile>=Profiles::Count)return;
+    if (round.attractDemo || AttractRuntime::active()) return;
+    if (!avatarClicks058.flush()) logEvent(log,"avatar_click_save_error",round.game);
     progress.ticks=round.totalTicks;
+    if (!rememberSharedWorldProgress()) logEvent(log,"world_save_error",round.game);
     if (!save.write(progress)) logEvent(log,"save_error",round.game);
-    else xmbProfile.queue(activeProfile,profiles.entry(activeProfile),progress);
+    else if(activeProfile<Profiles::Count) xmbProfile.queue(activeProfile,profiles.entry(activeProfile),progress);
 }
 
 TerryEvent interactTerry(Round& round,SaveFile& save,const char* log) {
@@ -5606,12 +7048,14 @@ TerryEvent interactTerry(Round& round,SaveFile& save,const char* log) {
 }
 
 void recordCourseWin(unsigned index,Score score,unsigned clock,bool advance) {
+    if (AttractRuntime::active()) return;
     if (hidesElysianScoring(index)) {
         progress.best[index].rank=5;
         if (advance) progress.next=std::max(progress.next,static_cast<uint32_t>(index+1));
     } else {
         progress.record(index,score,clock,advance);
     }
+    queueCompletedWorldAwards(index,false);
 }
 
 void acceptGoldenTee045(const Course& course,Round& round,SaveFile& save,const char* log) {
@@ -5628,6 +7072,26 @@ Advance advanceCampaign(const char* executable,Course& course,Round& round,SaveF
     const Score score=scoreFor(course,round);
     const unsigned clock=round.ticks*5/3;
     const unsigned next=completed+1;
+    const unsigned resultTicks=round.ticks,resultBonus=round.coins.bonus;
+    const auto trace=[&](const char* phase) {
+        if (completed==SwitchCourse) parkTransitionTrace.record(phase,"3_03","3_04",score.rank,resultTicks,resultBonus);
+    };
+#ifdef UCG_FILE_PRESSURE_TEST
+    // Identical budget for the before/after binaries. The baseline has ten
+    // resident handles at victory; the fix must free resources, not raise it.
+    if (completed==SwitchCourse) {
+        parkTransitionTrace.record("test_file_quota","3_03","3_04",LoadIoAudit::snapshot().openCount,10,0);
+        LoadIoAudit::testOpenLimit(10);
+    }
+#endif
+#ifdef UCG_TILE_OPEN_FAULT_TEST
+    static bool tileFaultArmed=false;
+    if (completed==SwitchCourse && !tileFaultArmed) {
+        tileFaultArmed=true;
+        LoadIoAudit::testFailOpenOnce("park-tiles-3_04.pak",static_cast<int>(0x80010005u));
+    }
+#endif
+    trace("advance_begin");
     const bool firstUnlock=progress.next<next;
     if (completed==Elysian518Course) {
         if (skipping || !round.finale518.canEnterEnding()) return Advance::Failed;
@@ -5641,6 +7105,9 @@ Advance advanceCampaign(const char* executable,Course& course,Round& round,SaveF
     const auto completedWorld=worldCompletedAt(next);
     const bool clear=completedWorld!=CompletedWorld::None;
     if (skipping && cannotSkipCourse(completed)) return Advance::Failed;
+    // RESET/SKIP destroys the old LevelHUD in the PC version. Also cover world
+    // transitions which do not call enterCourse immediately.
+    audio.stop(Sound::Loss);
     if (completed==CosmicEighteenthCourse) {
         if (!round.game.won) return Advance::Failed;
         recordCourseWin(completed,score,clock,true);
@@ -5651,24 +7118,39 @@ Advance advanceCampaign(const char* executable,Course& course,Round& round,SaveF
         return Advance::CosmicEnding;
     }
     if (completed==CosmicSeventeenthCourse) stopLastHurrahSounds053();
+    const bool restoreMusic=skipping && round.backrooms;
     if (skipping) logEvent(log,"skip",round.game);
-    if (!clear && next<playableCourseCount && !enterCourse(executable,next,course,round)) {
-        logEvent(log,"course_load_error",round.game);
-        return loadCourseAt(executable,completed,course) ? Advance::Failed : Advance::Fatal;
+    if (!clear && next<playableCourseCount) {
+        trace("next_enter_begin");
+        if (!enterCourse(executable,next,course,round)) {
+            trace("next_enter_failed");
+            logEvent(log,"course_load_error",round.game);
+            trace("rollback_begin");
+            const bool restored=loadCourseAt(executable,completed,course);
+            trace(restored?"rollback_ready":"rollback_failed");
+            return restored ? Advance::Failed : Advance::Fatal;
+        }
+        trace("next_enter_ready");
+        if (completed==SwitchCourse) logLoadIoAudit(log);
     }
     if (skipping) {
         progress.next=std::max(progress.next,static_cast<uint32_t>(next));
+        queueCompletedWorldAwards(completed,true);
+        audio.stageCue(StageCue::None);
         audio.play(Sound::Skip);
     } else {
         recordCourseWin(completed,score,clock,true);
     }
+    trace("save_begin");
     persistProgress(save,round,log);
+    trace("save_end");
     if (clear) {
         if (completed==ChuckleCoasterCourse) {
             stopRideAudio033();
             audio.rideVolume(1,-80,-80);
         }
         worldResults.begin(completedWorld,playableCourseCount,firstUnlock);
+        rememberWorldResult(unsigned(completedWorld)-1);
         logEvent(log,"world_clear",round.game);
         return Advance::WorldCleared;
     }
@@ -5677,9 +7159,10 @@ Advance advanceCampaign(const char* executable,Course& course,Round& round,SaveF
         return Advance::EndOfBuild;
     }
     if (completed==HorseBroadcastCourse) audio.stop(Sound::HorseAlarm);
-    if (completed==HorseBroadcastCourse || courseMusic(completed)!=courseMusic(next)) startCourseMusic(next);
+    if (restoreMusic || completed==HorseBroadcastCourse || courseMusic(completed)!=courseMusic(next)) startCourseMusic(next);
     logEvent(log,"advance",round.game);
     logEvent(log,"hole",round.game);
+    trace("advance_ready");
     return Advance::NextHole;
 }
 
@@ -5698,6 +7181,10 @@ bool dumpFrame(const char* executable,const char* name) {
 #include "focused019.hpp"
 #elif defined(UCG_TEST_038_FRONTIER)
 #include "focused038.hpp"
+#elif defined(UCG_TEST_ENDLESS)
+#include "focused_endless.hpp"
+#elif defined(UCG_TEST_054)
+#include "focused054.hpp"
 #elif defined(UCG_TEST_053)
 #include "focused053.hpp"
 #elif defined(UCG_TEST_052)
@@ -6494,25 +7981,53 @@ bool dumpFrame(const char* executable,const char* name) {
 } // namespace
 
 int main(int argc,char** argv) {
+    if(HomeExit067::install()<0){sceKernelExitGame();return 1;}
     const char* executable=argc>0?argv[0]:nullptr;
+    if (ReleasePaths::disc(executable?executable:"")) {
+        sceIoMkdir("ms0:/PSP",0777);
+        sceIoMkdir("ms0:/PSP/GAME",0777);
+        sceIoMkdir("ms0:/PSP/GAME/UCG054",0777);
+    }
+    const bool storageConfigured=ucg_storage::configure(executable?executable:"EBOOT.PBP");
+    const bool editorReturning=EditorEntry054::isReturn(argc,argv);
 #ifdef UCG_DISC_BUILD
     sceIoMkdir("ms0:/PSP",0777);
     sceIoMkdir("ms0:/PSP/UCG053-ISO",0777);
     organizedAssets=true;
 #else
     SceIoStat dataDirectory{};
-    organizedAssets=sceIoGetstat(companion(executable,"data").c_str(),&dataDirectory)>=0 &&
-                    FIO_S_ISDIR(dataDirectory.st_mode);
+    organizedAssets=ReleasePaths::disc(executable?executable:"") ||
+                    (sceIoGetstat(companion(executable,"data").c_str(),&dataDirectory)>=0 &&
+                     FIO_S_ISDIR(dataDirectory.st_mode));
 #endif
     const std::string log=statePath(executable,"session.log");
+    parkTransitionTrace.setPath(log.c_str());
     logMemory(log.c_str(),"bootstrap",0,"w");
+    if(auto*out=std::fopen(log.c_str(),"a")){
+        std::fprintf(out,"build=054RC2 event=asset_route argv=%s root=%s organized=%u storage=%u\n",
+                     executable?executable:"(null)",ReleasePaths::assetDirectory(executable).c_str(),
+                     organizedAssets,storageConfigured);
+        std::fclose(out);
+    }
+    logMemory(log.c_str(),"content_r18",0);
+    logMemory(log.c_str(),"villa_cursor_ui",0);
+    logMemory(log.c_str(),"park_stage_vram",0);
+    logMemory(log.c_str(),"park_bounded_io",0);
+    logMemory(log.c_str(),"park_transition_probe",0);
+    logMemory(log.c_str(),"park_load_io_audit",0);
+    logMemory(log.c_str(),"loss_audio_probe",0);
+    logMemory(log.c_str(),"loss_preparation_fix",0);
+    logMemory(log.c_str(),"retry_save_fix",0);
+    logMemory(log.c_str(),"level_bounds_fix",0);
+    logMemory(log.c_str(),"park_motion_vram_fix",0);
     logMemory(log.c_str(),"release_fix_1",0);
     logMemory(log.c_str(),"release_fix_2",0);
     logMemory(log.c_str(),"release_fix_4",0);
     logMemory(log.c_str(),"selector_back_save_icon",0);
+    logMemory(log.c_str(),"stock_skip_hud",0);
 #ifndef UCG_VISUAL_TEST
     uint64_t splashStart=0;
-    if (showBootSplash()) {
+    if (!editorReturning && showBootSplash()) {
         sceDisplayWaitVblankStart();
         splashStart=sceKernelGetSystemTimeWide();
         logMemory(log.c_str(),"boot_splash_ready",0);
@@ -6520,11 +8035,17 @@ int main(int argc,char** argv) {
 #endif
     const LanguageFile config(statePath(executable,"language.cfg"));
     const BackgroundFile backgroundFile(statePath(executable,"background.cfg"));
-#ifdef UCG_DISC_BUILD
+    const StartupSettings::File startupFile(statePath(executable,"startup.cfg"));
+    const PhoneSettings054::Files phoneSettings(statePath(executable,"phone-settings.cfg"),
+        statePath(executable,"editor-settings.json"),statePath(executable,"language.cfg"));
+    bool phoneSettingsRetry=false;
+    const auto startupBoot=phoneSettings.boot(startupFile,statePath(executable,"background.cfg"),editorReturning,phoneSettingsRetry);
+    StartupSettings::Values startupValues=startupBoot.values;
+    const bool startupNeeded=startupBoot.needed;
+    StartupEditorBus::loadAll(statePath(executable,"editor-settings.json"),gameSettings);
+    gameSettings.master=startupValues.master;gameSettings.music=startupValues.music;gameSettings.sounds=startupValues.sounds;
+    shotSettings={static_cast<float>(gameSettings.sensitivity),gameSettings.invert,gameSettings.buffer};
     const std::string audioPack=assetPath(executable,"audio.uca");
-#else
-    const std::string audioPack=assetPath(executable,"audio.pak");
-#endif
     const std::string slotAudioPack=assetPath(executable,"slots-audio.pak");
     const std::string parkAudioPack=assetPath(executable,"park-audio.pak");
     const std::string thoughtsPack=assetPath(executable,"thoughts.pak");
@@ -6536,15 +8057,37 @@ int main(int argc,char** argv) {
     const std::string labelsPack=assetPath(executable,"menu-labels.bin");
     const std::string selectPack=assetPath(executable,"level-select.pak");
     const std::string selectDetailsPack=assetPath(executable,"selector-details.bin");
-    const std::string selectorTransitionPack=assetPath(executable,"selector-transition.pak");
     const std::string selectorGoPack=assetPath(executable,"selector-go.pak");
     const std::string profilesPack=assetPath(executable,"profiles-art.pak");
     const std::string giftsPack=assetPath(executable,"selector-gifts.bin");
-    const std::string giftBlastPack=assetPath(executable,"selector-gift-explosion.bin");
+    const std::string giftBlastPack=assetPath(executable,"editor-legacy-gift-blast.bin");
     const GiftFile giftFile(statePath(executable,"gifts.cfg"));
     gifts.load(giftFile);
+    Villa054::path=assetPath(executable,"villa-scenes-054.pak");
+    Villa054::setPointerPaths(executable);
+    Costumes054::setPaths(executable);
+    Backrooms057::path=assetPath(executable,"backrooms-clean057.bin");
+    Club054::setPaths(executable);
+    Phone054::setPaths(executable);
     menuScrollPack=assetPath(executable,"menu-scroll.pak");
     profiles=Profiles(statePath(executable,""));
+    avatarClicks058.root=statePath(executable,"");
+    AvatarIdle059::cosmetic.state=sceKernelGetSystemTimeLow();
+    avatarIdleLayout059=AvatarSpeech058::prepare(4,0);AvatarSpeech058::publish();TvCaption059::publish();
+    profileDeleteArt.open(assetPath(executable,"profile-delete.ucpd"));
+    profileDeleteReady=[](unsigned) {return !xmbProfile.busy();};
+    profileDeleteCompleted=[](unsigned slot) {xmbProfile.forget(slot);avatarClicks058.forget(slot);};
+    profiles.refresh();
+    ArtistCopycat::root=statePath(executable,"");
+    Endless054::init(executable);
+    EditorEntry054::init(executable,editorReturning,true);
+    initWorldState(executable,giftFile);
+    initWorldBuilder(executable);
+    if (builderPresent.pending()) {
+        builderPresent.setSlot(worldData().pendingCount ? worldData().pendingCount-1 : 0);
+        if (editorReturning && argc>3) builderPresent.restoreReturnAge(argv[3]);
+    }
+    WorldGift::bind(assetPath(executable,"world-gifts.bin").c_str(),readWorldGiftData,openWorldGift);
     cosmicTitlePath046=assetPath(executable,"selector-046-titles.pak");
     cosmicTitlePath047=assetPath(executable,"selector-047-titles.pak");
     cosmicTitlePath048=assetPath(executable,"selector-048-titles.pak");
@@ -6563,20 +8106,33 @@ int main(int argc,char** argv) {
 #else
     SaveFile save(statePath(executable,"progress.sav"));
 #endif
-    const int cb=sceKernelCreateThread("ucg-callback",callbackThread,0x11,0x1000,0,nullptr);
-    if (cb>=0) sceKernelStartThread(cb,0,nullptr);
+    if (editorReturning) EditorEntry054::restoreProfile(argc,argv,save);
+    ArtistCopycat::diagnostics=log;
+    const bool artistReturnProfile=editorReturning && argc>2 && argv[2] &&
+        std::to_string(activeProfile)==argv[2] && profiles.entry(activeProfile).found;
+    ArtistCopycat::setProfile(artistReturnProfile?activeProfile:ArtistGlobal::NoProfile);
+    avatarClicks058.bind(activeProfile<Profiles::Count && profiles.entry(activeProfile).found?activeProfile:Profiles::None);
+    Club054::questSave=&save;
     sceCtrlSetSamplingCycle(0);
     sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
 
     Course course{};
-    const Language savedLanguage=config.read();
+    const Language savedLanguage=startupValues.language;
+    ucg_storage::diagnostic::begin();
     const bool actorsReady=actorAtlas.open(assetPath(executable,"actors.pak").c_str(),CourseCount);
+    const auto actorStorageFailure=ucg_storage::diagnostic::first;
+    ucg_storage::diagnostic::end();
     const bool flagsReady=goalFlags.open(assetPath(executable,"goal-flags.pak").c_str(),2*CourseCount);
     const char* localizedError="localized course/media";
     const bool localizedAssets=actorsReady && flagsReady &&
         (loadLocalizedAssets(executable,course,savedLanguage,&localizedError) ||
          (savedLanguage==Language::Russian && loadLocalizedAssets(executable,course,Language::English,&localizedError)));
     const char* failedAsset=nullptr;
+#ifdef UCG_VICTORY_PROBE
+    const char* audioStartupLog=log.c_str();
+#else
+    const char* audioStartupLog=nullptr;
+#endif
     int logOpenResult=0;
     const auto checkAsset=[&](bool ok,const char* asset) {
         if (ok) return true;
@@ -6594,6 +8150,7 @@ int main(int argc,char** argv) {
     };
     if (!checkAsset(actorsReady,"actors.pak") || !checkAsset(flagsReady,"goal-flags.pak") ||
         !checkAsset(localizedAssets,localizedError) ||
+        !checkAsset(CostumeScares056::open(executable),"costume-scares056.bin") ||
         !checkAsset(!clips.hasLiveResults() || liveResultArt.open(assetPath(executable,"results-native.ucr"),123,ResultScratchBytes),
                     "results-native.ucr") ||
         !checkAsset(!clips.hasCommonResults() || commonResultArt.open(assetPath(executable,"results-win.ucr"),62,ResultScratchBytes),
@@ -6601,6 +8158,7 @@ int main(int argc,char** argv) {
         !checkAsset(parkArt.open(assetPath(executable,"park-art.pak").c_str(),
                                  assetPath(executable,"park-stage.pak").c_str()),"park art and stage") ||
         !checkAsset(thoughts.open(thoughtsPack.c_str()),"thoughts.pak") ||
+        !checkAsset(menuTv.load(thoughts),"menu TV frame cache") ||
         !checkAsset(glowstickArt.open(glowstickPack.c_str()),"glowstick.pak") ||
         !checkAsset(loadBaddies(assetPath(executable,"baddies.pak").c_str()),"baddies.pak") ||
         !checkAsset(stopTokens.open(stopPack.c_str()),"stop-tokens.pak") ||
@@ -6610,9 +8168,8 @@ int main(int argc,char** argv) {
         !checkAsset(newsArt.open(assetPath(executable,"news.pak").c_str()),"news.pak") ||
         !checkAsset(loadLocaleFont(fontPack.c_str()),"locale-font.bin") ||
         !checkAsset(loadUiTexture(labelsPack.c_str(),menuLabels,sizeof menuLabels),"menu-labels.bin") ||
-        !checkAsset(loadUiTexture(settingsPack.c_str(),settingsWidgets,sizeof settingsWidgets),"settings-widgets.bin") ||
+        !checkAsset(loadUiTexture(settingsPack.c_str(),settingsWidgets,sizeof settingsWidgets,256*(256-SettingsAtlasRows)*4),"settings-widgets.bin") ||
         !checkAsset(levelSelectArt.open(selectPack.c_str()),"level-select.pak") ||
-        !checkAsset(selectorTransitionArt.open(selectorTransitionPack.c_str()),"selector-transition.pak") ||
         !checkAsset(levelSelectArt.openGo(selectorGoPack.c_str()),"selector-go.pak") ||
         !checkAsset(loadUiTexture(selectDetailsPack.c_str(),selectorDetails,sizeof selectorDetails),"selector-details.bin") ||
         !checkAsset(loadUiTexture(assetPath(executable,"selector-park-titles.bin").c_str(),
@@ -6653,8 +8210,10 @@ int main(int argc,char** argv) {
         !checkAsset(finaleTitles045.load(assetPath(executable,"selector-045-titles.pak")) &&
                     finaleTitles045.size()==Selector045Count,"selector-045-titles.pak") ||
         !checkAsset(openFinaleAssets045(executable),"ending-045") ||
+        !checkAsset(CreditsCostume057::open(executable),"ending-costume057") ||
         !checkAsset(cosmicWorldTitles046.open(assetPath(executable,"selector-046-world.ucr"),SelectorWorld046Count,ResultScratchBytes),
                     "selector-046-world.ucr") ||
+        !checkAsset(cacheCosmicWorldTitle046(russian()),"Cosmic world title") ||
         !checkAsset(openCosmicAssets046(executable),"cosmic-046") ||
         !checkAsset(openCosmicAssets048(executable),"cosmic-048") ||
         !checkAsset(openCosmicAssets049(executable),"cosmic-049") ||
@@ -6693,7 +8252,7 @@ int main(int argc,char** argv) {
                                   bartGiftPixels,sizeof bartGiftPixels),"bart-gift-033.bin") ||
         !checkAsset(loadUiTexture(assetPath(executable,"selector-gift-burst.bin").c_str(),
                                   burstGiftPixels,sizeof burstGiftPixels),"selector-gift-burst.bin") ||
-        !checkAsset(GiftArt::load(giftBlastPack.c_str(),giftBlast[0],GiftArt::ExplosionRows,SelectorGifts::BlastPages),"selector-gift-explosion.bin") ||
+        !checkAsset(EditorLegacyGiftBlast::load(giftBlastPack.c_str()),"editor-legacy-gift-blast.bin") ||
         !checkAsset(menuButtonArt.open(menuScrollPack.c_str()),"menu-scroll.pak") ||
         !checkAsset(loadDecorations(decorationsPack.c_str()),"decorations.pak") ||
         !checkAsset(PauseArt::load(assetPath(executable,"pause-menu.bin").c_str()),"pause-menu.bin") ||
@@ -6703,11 +8262,15 @@ int main(int argc,char** argv) {
         (CourseCount>SlotMachineCourse &&
          !checkAsset(slotArt.open(assetPath(executable,"slots.pak")),"slots.pak")) ||
         !checkAsset(audio.open(audioPack.c_str(),slotAudioPack.c_str(),parkAudioPack.c_str(),
-                               assetPath(executable,"park-timer-3_11.pcm").c_str()),
+                               assetPath(executable,"park-timer-3_11.pcm").c_str(),audioStartupLog),
                     "audio.pak / slots-audio.pak / park-audio.pak") ||
         !checkAsset(loadBackground(backgroundFile),"backgrounds")) {
         pspDebugScreenInit();
-        pspDebugScreenPrintf("Build 040 startup error.\nAsset: %s\n",failedAsset);
+        pspDebugScreenPrintf("RC2 startup error.\nAsset: %s\n",failedAsset);
+        if(!actorsReady){
+            pspDebugScreenPrintf("Arg: %s\nLayout:%u Storage:%u\n",executable?executable:"(null)",organizedAssets,storageConfigured);
+            if(actorStorageFailure.phase)pspDebugScreenPrintf("VFS: %s err=%d %u/%u\n",actorStorageFailure.phase,actorStorageFailure.code,unsigned(actorStorageFailure.got),unsigned(actorStorageFailure.wanted));
+        }
         if (const auto* reason=audio.failure()) pspDebugScreenPrintf("Audio: %s\n",reason);
         if (logOpenResult<0) pspDebugScreenPrintf("Log open: 0x%08X\n",static_cast<unsigned>(logOpenResult));
         pspDebugScreenPrintf("TRIANGLE to exit.");
@@ -6735,7 +8298,11 @@ int main(int argc,char** argv) {
     logEvent(log.c_str(),russian()?"language_loaded_ru":"language_loaded_en",round.game);
     logBackground(log.c_str(),"background_loaded");
 #ifdef UCG_VISUAL_TEST
-#if defined(UCG_TEST_053)
+#if defined(UCG_TEST_ENDLESS)
+    const bool pass=runFocusedEndless(executable,course,save,config,log.c_str());
+#elif defined(UCG_TEST_054)
+    const bool pass=runFocused054(executable,course,save,config,log.c_str());
+#elif defined(UCG_TEST_053)
     const bool pass=runFocused053(executable,course,save,config,log.c_str());
 #elif defined(UCG_TEST_052)
     const bool pass=runFocused052(executable,course,save,config,log.c_str());
@@ -6836,6 +8403,7 @@ int main(int argc,char** argv) {
 #endif
     logEvent(log.c_str(),pass?"visual_test_pass":"visual_test_fail",round.game);
     audio.stop();
+    EditorLegacyGiftBlast::close(false);
     sceGuTerm();
     sceKernelExitGame();
     return pass?0:2;
@@ -6849,9 +8417,30 @@ int main(int argc,char** argv) {
             std::fclose(file);
         }
     }
+    Costumes054::restore(false);
+    applySharedWorldProgress();
     canSwim=earnedSwim045();
     menuCourse=resumeCourse();
-    audio.play(Sound::Startup);
+    if (editorReturning) {
+        flow.screen=Screen::GameMenu;
+        flow.gameMenuChoice=EditorEntry054::available()?2:0;
+        flow.endlessSelected=false;
+        audio.music(Sound::Menu);
+        if (auto* out=std::fopen(log.c_str(),"a")) {
+            std::fprintf(out,"build=053 event=editor_return_game_menu profile=%u choice=%u\n",activeProfile,flow.gameMenuChoice);
+            std::fclose(out);
+        }
+    }
+    clips.resetTitleTiming();
+    if (!phoneSettingsRetry) startupValues.language=language;
+    previewSharedSettings(gameSettings);
+    if (startupNeeded) {
+        flow.screen=Screen::StartIntro;
+        StartupIntro::begin(startupValues,assetPath(executable,"startup-intro.bin").c_str());
+        if (phoneSettingsRetry && StartupIntro::artReady) StartupIntro::state.error=StartupIntro::Error::Save;
+        audio.music(static_cast<Sound>(278));
+        logEvent(log.c_str(),"intro_begin",round.game);
+    } else if (!editorReturning) audio.play(Sound::Startup);
     render(flow,course,round,0);
     bool frameReady=true;
     bool waitRelease=false,settingsFromPause=false;
@@ -6862,27 +8451,173 @@ int main(int argc,char** argv) {
     const uint64_t menuStart=last;
     uint64_t resultStart=0;
     EndingClock045 endingClock;
+    unsigned titleLayersRead=0;
     const auto titlePath=assetPath(executable,"title.bin");
     const auto loadTitle=[&] {
         if (titleArt || titlePath.empty()) return;
         constexpr unsigned offset=FrontierLightVramOffset;
         static_assert(offset+MenuScroll::TitleBytes<=2*1024*1024);
         titleReusedCourseVram=true;
-        if (!loadVramRaw045(titlePath,offset,MenuScroll::TitleBytes)) {
+        marcySpillArt.unload();
+        marcyHudArt.unload();
+        marcyTextArt.unload();
+        // Title layers overwrite the Villa button's borrowed VRAM range.
+        // Keep its unlock state; only the resident pixels need to be reloaded.
+        Villa054::buttonReady=false;
+        const auto started=sceKernelGetSystemTimeLow();
+        const bool loaded=loadVramRaw045(titlePath,offset,MenuScroll::TitleBytes);
+        titleLayersRead=sceKernelGetSystemTimeLow()-started;
+        if (!loaded) {
             logEvent(log.c_str(),"title_layers_unavailable",round.game);
             return;
         }
         titleArt=vram045(offset);
     };
-    loadTitle();
-    audio.primeMusic(Sound::Menu);
+    const auto prepareTitleStart=[&]() {
+        audio.primeMusic(Sound::Menu);
+        if (!editorReturning) {
+            audio.prime(Sound::TitleHit);
+            audio.prime(Sound::TitleImpact);
+            audio.prime(Sound::TitleCheer);
+            loadTitle();
+        }
+        if (titleArt) {
+            constexpr unsigned cardBytes=LevelSelectArt::VictoryWorkspaceBytes;
+            clips.prepareTitleIntro({{{levelSelectArt.cardWorkspace(0),cardBytes},
+                                      {levelSelectArt.cardWorkspace(1),cardBytes},
+                                      {levelSelectArt.panelWorkspace(),LevelSelectArt::PanelBytes}}},2400);
+        }
+    };
+    if (!startupNeeded) prepareTitleStart();
+    if (menuStreaming.start(prepareMainMenuArt)) {
+        if (titleArt) preloadMainMenu();
+    } else logEvent(log.c_str(),"menu_stream_unavailable",round.game);
+    if (auto* out=std::fopen(log.c_str(),"a")) {
+        std::fprintf(out,"build=053 event=menu_tv_cache frames=%u\n",menuTv.cachedFrames());
+        std::fclose(out);
+    }
     bool titleImpact=false, resultHit=false, resultRank=false;
+    uint64_t titleMenuRequested=0;
+    unsigned titleMenuWait=0,titleMenuArtTime=0;
+    bool titleMenuReport=false,titleMenuError=false;
+    static MenuInputProbe menuProbe;
+    bool mapAsyncErrorLogged=false,profileMapFirstFrame=false;
+    uint64_t lastMenuInput=last;
+    unsigned xmbReserveStart=0,xmbReserveMin=0,xmbMusicUnderruns=0;
+    unsigned xmbInputStart=0,xmbInputReads=0;
+    bool mapXmbCompleted=false;
+    const auto updateXmb=[&](bool allowStart) {
+        const bool busy=xmbProfile.busy();
+        const auto started=busy?sceKernelGetSystemTimeLow():0;
+        const unsigned reserve=audio.menuMusicReserve();
+        const auto& sample=audio.timing(AudioProbePhase::Map);
+        if (!busy && allowStart && xmbProfile.waiting()) {
+            xmbReserveStart=xmbReserveMin=reserve;
+            xmbInputStart=audio.xmbMusicInputBytes();
+            xmbInputReads=audio.xmbMusicDiskReads();
+            xmbMusicUnderruns=sample.underruns.load();
+        }
+        xmbProfile.update(allowStart,log.c_str(),round.game);
+        if (busy) {
+            menuProbe.xmbUpdate(sceKernelGetSystemTimeLow()-started);
+            xmbReserveMin=std::min(xmbReserveMin,reserve);
+            if (!xmbProfile.busy() && flow.screen==Screen::LevelSelect) {
+                xmbMusicUnderruns=sample.underruns.load()-xmbMusicUnderruns;
+                xmbInputReads=audio.xmbMusicDiskReads()-xmbInputReads;
+                mapXmbCompleted=true;
+            }
+        }
+    };
+    const auto flushMenu=[&] {
+        menuProbe.flush(log.c_str());
+        if (titleMenuReport || worldTravelCount) {
+            if (auto* out=std::fopen(log.c_str(),"a")) {
+                if (titleMenuReport) {
+                    std::fprintf(out,"build=053 event=main_menu_prefetch worker_us=%u wait_us=%u ready=%u\n",
+                                 titleMenuArtTime,titleMenuWait,static_cast<unsigned>(!titleMenuError));
+                    titleMenuReport=false;
+                }
+                for (unsigned i=0;i<worldTravelCount;++i) {
+                    const auto& sample=worldTravelSamples[i];
+                    std::fprintf(out,"build=053 event=map_world from=%u to=%u wait_us=%u resident=1 ready_on_press=%u animation_on_press=%u xmb=%u\n",
+                                 sample.from,sample.to,sample.wait,static_cast<unsigned>(sample.readyOnPress),
+                                 static_cast<unsigned>(sample.animatingOnPress),static_cast<unsigned>(sample.duringXmb));
+                }
+                worldTravelCount=0;
+                std::fclose(out);
+            }
+        }
+        XmbProfile::Timing savedata{};
+        if (xmbProfile.takeTiming(savedata)) {
+            if (auto* file=std::fopen(log.c_str(),"a")) {
+                std::fprintf(file,"build=053 event=xmb_profile_timing total_us=%u calls=%u call_max_us=%u result=%d\n",
+                             savedata.elapsed,savedata.calls,savedata.callMax,savedata.result);
+                if (mapXmbCompleted) {
+                    std::fprintf(file,"build=053 event=map_xmb_music start_frames=%u min_frames=%u music_underruns=%u cached_input_bytes=%u music_disk_reads=%u\n",
+                                 xmbReserveStart,xmbReserveMin,xmbMusicUnderruns,xmbInputStart,xmbInputReads);
+                    mapXmbCompleted=false;
+                }
+                std::fclose(file);
+            }
+        }
+    };
+    unsigned measuredCity=CourseCount,cityDiskStart=0;
+    uint64_t cityMeasureStart=0;
+    const auto reportCityField=[&] {
+        if (measuredCity==CourseCount) return;
+        if (auto* file=std::fopen(log.c_str(),"a")) {
+            const unsigned level=measuredCity-GlowstickFirstCourse;
+            std::fprintf(file,"build=053 event=city_field_timing course=%s cached=%u disk_frames=%u\n",
+                         CourseIds[measuredCity],glowstickArt.textureStride(level,0)==GlowstickArt::RushHourWidth,
+                         glowstickArt.diskFrames()-cityDiskStart);
+            std::fclose(file);
+        }
+        measuredCity=CourseCount;
+    };
 #ifdef UCG_VICTORY_PROBE
-    uint64_t victoryProbeStart=0,titleProbeStart=0;
-    unsigned titleRenderMax=0;
+    uint64_t victoryProbeStart=0,titleProbeStart=0,mapAudioStart=0;
+    bool mapAudioReported=false;
+    const auto mapEffectName=[](unsigned id) {
+        switch (static_cast<Sound>(id)) {
+        case Sound::Select: return "select";
+        case Sound::Back: return "back";
+        case Sound::Join: return "join";
+        case Sound::GiftAward: return "gift_award";
+        case Sound::GiftFly: return "gift_fly";
+        case Sound::GiftBlast: return "gift_blast";
+        default: return "other";
+        }
+    };
+    const auto reportMapAudio=[&](uint64_t now) {
+        const auto& sample=audio.timing(AudioProbePhase::Map);
+        if (auto* file=std::fopen(log.c_str(),"a")) {
+            std::fprintf(file,"build=053 event=map_audio duration_ms=%u blocks=%u music_priming=%u music_underruns=%u effect_underruns=%u audio_late=%u gap_max_us=%u read_max_us=%u read_errors=%u output_error=%d\n",
+                         static_cast<unsigned>((now-mapAudioStart)/1000),sample.blocks.load(),sample.priming.load(),
+                         sample.underruns.load(),sample.effectUnderruns.load(),sample.late.load(),sample.gapMax.load(),
+                         sample.readMax.load(),sample.readErrors.load(),sample.outputError.load());
+            const unsigned minimum=sample.musicBufferMin.load();
+            std::fprintf(file,"build=053 event=map_music_buffer min_frames=%u reserve_frames=%u music_io_max_us=%u music_work_max_us=%u\n",
+                         minimum==UINT32_MAX?0:minimum,audio.menuMusicReserve(),sample.musicIoMax.load(),sample.musicWorkMax.load());
+            for (unsigned id=0;id<SoundCount;++id) {
+                const unsigned starts=sample.effectStarted[id].load(std::memory_order_relaxed);
+                const unsigned missing=sample.effectMissing[id].load(std::memory_order_relaxed);
+                if (!starts && !missing) continue;
+                const auto sound=static_cast<Sound>(id);
+                std::fprintf(file,"build=053 event=map_sfx id=%u name=%s starts=%u missing_blocks=%u resident_frames=%u total_frames=%u\n",
+                             id,mapEffectName(id),starts,missing,audio.residentFrames(sound),audio.totalFrames(sound));
+            }
+            std::fclose(file);
+        }
+        mapAudioReported=true;
+    };
+    unsigned titleRenderMax=0,titleCachedBytes=0,titlePrimedFrames=0;
     unsigned victoryProbeCourse=0,victoryFrames=0,victoryRenderMax=0;
+    struct VictoryPerf {
+        unsigned presented=0,lastPresent=0,presentGapMax=0,stepMax=0,rankFillMax=0;
+    } victoryPerf;
     const auto finishVictoryProbe=[&](uint64_t now) {
         if (!victoryProbeStart) return;
+        flushPlayEvents(log.c_str());
         audio.probe(AudioProbePhase::Off);
         const auto& sample=audio.timing(AudioProbePhase::Victory);
         if (auto* file=std::fopen(log.c_str(),"a")) {
@@ -6892,8 +8627,28 @@ int main(int argc,char** argv) {
                          sample.mixMax.load(),sample.gapMax.load(),sample.late.load(),sample.underruns.load(),
                          sample.effectUnderruns.load(),sample.readErrors.load(),sample.outputError.load());
             std::fprintf(file,"build=053 event=victory_assets course=%s confetti_cached=%u result_us=%u tv_us=%u ge_wait_us=%u\n",
-                         CourseIds[victoryProbeCourse],static_cast<unsigned>(commonResultArt.hasPreloadedFrames()),
+                         CourseIds[victoryProbeCourse],static_cast<unsigned>(commonResultArt.hasPreloadedFrames() &&
+                            !clips.count(resultClip(true)) && isCommonWinClip040(static_cast<unsigned>(resultClip(true))) &&
+                            !isPilotResultClip040(static_cast<unsigned>(resultClip(true))) && authoredConfetti040()),
                          victoryRenderSample.resultMax,victoryRenderSample.tvMax,victoryRenderSample.geMax);
+            std::fprintf(file,"build=053 event=rank_art prefetched=%u streamed=%u\n",
+                         ranks.prefetchedFrames(),ranks.streamedFrames());
+            std::fprintf(file,"build=053 event=victory_perf presented=%u worst_present_gap_us=%u step_max_us=%u rank_fill_max_us=%u missing_effect_plus_one=%u\n",
+                         victoryPerf.presented,victoryPerf.presentGapMax,victoryPerf.stepMax,victoryPerf.rankFillMax,
+                         sample.lastMissingEffect.load());
+            constexpr unsigned bang=static_cast<unsigned>(Sound::ResultsBang);
+            std::fprintf(file,"build=053 event=victory_bang_audio starts=%u missing_blocks=%u completed=%u resident_frames=%u total_frames=%u\n",
+                         sample.effectStarted[bang].load(),sample.effectMissing[bang].load(),
+                         static_cast<unsigned>(sample.resultsBangFinished.load()),
+                         audio.residentFrames(Sound::ResultsBang),audio.totalFrames(Sound::ResultsBang));
+            for (unsigned id=static_cast<unsigned>(Sound::RankUncanny);id<=static_cast<unsigned>(Sound::RankPeak);++id) {
+                const auto starts=sample.effectStarted[id].load();
+                const auto missing=sample.effectMissing[id].load();
+                if (starts || missing)
+                    std::fprintf(file,"build=053 event=victory_rank_audio id=%u starts=%u missing_blocks=%u buffered_pages=%u completed=%u\n",
+                                 id,starts,missing,sample.rankPagePeak.load(),
+                                 (sample.rankFinished.load()>>(id-static_cast<unsigned>(Sound::RankUncanny)))&1u);
+            }
             std::fprintf(file,"build=053 event=victory_audio_io music_calls=%u effect_calls=%u music_io_max_us=%u effect_io_max_us=%u music_work_max_us=%u effect_work_max_us=%u music_io_total_us=%u effect_io_total_us=%u\n",
                          sample.musicIoCalls.load(),sample.effectIoCalls.load(),sample.musicIoMax.load(),
                          sample.effectIoMax.load(),sample.musicWorkMax.load(),sample.effectWorkMax.load(),
@@ -6903,53 +8658,213 @@ int main(int argc,char** argv) {
         victoryProbeStart=0;
         victoryRenderSample.active=false;
     };
+    LossProbe::Recorder lossProbe;
+    bool lossGameplayFrameReady=false;
+    const unsigned lossResidentFrames=audio.residentFrames(Sound::Loss);
+    const unsigned lossTotalFrames=audio.totalFrames(Sound::Loss);
+    const auto finishLossProbe=[&](LossProbe::EndReason reason) __attribute__((noinline)) {
+        if (!lossProbe.active()) return;
+        lossProbe.sample(audio.endLossProbe());
+        lossProbe.finish(sceKernelGetSystemTimeLow(),reason);
+        lossGameplayFrameReady=false;
+        audio.probe(AudioProbePhase::Off);
+    };
 #endif
 
+    Attract::Timer titleIdle;
+    uint64_t titleIdleAccumulator=0,attractAccumulator=0;
+    bool attractWasTitle=false;
+    const auto returnFromAttract=[&](uint64_t) {
+        AttractRuntime::leave(course,round);
+        flow.screen=Screen::Title;
+        titleMenuPending=menuButtonDown=false;pressedMenu=Screen::Loading;
+        titleImpact=false;resultStart=0;accumulator=0;attractAccumulator=0;
+        titleIdle={};titleIdleAccumulator=0;attractWasTitle=true;
+        clips.resetTitleTiming();loadTitle();
+        prepareTitleStart();clips.finishTitleIntro();
+        phaseStart=last=sceKernelGetSystemTimeWide();
+        audio.setTitleAudio(true);audio.music(Sound::Menu);audio.play(Sound::TitleHit);
+        audio.prime(Sound::TitleImpact);audio.prime(Sound::TitleCheer);
+    };
+
+    phaseProfilePath066=statePath(executable,"frame-profile066.log");
+    uint32_t profileFrameStart066=sceKernelGetSystemTimeLow(),profileStepUs066=0;
     while (running.load(std::memory_order_relaxed) && !flow.quit) {
+        const bool profileActive066=flow.screen==Screen::Hole&&!round.paused&&!round.caught&&!round.game.won;
+        const bool profileFlush066=phaseProfile066.setActive(profileActive066);
+        if(!profileActive066){if(profileFlush066)flushPhaseProfile066();profileStepUs066=0;profileFrameStart066=sceKernelGetSystemTimeLow();}
         sceDisplayWaitVblankStart();
         if (frameReady) {
             screenDrawBuffer=sceGuSwapBuffers();
+            builderPresent.presented();
+            worldGiftPresented();
             frameReady=false;
+            menuProbe.presented(sceKernelGetSystemTimeWide());
+#ifdef UCG_VICTORY_PROBE
+            if (lossGameplayFrameReady) {
+                lossProbe.gameplayFrame(sceKernelGetSystemTimeLow());
+                lossGameplayFrameReady=false;
+            }
+            if (victoryProbeStart) {
+                const unsigned present=sceKernelGetSystemTimeLow();
+                if (victoryPerf.presented)
+                    victoryPerf.presentGapMax=std::max(victoryPerf.presentGapMax,present-victoryPerf.lastPresent);
+                victoryPerf.lastPresent=present;
+                ++victoryPerf.presented;
+            }
+#endif
         }
-        const uint64_t now=sceKernelGetSystemTimeWide();
+        uint64_t now=sceKernelGetSystemTimeWide();
         const uint64_t delta=std::min<uint64_t>(now-last,100000);
         last=now;
         SceCtrlData pad{};
         sceCtrlPeekBufferPositive(&pad,1);
-        const uint32_t pressed=pad.Buttons&~lastButtons;
-        const uint32_t released=lastButtons&~pad.Buttons;
+        uint32_t pressed=pad.Buttons&~lastButtons;
+        uint32_t released=lastButtons&~pad.Buttons;
         lastButtons=pad.Buttons;
+        // Dedicated DEMO dispatch precedes every builder/gift/profile/Hole input
+        // and persistence path. Controller input can only leave this context.
+        if (flow.screen==Screen::AttractDemo) {
+            if (pressed&(PSP_CTRL_CROSS|PSP_CTRL_CIRCLE|PSP_CTRL_START)) {
+                returnFromAttract(now);
+                continue;
+            }
+            attractAccumulator+=delta*60;
+            bool good=true;
+            while (attractAccumulator>=1000000) {
+                attractAccumulator-=1000000;
+                if (!AttractRuntime::step(executable,course,round)) {good=false;break;}
+            }
+            if (!good) {returnFromAttract(now);continue;}
+            if (now-lastRender>=32000) {
+                render(flow,course,round,static_cast<unsigned>((now-phaseStart)/1000),
+                       AttractRuntime::levelTicks*5/3,round.totalTicks*5/3,AttractRuntime::resultMs(round));
+                frameReady=true;lastRender=now;
+            }
+            continue;
+        }
+        // Optional L+Cross maps a deliberate near-avatar click. Raw edges above
+        // remain physical; the latch consumes Cross through its physical release.
+        if (avatarSpeechCourse058!=currentCourse) {
+            avatarSpeechCourse058=currentCourse;avatarClicks058.clearSpeech();
+        }
+        if (flow.screen!=Screen::Hole && !(flow.screen==Screen::Settings && settingsFromPause))
+            avatarClicks058.clearSpeech();
+        if (flow.screen==Screen::Hole && !round.paused) avatarClicks058.tick(static_cast<unsigned>(delta));
+        const AvatarClicks058::Context avatarContext058{
+            flow.screen==Screen::Hole,
+            activeProfile<Profiles::Count && avatarClicks058.slot==activeProfile,
+            round.paused,round.caught,round.game.won,waitRelease,
+            round.attractDemo,Endless054::isReplay(),round.horse.flying(),
+            round.wall418.bedActive || round.horseBroadcast.active() ||
+                (currentCourse==Elysian518Course && round.finale518.phase!=FinalePhase518::Hunt),
+            bool(pad.Buttons&(PSP_CTRL_RTRIGGER|PSP_CTRL_START|PSP_CTRL_TRIANGLE|PSP_CTRL_SQUARE|PSP_CTRL_CIRCLE|PSP_CTRL_SELECT))};
+        const auto avatarInput058=avatarClicks058.input(pad.Buttons&PSP_CTRL_CROSS,
+            pressed&PSP_CTRL_CROSS,pad.Buttons&PSP_CTRL_LTRIGGER,avatarContext058.eligible());
+        if (avatarInput058.clicked) round.controls.cancel(true);
+        if (avatarInput058.consume) {
+            pad.Buttons&=~PSP_CTRL_CROSS;pressed&=~PSP_CTRL_CROSS;released&=~PSP_CTRL_CROSS;
+        }
+        const bool attractTitle=flow.screen==Screen::Title;
+        if (!attractTitle || !attractWasTitle) {titleIdle={};titleIdleAccumulator=0;}
+        attractWasTitle=attractTitle;
+        if (attractTitle && !(pressed&PSP_CTRL_CROSS) && !titleMenuPending && !builderPresent.blocksInput() && !xmbProfile.busy()) {
+            titleIdleAccumulator+=delta*60;
+            bool startDemo=false;
+            while (titleIdleAccumulator>=1000000) {
+                titleIdleAccumulator-=1000000;
+                if (titleIdle.tick(900)) {startDemo=true;break;}
+            }
+            if (startDemo) {
+                if (AttractRuntime::begin(executable,course,round)) {
+                    flow.screen=Screen::AttractDemo;phaseStart=now;
+                    attractAccumulator=0;accumulator=0;last=sceKernelGetSystemTimeWide();
+                } else returnFromAttract(now);
+                continue;
+            }
+        }
+        if (!builderPresent.error().empty() && (pressed&PSP_CTRL_CROSS)) builderPresent.retry();
+        const bool builderTurn=worldBuilderHasTurn();
+        if (builderTurn && builderPresent.pending() && !builderPresent.blocksInput())
+            builderPresent.setSlot(worldData().pendingCount ? worldData().pendingCount-1 : 0);
+        const auto builderTick=builderTurn ? builderPresent.update(flow.screen,(pressed&PSP_CTRL_CROSS)!=0,now) : EditorBuilderMain::Update{};
+        const bool builderRetryMenu=flow.screen==Screen::Main || flow.screen==Screen::GameMenu || flow.screen==Screen::LevelSelect;
+        const bool builderRetry=builderRetryMenu && worldBuilderBlocked && (pressed&PSP_CTRL_TRIANGLE);
+        rememberOpenedWorldBuilder(builderRetry);
+        if (builderRetry) {pressed&=~PSP_CTRL_TRIANGLE;released&=~PSP_CTRL_TRIANGLE;}
+        builderPresent.filterInput(builderTick,pressed,released,pad);
+        menuProbe.observe(now,flow.screen,pressed,released,xmbProfile.busy());
+        if (pad.Buttons || pressed || released) lastMenuInput=now;
+        if (measuredCity!=CourseCount && (flow.screen!=Screen::Hole || currentCourse!=measuredCity ||
+            now-cityMeasureStart>=3000000)) reportCityField();
+        const bool skipHeld=(pad.Buttons&PSP_CTRL_SELECT)!=0;
+        if (!skipHeld) round.clearSkip();
         const bool keyboardActive=profileKeyboard.active();
         const bool menuIdle=!pad.Buttons && !pressed && !released && now-phaseStart>=1000000 &&
             (flow.screen==Screen::LevelSelect || flow.screen==Screen::ProfileSelect ||
              flow.screen==Screen::Main || flow.screen==Screen::GameMenu);
         const unsigned oskMode=hardwareProbe.osk30?1:0;
 #ifdef UCG_VICTORY_PROBE
+        if (lossProbe.active()) {
+            if (flow.screen!=Screen::Hole || currentCourse!=CoasterCourse)
+                finishLossProbe(LossProbe::EndReason::Menu);
+            else if (lossProbe.retrySettled(sceKernelGetSystemTimeLow()))
+                finishLossProbe(LossProbe::EndReason::RetrySettled);
+            else {
+                lossProbe.sample(audio.lossSnapshot());
+            }
+        }
         if (victoryProbeStart && (currentCourse!=victoryProbeCourse || flow.screen!=Screen::Hole ||
-                                  !round.game.won || now-victoryProbeStart>=5000000))
+                                  !round.game.won || now-victoryProbeStart>=10000000))
             finishVictoryProbe(now);
         if (titleProbeStart && (flow.screen!=Screen::Title || now-titleProbeStart>=5000000)) {
             audio.probe(AudioProbePhase::Off);
             const auto& sample=audio.timing(AudioProbePhase::Title);
             if (auto* file=std::fopen(log.c_str(),"a")) {
-                std::fprintf(file,"build=053 event=title_profile duration_ms=%u render_max_us=%u audio_blocks=%u music_priming=%u music_underruns=%u effect_underruns=%u audio_read_max_us=%u\n",
+                std::fprintf(file,"build=053 event=title_profile duration_ms=%u render_max_us=%u audio_blocks=%u music_priming=%u music_underruns=%u effect_underruns=%u audio_read_max_us=%u intro_cached_bytes=%u primed_frames=%u last_missing_effect_plus_one=%u\n",
                              static_cast<unsigned>((now-titleProbeStart)/1000),titleRenderMax,
                              sample.blocks.load(),sample.priming.load(),sample.underruns.load(),
-                             sample.effectUnderruns.load(),sample.readMax.load());
+                             sample.effectUnderruns.load(),sample.readMax.load(),titleCachedBytes,titlePrimedFrames,
+                             sample.lastMissingEffect.load());
+                const auto& t=clips.titleTiming();
+                std::fprintf(file,"build=053 event=title_asset_timing layers_us=%u prefetch_calls=%u prefetch_total_us=%u prefetch_max_us=%u read_calls=%u read_total_us=%u read_max_us=%u cache_hits=%u decode_calls=%u decode_total_us=%u decode_max_us=%u\n",
+                             titleLayersRead,t.prefetchCalls,t.prefetchTotal,t.prefetchMax,t.reads,t.readTotal,
+                             t.readMax,t.hits,t.decodes,t.decodeTotal,t.decodeMax);
                 std::fclose(file);
+                clips.resetTitleTiming();
             }
             titleProbeStart=0;
         }
+        if (flow.screen==Screen::LevelSelect && !mapAudioStart) {
+            audio.resetTiming(AudioProbePhase::Map);
+            mapAudioStart=now;
+            mapAudioReported=false;
+        }
+        if (flow.screen!=Screen::LevelSelect && mapAudioStart) {
+            audio.probe(AudioProbePhase::Off);
+            reportMapAudio(now);
+            mapAudioStart=0;
+        }
         audio.probe(titleProbeStart?AudioProbePhase::Title:victoryProbeStart?AudioProbePhase::Victory:
+                    lossProbe.active()?AudioProbePhase::Off:
+                    mapAudioStart?AudioProbePhase::Map:
                     keyboardActive?(oskMode?AudioProbePhase::Osk30:AudioProbePhase::Osk60):
                     flow.screen==Screen::ProfileCreate?AudioProbePhase::Profile:AudioProbePhase::Off);
+        audio.armLossTiming(flow.screen==Screen::Hole && currentCourse==CoasterCourse);
+        if (mapAudioStart && (!mapAudioReported || worldTravelCount || mapXmbCompleted) && now-mapAudioStart>=2500000 &&
+            menuIdle && now-lastMenuInput>=1000000 && !pendingWorldDirection &&
+            !selectorTravelling(static_cast<unsigned>((now-phaseStart)/1000)) && !xmbProfile.busy())
+            reportMapAudio(now);
 #endif
         if (keyboardActive) {
             if (!oskMode || now-lastRender>=32000) {
                 const unsigned renderStart=sceKernelGetSystemTimeLow();
+                menuProbe.renderBegin(flow.screen);
                 render(flow,course,round,static_cast<unsigned>((now-phaseStart)/1000));
+                if (builderPresent.graphicsFailed() || giftGeFailure) break;
                 const unsigned oskStart=sceKernelGetSystemTimeLow();
                 profileKeyboard.draw(oskMode+1);
+                menuProbe.renderEnd();
                 hardwareProbe.renderMax[oskMode]=std::max(hardwareProbe.renderMax[oskMode],oskStart-renderStart);
                 hardwareProbe.oskMax[oskMode]=std::max(hardwareProbe.oskMax[oskMode],sceKernelGetSystemTimeLow()-oskStart);
                 frameReady=true;
@@ -6970,18 +8885,89 @@ int main(int argc,char** argv) {
 #endif
 
         if (xmbProfile.busy()) {
+            const unsigned elapsedMs=static_cast<unsigned>((now-phaseStart)/1000);
+            if (flow.screen==Screen::LevelSelect && !worldGiftActive() &&
+                WorldState::nextPresent(readWorldGiftData())<0 && !builderPresent.blocksInput()) {
+                const auto triggers=pressed&(PSP_CTRL_LTRIGGER|PSP_CTRL_RTRIGGER);
+                if ((triggers || pendingWorldDirection) && moveLevelSelection(triggers,elapsedMs,now,false,true))
+                    audio.play(Sound::Select);
+            }
             if (now-lastRender>=32000) {
-                render(flow,course,round,static_cast<unsigned>((now-phaseStart)/1000),
+                menuProbe.renderBegin(flow.screen);
+                render(flow,course,round,elapsedMs,
                        0,0,0,UINT32_MAX,static_cast<unsigned>((now-menuStart)/1000%MenuScroll::PeriodMs));
+                if (builderPresent.graphicsFailed() || giftGeFailure) break;
                 frameReady=true;
+                menuProbe.renderEnd();
                 lastRender=now;
             }
-            xmbProfile.update(false,log.c_str(),round.game);
+            updateXmb(false);
             continue;
         }
-        xmbProfile.update(menuIdle,log.c_str(),round.game);
+        const bool mapStreaming=flow.screen==Screen::LevelSelect &&
+            (pendingWorldDirection || selectorTravelling(static_cast<unsigned>((now-phaseStart)/1000)));
+        const bool xmbWantsIo=menuIdle && !mapStreaming && !profileMapPending && !profileDeleteMode && !profileDeletePrompt.shown && !worldGiftActive() &&
+                              WorldState::nextPresent(readWorldGiftData())<0 && !builderPresent.blocksInput() && xmbProfile.waiting() &&
+                              now-lastMenuInput>=1000000;
+        updateXmb(audio.tryBeginXmbMusic(xmbWantsIo && !levelSelectArt.prefetchInFlight()));
+        if (xmbProfile.busy()) continue;
+        if (menuIdle && now-lastMenuInput>=1000000 && !xmbWantsIo) {
+            flushPlayEvents(log.c_str());
+            flushMenu();
+        }
 
         const Screen before=flow.screen;
+        if (before==Screen::StartIntro) {
+            const auto action=StartupIntro::state.accept(pad.Buttons!=0)?
+                StartupIntro::state.input(pressed&PSP_CTRL_UP,pressed&PSP_CTRL_DOWN,
+                    pressed&PSP_CTRL_LEFT,pressed&PSP_CTRL_RIGHT,pressed&PSP_CTRL_CROSS,static_cast<unsigned>(delta/1000)):
+                StartupIntro::Action::None;
+            auto& values=StartupIntro::state.values;
+            audio.userBusVolumes(values.master,values.music,values.sounds);
+            if (action==StartupIntro::Action::Beep) audio.play(static_cast<Sound>(357));
+            if (action==StartupIntro::Action::Start) {
+                StartupIntro::state.error=StartupIntro::Error::None;
+                if (!StartupIntro::prepare(assetPath(executable,"startup-intro.bin").c_str())) StartupIntro::state.error=StartupIntro::Error::Assets;
+                else {
+                    const bool liveCall=phoneIntroActive;
+                    const bool replay=liveCall || phoneSettingsRetry;
+                    const bool committed=replay ? finishPhoneIntro(flow,executable,course,phoneSettings,values) :
+                        StartupCommit::complete(startupFile,statePath(executable,"editor-settings.json"),values,
+                            [&](Language selected) {
+                                StartupIntro::leave();
+                                return loadLocalizedAssets(executable,course,selected);
+                            },[&](Language selected) {return config.write(selected);},StartupIntro::state.error);
+                    if (committed) {
+                        startupValues=values;
+                        phaseStart=now;accumulator=0;waitRelease=true;
+                        if (liveCall) {
+                            logEvent(log.c_str(),"phone_cracktro_return",round.game);
+                        } else {
+                            if (!replay) {
+                                gameSettings.master=values.master;gameSettings.music=values.music;gameSettings.sounds=values.sounds;
+                                previewSharedSettings(gameSettings);
+                            }
+                            phoneSettingsRetry=false;
+                            flow.screen=Screen::Loading;
+                            clips.resetTitleTiming();
+                            audio.muteMusic();audio.play(Sound::Startup);
+                            prepareTitleStart();
+                            if (titleArt) preloadMainMenu();
+                            logEvent(log.c_str(),"intro_saved",round.game);
+                        }
+                    } else if (!StartupIntro::artReady) {
+                        // A failed save or locale load may have replaced the intro's borrowed VRAM.
+                        const auto error=StartupIntro::state.error;
+                        if (StartupIntro::prepare(assetPath(executable,"startup-intro.bin").c_str()))
+                            StartupIntro::state.error=error;
+                    }
+                }
+            }
+            render(flow,course,round,static_cast<unsigned>((now-phaseStart)/1000));
+            frameReady=true;lastRender=now;
+            continue;
+        }
+        levelSelectArt.pollPrefetch();
         if (round.paused && (before==Screen::Hole || settingsFromPause))
             round.tvPausedTicks=static_cast<unsigned>((now-tvPauseStart)*60/1000000);
         unsigned elapsedMs=static_cast<unsigned>((now-phaseStart)/1000);
@@ -7000,6 +8986,26 @@ int main(int argc,char** argv) {
                 titleImpact=true;
                 audio.play(Sound::TitleImpact);
                 audio.play(Sound::TitleCheer);
+            }
+        }
+        if (before==Screen::Title && menuStreaming.available() && titleArt) {
+            using ArtState=MenuStreaming::ArtState;
+            const auto state=menuStreaming.artStatus();
+            if (state==ArtState::Idle) preloadMainMenu();
+            if (confirm && !titleMenuPending) {
+                titleMenuPending=true;
+                titleMenuRequested=now;
+            }
+            const bool ready=state==ArtState::Ready || state==ArtState::Failed;
+            confirm=titleMenuPending && ready;
+            if (confirm) {
+                titleMenuWait=static_cast<unsigned>(now-titleMenuRequested);
+                titleMenuArtTime=menuStreaming.artTime();
+                titleMenuError=state==ArtState::Failed;
+                if (!titleMenuError)
+                    clips.adoptMenu(2*static_cast<unsigned>(russian()),mainMenuLayers,mainMenuForeground);
+                titleMenuReport=true;
+                titleMenuPending=false;
             }
         }
         if (before==Screen::Hole && round.wall418.bedActive &&
@@ -7035,7 +9041,9 @@ int main(int argc,char** argv) {
               (round.finale518.phase==FinalePhase518::Defeat || round.finale518.phase==FinalePhase518::Attract));
         const bool pauseInput=canPause && !round.horse.flying() && (round.paused || (pressed&PSP_CTRL_START));
         const auto togglePause=[&]() {
+            round.clearSkip();
             round.togglePause();
+            round.controls.cancel(pad.Buttons&PSP_CTRL_CROSS);
             if (round.paused) tvPauseStart=now;
             pauseStart=now;
             waitRelease=true;
@@ -7044,6 +9052,9 @@ int main(int argc,char** argv) {
             logEvent(log.c_str(),round.paused?"pause":"resume",round.game);
         };
         if (pauseInput) {
+#ifdef UCG_VICTORY_PROBE
+            finishLossProbe(LossProbe::EndReason::Manual);
+#endif
             using Choice=PauseMenuState::Choice;
             if (!round.paused || (pressed&(PSP_CTRL_START|PSP_CTRL_CIRCLE))) {
                 togglePause();
@@ -7054,23 +9065,31 @@ int main(int argc,char** argv) {
                 logEvent(log.c_str(),round.cleanPause?"pause_clean":"pause_overlay",round.game);
             } else {
                 const auto previous=round.pauseMenu.choice;
-                const auto choice=round.pauseMenu.update(pressed,released,round.cleanPause);
+                const auto choice=round.pauseMenu.update(pressed,released,round.cleanPause,campaignPeakAvailable());
                 if (round.pauseMenu.choice!=previous) audio.play(Sound::Select);
                 switch (choice) {
                 case Choice::Resume: togglePause(); break;
                 case Choice::Settings: settingsFromPause=true; flow.screen=Screen::Settings; break;
                 case Choice::LevelSelect: flow.screen=Screen::LevelSelect; break;
                 case Choice::Main: flow.screen=Screen::Main; break;
+                case Choice::PeakHunter:
+                    // PThru.peak_hunter is static session state in the original.
+                    campaignOptions.peakHunter=!campaignOptions.peakHunter;
+                    audio.play(Sound::Select);
+                    break;
                 case Choice::None: break;
                 }
             }
             if (round.paused) round.pauseMenu.elapsedMs=static_cast<unsigned>((now-pauseStart)/1000);
             confirm=false;
         }
-        const bool giftBlocked=before==Screen::LevelSelect &&
-            gifts.update(giftFile,now,confirm || (pressed&PSP_CTRL_CIRCLE));
-        if (before==Screen::LevelSelect && !giftBlocked)
-            confirm=updateLevelSelector(pressed,released,pad.Buttons,elapsedMs);
+        const bool giftMenu=before==Screen::LevelSelect || before==Screen::Main || before==Screen::GameMenu;
+        const bool giftBlocked=builderTick.consumeInput || (giftMenu && !worldBuilderBlocked &&
+            !EditorLegacyGiftBlast::builderOwnsBuffers() &&
+            WorldGift::update(now,(pressed&(PSP_CTRL_CROSS|PSP_CTRL_CIRCLE))!=0,
+                                  (pad.Buttons&(PSP_CTRL_CROSS|PSP_CTRL_CIRCLE))!=0));
+        if (before==Screen::LevelSelect && !giftBlocked && !(pressed&PSP_CTRL_CIRCLE))
+            confirm=updateLevelSelector(pressed,released,pad.Buttons,elapsedMs,now,!xmbWantsIo);
         if (before==Screen::WorldResults) {
             const auto update=worldResults.update(elapsedMs,pressed&PSP_CTRL_START,
                                                   pressed&PSP_CTRL_LEFT,pressed&PSP_CTRL_RIGHT,
@@ -7086,22 +9105,119 @@ int main(int argc,char** argv) {
             }
         }
         if (before==Screen::ProfileSelect || before==Screen::ProfileCreate) {
-            updateProfiles(flow,pressed,save,log.c_str(),round.game);
+            updateProfiles(flow,pressed,log.c_str(),round.game,save,pad.Buttons);
+            if (profileMapPending) {
+                const unsigned world=profileMapWorld(profileMapSlot);
+                const bool ready=levelSelectArt.prefetch(world,world,russian());
+                if (ready) {
+                    finishProfileMap(flow,save);
+                    profileMapFirstFrame=true;
+                    logEvent(log.c_str(),"profile_loaded",round.game);
+                    if (auto* out=std::fopen(log.c_str(),"a")) {
+                        std::fprintf(out,"build=053 event=map_open wait_us=%u loading_frame=%u prefetch_bytes=%u prefetch_calls=%u\n",
+                                     static_cast<unsigned>(sceKernelGetSystemTimeWide()-profileMapStarted),
+                                     static_cast<unsigned>(profileMapShown),levelSelectArt.prefetchReads().bytes,
+                                     levelSelectArt.prefetchReads().calls);
+                        std::fclose(out);
+                    }
+                } else if (levelSelectArt.prefetchFailed()) {
+                    profileMapPending=false;
+                    profileError=true;
+                    logEvent(log.c_str(),"map_prefetch_error",round.game);
+                }
+            } else if (flow.screen==Screen::ProfileSelect && !xmbWantsIo) prefetchProfileMap();
+            if (const char* step=levelSelectArt.prefetchErrorStep(); step && !mapAsyncErrorLogged) {
+                if (auto* out=std::fopen(log.c_str(),"a")) {
+                    std::fprintf(out,"build=053 event=map_async_fallback step=%s code=0x%08x\n",
+                                 step,static_cast<unsigned>(levelSelectArt.prefetchError()));
+                    std::fclose(out);
+                    mapAsyncErrorLogged=true;
+                }
+            }
             if (flow.screen==Screen::LevelSelect)
-                xmbProfile.queue(activeProfile,profiles.entry(activeProfile),progress);
+                if(activeProfile<Profiles::Count) xmbProfile.queue(activeProfile,profiles.entry(activeProfile),progress);
         }
         if (before==Screen::Settings) {
             updateSettings(flow,pressed,executable,course,config,backgroundFile,log.c_str(),round.game);
-            if (settingsFromPause && ((pressed&PSP_CTRL_CIRCLE) || flow.screen==Screen::Main)) {
+            if (localizedReloadRequired || (settingsFromPause && !courseResourcesValid)) {
+                const bool hadSelectedRound=settingsFromPause;
+                settingsFromPause=false;
+                round.paused=false;
+                selectBackground(backgroundBeforeSettings);
+                previewSharedSettings(gameSettings);
+                if (hadSelectedRound) openLevelSelect(flow,currentCourse);
+                else flow.screen=Screen::Main;
+                audio.stageCue(StageCue::None);
+                audio.music(Sound::Menu);
+                logEvent(log.c_str(),"settings_assets_recovered_to_map",round.game);
+            } else if (settingsFromPause && ((pressed&PSP_CTRL_CIRCLE) || flow.screen==Screen::Main)) {
                 flow.screen=Screen::Hole;
                 settingsFromPause=false;
                 pauseStart=now-round.pauseMenu.elapsedMs*1000ull;
             }
         }
+        if (before==Screen::Loading) clips.fillTitleIntro();
+        if (before==Screen::Meowls) Meowls::step(flow,aimInput(pad),pressed,delta,log.c_str());
+        if (before==Screen::MeowlsFilm) Meowls::stepFilm(flow,pressed,static_cast<unsigned>(delta/1000),log.c_str());
+        if (before==Screen::Dash) Dash054::step(flow,aimInput(pad),pad.Buttons,pressed,released,delta,log.c_str());
+        if (before==Screen::Bort) Bort054::step(flow,aimInput(pad),pad.Buttons,pressed,released,delta,log.c_str());
+        if (before==Screen::SoundTest) SoundTest054::step(flow,aimInput(pad),pad.Buttons,pressed,released,delta,log.c_str());
+        if (before==Screen::Phone) Phone054::step(flow,pressed,phoneSceneClock.take(delta),[&](Phone054::Action action) {
+            handlePhoneAction(action,flow,executable);
+            if (action==Phone054::Action::Cracktro) waitRelease=true;
+            const char* event=action==Phone054::Action::Cheater?(Phone054::saveFailed?"phone_cheater_save_failed":"phone_cheater_awarded"):
+                action==Phone054::Action::Cracktro?"phone_cracktro_open":
+                action==Phone054::Action::Pronouns?(ActorPronouns054::session.enabled?"phone_pronouns_on":"phone_pronouns_off"):"phone_delayed_quit";
+            logEvent(log.c_str(),event,round.game);
+        });
+        if (before==Screen::Club) Club054::step(flow,aimInput(pad),pad.Buttons,pressed,clubSceneClock.take(delta));
+        if (before==Screen::Villa) Villa054::stepVilla(flow,aimInput(pad),pad.Buttons,pressed,released,static_cast<unsigned>(delta/1000));
+        if (before==Screen::VillaChecklist) Villa054::stepChecklist(flow,aimInput(pad),pad.Buttons,pressed,released,static_cast<unsigned>(delta/1000));
+        if (before==Screen::CatArtist)
+            CatArtist::step(flow,aimInput(pad),pad.Buttons,pressed,static_cast<unsigned>(delta/1000),log.c_str());
+        Endless054::step(flow,executable,course,round,save,log.c_str(),aimInput(pad),
+                         pad.Buttons,pressed,delta,now);
         if (flow.screen==before && !giftBlocked && !pauseInput) flow.update(elapsedMs,confirm && before!=Screen::WorldResults,pressed&PSP_CTRL_CIRCLE && before!=Screen::WorldResults && !(before==Screen::Hole && (round.wall418.bedActive || round.horseBroadcast.active() || round.horse.flying())),
-                    !menuButtonDown && (pressed&PSP_CTRL_UP),!menuButtonDown && (pressed&PSP_CTRL_DOWN));
+                    !menuButtonDown && (pressed&PSP_CTRL_UP),!menuButtonDown && (pressed&PSP_CTRL_DOWN),
+                    false,Villa054::available(),Endless054::available(),EditorEntry054::available());
+        if (before==Screen::GameMenu && flow.screen==before && !giftBlocked && !pauseInput &&
+            flow.gameMenuChoice==2 && confirm && !(pressed&PSP_CTRL_CIRCLE)) {
+            if (EditorEntry054::request(activeProfile,log.c_str())) {audio.play(Sound::Select);flow.quit=true;}
+            else audio.play(Sound::Cancel);
+        }
         if (flow.screen!=before) {
-            if (before==Screen::LevelSelect) selectorTransitionArt.closeStream();
+            if (before==Screen::Hole || before==Screen::Settings) {
+                round.controls.cancel(pad.Buttons&PSP_CTRL_CROSS);
+                if (before==Screen::Settings) waitRelease=true;
+            }
+            if (before==Screen::GameMenu) EditorEntry054::close();
+            if(before==Screen::Hole && flow.screen!=Screen::Settings) {
+                if (!avatarClicks058.flush()) logEvent(log.c_str(),"avatar_click_save_error",round.game);
+                avatarClicks058.clearSpeech();
+                audio.stop(Sound::Loss);
+                if(currentCourse==CoasterCourse) stopCoasterLocalSounds();
+            }
+#ifdef UCG_VICTORY_PROBE
+            if (before==Screen::Hole) finishLossProbe(LossProbe::EndReason::Menu);
+#endif
+            if (before==Screen::ProfileSelect && flow.screen!=Screen::LevelSelect) levelSelectArt.cancelPrefetch();
+            if (before==Screen::Title) {
+                clips.clearTitleIntro();
+                menuStreaming.clearArtResult();
+                audio.setTitleAudio(false);
+            }
+            if (before==Screen::LevelSelect) {
+                pendingWorldDirection=0;
+                levelSelectArt.cancelPrefetch();
+#ifdef UCG_VICTORY_PROBE
+                // End the map sample before playing the leave/join cue or loading a hole.
+                if (mapAudioStart) {
+                    audio.probe(AudioProbePhase::Off);
+                    reportMapAudio(now);
+                    mapAudioStart=0;
+                }
+#endif
+            }
             if (before==Screen::Hole && flow.screen!=Screen::Settings && currentCourse==CosmicFifthCourse) {
                 audio.stageCue(StageCue::None);
                 audio.rideVolume(1,-80,-80);
@@ -7117,22 +9233,119 @@ int main(int argc,char** argv) {
             menuButtonDown=false;
             phaseStart=now;
             accumulator=0;
-            if (pressed&PSP_CTRL_CIRCLE) audio.play(Sound::Back);
-            else if (before!=Screen::Loading) audio.play(Sound::Select);
+            if ((pressed&PSP_CTRL_CIRCLE) ||
+                ((before==Screen::Villa || before==Screen::VillaChecklist) &&
+                 (released&PSP_CTRL_CROSS) && Villa054::pointer.hover==Villa054::BackTarget)) audio.play(Sound::Back);
+            else if (before!=Screen::Loading && flow.screen!=Screen::CatArtist) audio.play(Sound::Select);
             if (before==Screen::Hole && flow.screen!=Screen::Hole && currentCourse==CosmicSeventeenthCourse) stopLastHurrahSounds053();
             if (before==Screen::Hole && flow.screen!=Screen::Hole && usesRingTimers(currentCourse))
                 audio.stopRingTimers();
-            if (flow.screen==Screen::Title) {
+            if (before==Screen::Villa || before==Screen::VillaChecklist) {
+                if (flow.screen!=Screen::Villa && flow.screen!=Screen::VillaChecklist) {
+                    Villa054::leaveVisit();
+                    if (flow.screen!=Screen::Club && flow.screen!=Screen::Phone &&
+                        flow.screen!=Screen::CatArtist && flow.screen!=Screen::Meowls &&
+                        flow.screen!=Screen::Dash && flow.screen!=Screen::Bort &&
+                        flow.screen!=Screen::SoundTest) audio.music(Sound::Menu);
+                }
+            }
+            if (before==Screen::Club) Club054::leave();
+            if (before==Screen::Phone) {
+                if (flow.screen==Screen::StartIntro && phoneIntroActive) Phone054::suspend();
+                else Phone054::leave();
+            }
+            if (before==Screen::CatArtist) CatArtist::leave();
+            if (before==Screen::Meowls) Meowls::leave();
+            if (before==Screen::MeowlsFilm) Meowls::closeFilm();
+            if (before==Screen::Dash) Dash054::leave();
+            if (before==Screen::Bort) Bort054::leave();
+            if (before==Screen::SoundTest) SoundTest054::leave();
+            if (!prepareContentTransition(flow.screen)) {
+                logEvent(log.c_str(),"content_music_release_failed",round.game);
+                flow.screen=flow.screen==Screen::MeowlsFilm?Screen::Phone:Screen::Villa;
+                audio.play(Sound::Cancel);
+            }
+            if (flow.screen==Screen::CatArtist) {
+                if (CatArtist::enter(executable,log.c_str())) audio.play(Sound::Select);
+                else {
+                    flow.screen=Screen::Villa;
+                    audio.play(Sound::Cancel);
+                }
+            }
+            if (flow.screen==Screen::Meowls && !Meowls::enter(executable,log.c_str())) {
+                Meowls::leave();
+                flow.screen=Screen::Villa;
+                audio.play(Sound::Cancel);
+            }
+            if (flow.screen==Screen::Dash && !Dash054::enter(executable,log.c_str())) {
+                Dash054::leave();
+                flow.screen=Screen::Villa;
+                audio.play(Sound::Cancel);
+            }
+            if (flow.screen==Screen::Bort && !Bort054::enter(executable,log.c_str())) {
+                Bort054::leave();
+                flow.screen=Screen::Villa;
+                audio.play(Sound::Cancel);
+            }
+            if (flow.screen==Screen::SoundTest && !SoundTest054::enter(executable,log.c_str())) {
+                SoundTest054::leave();
+                flow.screen=Screen::Villa;
+                audio.play(Sound::Cancel);
+            }
+            if (flow.screen==Screen::MeowlsFilm && !Meowls::openFilm(executable,log.c_str())) {
+                Meowls::closeFilm();
+                flow.screen=Screen::Phone;
+                audio.play(Sound::Cancel);
+            }
+            if (flow.screen==Screen::EndlessMenu) {
+                Endless054::enter(executable);
+            } else if (before==Screen::EndlessMenu && flow.screen==Screen::GameMenu) {
+                audio.music(Sound::Menu);
+            } else if (flow.screen==Screen::Phone) {
+                phoneSceneClock.reset();
+                Phone054::enter();
+                logEvent(log.c_str(),"mystery_phone_open",round.game);
+            } else if (flow.screen==Screen::Club) {
+                clubSceneClock.reset();
+                Club054::enter(Villa054::earned);
+                logEvent(log.c_str(),"club_canny_open",round.game);
+            } else if (flow.screen==Screen::Villa) {
+                Villa054::beginVisit(progress.quest,EditorEntry::builderUnlocked(executable,activeProfile)?
+                    VillaUnlocks::bit(VillaUnlocks::Id::Builder):0);
+                Villa054::pointer.captured=-1;
+                Villa054::pointerName=Villa054::pointerBackLabel=Villa054::pointerWhiteOutline=Villa054::pointerSelectedOutline={};
+                Villa054::pointerBack=Villa054::pointerLeft=Villa054::pointerRight=Villa054::pointerCursor=Villa054::pointerHover={};
+                logEvent(log.c_str(),"villa_open",round.game);
+            } else if (flow.screen==Screen::VillaChecklist) {
+                Villa054::checklistLocale=-1;
+                Villa054::checklistVerticalTrack=Villa054::checklistVerticalGrabber={};
+                Villa054::checklistHorizontalTrack=Villa054::checklistHorizontalGrabber={};
+                Villa054::checklistDragging=false;
+                audio.music(Sound::VillaChecklistMusic);
+                logEvent(log.c_str(),"villa_checklist_open",round.game);
+            } else if (flow.screen==Screen::Title) {
                 loadTitle();
+                // Loading warms one chunk per frame. Finish its remaining reads,
+                // or rebuild the borrowed cache on reentry, before the animation
+                // clock and title effects start.
+                if (!clips.titleIntroPrepared()) prepareTitleStart();
+                clips.finishTitleIntro();
+                now=sceKernelGetSystemTimeWide();
+                phaseStart=last=now;
+                audio.setTitleAudio(true);
                 if (titleArt) logEvent(log.c_str(),"title_layers_ready",round.game);
 #ifdef UCG_VICTORY_PROBE
                 audio.resetTiming(AudioProbePhase::Title);
                 titleProbeStart=sceKernelGetSystemTimeWide();
                 titleRenderMax=0;
+                titleCachedBytes=clips.cachedTitleBytes();
+                titlePrimedFrames=audio.queuedMusicFrames();
                 audio.probe(AudioProbePhase::Title);
 #endif
                 audio.music(Sound::Menu);
                 audio.play(Sound::TitleHit);
+                audio.prime(Sound::TitleImpact);
+                audio.prime(Sound::TitleCheer);
                 titleImpact=false;
             } else if (flow.screen==Screen::Main && before==Screen::Hole) {
                 persistProgress(save,round,log.c_str());
@@ -7156,7 +9369,19 @@ int main(int argc,char** argv) {
             } else if (flow.screen==Screen::Hole && before!=Screen::Settings) {
                 if (!enterCourse(executable,menuCourse,course,round)) {
                     logEvent(log.c_str(),"course_load_error",round.game);
-                    if (before!=Screen::WorldResults || !loadCourseAt(executable,currentCourse,course)) break;
+                    if (before!=Screen::WorldResults) {
+                        titleReusedCourseVram=true;
+                        flow.screen=Screen::LevelSelect;
+                        openLevelSelect(flow,menuCourse);
+                        waitRelease=true;
+                        accumulator=0;
+                        phaseStart=now;
+                        audio.stageCue(StageCue::None);
+                        audio.music(Sound::Menu);
+                        logEvent(log.c_str(),"course_load_recovered",round.game);
+                        continue;
+                    }
+                    if (!loadCourseAt(executable,currentCourse,course)) break;
                     playableCourseCount=std::min(playableCourseCount,menuCourse);
                     leaveWorldResults(flow,false);
                     audio.music(Sound::Menu);
@@ -7167,10 +9392,16 @@ int main(int argc,char** argv) {
                 resultStart=0;
                 waitRelease=true;
                 startCourseMusic(currentCourse);
+                if (cityFieldCourse(currentCourse)) {
+                    measuredCity=currentCourse;
+                    cityDiskStart=glowstickArt.diskFrames();
+                    cityMeasureStart=sceKernelGetSystemTimeWide();
+                }
                 audio.play(Sound::Join);
                 logEvent(log.c_str(),"hole",round.game);
             }
         }
+        if (flow.screen!=Screen::Hole || round.paused || round.caught || round.game.won) round.stopCampaignAudio();
         if (flow.screen==Screen::Hole && !round.paused && !pauseInput) {
 #ifdef UCG_VICTORY_PROBE
             if ((pressed&PSP_CTRL_SELECT) && !round.game.won) logEvent(log.c_str(),"select_in_play",round.game);
@@ -7180,19 +9411,32 @@ int main(int argc,char** argv) {
             if (!(pad.Buttons&PSP_CTRL_CROSS)) waitRelease=false;
             const bool oldAim=round.controls.aiming;
             if (pressed&PSP_CTRL_SQUARE) {
-                interactTerry(round,save,log.c_str());
+                round.campaignSecondary(pad.Buttons&PSP_CTRL_CROSS);
+                if (!toggleBunkerJumpy(round)) interactTerry(round,save,log.c_str());
                 if (currentCourse==CosmicFirstCourse && !round.caught && !round.game.won &&
                     length(round.game.position-Vec2{-312,88})<80) round.playMoonCow601();
             }
             const bool retry=!round.horseBroadcast.active() &&
-                ((pressed&PSP_CTRL_TRIANGLE) || (round.caught && confirm));
+                ((pressed&PSP_CTRL_TRIANGLE) || (round.caught && confirm) ||
+                 (campaignOptions.peakHunter && round.game.won && confirm && !liftHorseInput &&
+                  currentCourse!=Elysian518Course && !hidesElysianScoring(currentCourse) &&
+                  canAdvance(static_cast<unsigned>((now-resultStart)/1000)) && scoreFor(course,round).rank!=5));
             const bool wonBeforeRetry=round.game.won;
             const Score retryScore=retry && wonBeforeRetry ? scoreFor(course,round) : Score{};
             const unsigned retryClock=round.ticks*5/3;
+#ifdef UCG_VICTORY_PROBE
+            if (retry && lossProbe.active())
+                lossProbe.retryBegin(sceKernelGetSystemTimeLow(),audio.lossSnapshot());
+#endif
             const auto event=round.updateControls(aimInput(pad),
                 !waitRelease && !round.caught && !round.ride.parryFrozen() &&
                     (pad.Buttons&PSP_CTRL_CROSS),retry);
             if (event==ControlEvent::Restart) {
+                avatarClicks058.clearSpeech();
+                if(currentCourse==CoasterCourse) {
+                    stopCoasterLocalSounds();
+                    audio.resetLossForReplay();
+                } else audio.stop(Sound::Loss);
                 if (round.backrooms) startCourseMusic(currentCourse);
                 if (wonBeforeRetry) {
                     recordCourseWin(currentCourse,retryScore,retryClock,false);
@@ -7200,19 +9444,33 @@ int main(int argc,char** argv) {
                 } else {
                     ++progress.resets;
                 }
-                persistProgress(save,round,log.c_str());
+#ifdef UCG_VICTORY_PROBE
+                const unsigned retryPersistStarted=sceKernelGetSystemTimeLow();
+#endif
+                // PC RESET keeps counters in RAM. WIN_RESET commits the win;
+                // menu/key/advance/exit checkpoints still persist the counters.
+                if(wonBeforeRetry) persistProgress(save,round,log.c_str());
+                else progress.ticks=round.totalTicks;
+#ifdef UCG_VICTORY_PROBE
+                lossProbe.retryPersistence(retryPersistStarted,sceKernelGetSystemTimeLow(),wonBeforeRetry);
+#endif
                 if (currentCourse>=Elysian518Course &&
                     (!loadFinaleCourse045(executable,currentCourse) || !loadCosmicCourse046(executable,currentCourse))) break;
                 round.restart();
+                prepareCityField(currentCourse);
                 resultStart=0;
                 waitRelease=true;
                 audio.play(Sound::Join);
-                logEvent(log.c_str(),"restart",round.game);
+#ifdef UCG_VICTORY_PROBE
+                lossProbe.retryResetDone(sceKernelGetSystemTimeLow());
+#endif
+                queuePlayEvent("restart",round.game);
+#ifdef UCG_VICTORY_PROBE
+                lossProbe.retryJournalDone(sceKernelGetSystemTimeLow());
+                lossProbe.retryEnd(sceKernelGetSystemTimeLow());
+#endif
             } else if (event==ControlEvent::Shot) {
-                round.coins.multiplier=0;
-                audio.play(Sound::Shot);
-                thoughts.play(Thought::Moving,round.tvTick());
-                logEvent(log.c_str(),"shot",round.game);
+                playControlShot(round);
             } else if (!oldAim && round.controls.aiming) {
                 audio.play(Sound::Grab);
             } else if (oldAim && !round.controls.aiming) {
@@ -7231,23 +9489,49 @@ int main(int argc,char** argv) {
             const uint32_t previousKeys=round.roundKeys.collected,previousDoors=round.roundKeys.opened;
             const unsigned previousSkullBonus=round.skulls.bonus,previousBaddieDefeats=round.baddies.defeatedCount;
             const bool wasWon=round.game.won,wasCaught=round.caught,wasInSand=round.inSand;
+#ifdef UCG_PARK_REPLAY
+            // Diagnostic only: the archived two-shot route uses normal physics.
+            if (currentCourse==SwitchCourse && !round.game.moving() && !round.caught &&
+                !round.game.won && round.game.strokes<2 && round.ticks>=65) {
+                constexpr Vec2 aims[]={{125.0f/127,-1.0f/127},{-1,-19.0f/127}};
+                round.updateControls(aims[round.game.strokes],true,false);
+                if (round.updateControls({},false,false)==ControlEvent::Shot)
+                    logEvent(log.c_str(),"park_replay_shot",round.game);
+            }
+#endif
             const bool wasAirborne=round.jump.airborne(), policeTriggered=round.police.triggeredAt!=0;
+            bool skipRequested=false;
+#ifdef UCG_VICTORY_PROBE
+            const unsigned simulationStart=victoryProbeStart?sceKernelGetSystemTimeLow():0;
+#endif
+            const uint32_t stepStart066=sceKernelGetSystemTimeLow();
             accumulator+=delta*60;
             while (accumulator>=1000000) {
+                AvatarIdle059::step(AvatarIdle059::cosmetic,idleRound059(round),avatarClicks058);
                 round.step(pad.Buttons&PSP_CTRL_RTRIGGER,
                            (pressed&PSP_CTRL_SQUARE) && gifts.opened(GiftReward::Parry),round.liftHorse);
+                if (round.consumeBufferedControls()==ControlEvent::Shot) playControlShot(round);
                 round.liftHorse=false;
                 accumulator-=1000000;
+                if (round.updateSkip(skipHeld)) {
+                    skipRequested=true;
+                    break;
+                }
             }
-            if (!wasInSand && round.inSand) logEvent(log.c_str(),"sand",round.game);
+#ifdef UCG_VICTORY_PROBE
+            if (simulationStart)
+                victoryPerf.stepMax=std::max(victoryPerf.stepMax,sceKernelGetSystemTimeLow()-simulationStart);
+#endif
+            if(profileActive066)profileStepUs066+=sceKernelGetSystemTimeLow()-stepStart066;
+            if (!wasInSand && round.inSand) queuePlayEvent("sand",round.game);
             if (wasAirborne!=round.jump.airborne())
-                logEvent(log.c_str(),round.jump.airborne()?"jump_pad":"jump_landed",round.game);
-            if (!policeTriggered && round.police.triggeredAt) logEvent(log.c_str(),"police_trigger",round.game);
-            if (!secretStarted && round.secret.startedAt) logEvent(log.c_str(),"secret_runner_started",round.game);
-            if (!marcyStarted && round.marcy.startedAt) logEvent(log.c_str(),"marcy_started",round.game);
-            if (round.chuckles.defeatedCount!=previousChuckles) logEvent(log.c_str(),"chuckle_defeated",round.game);
-            if (round.coins.bonus>previousBonus) logEvent(log.c_str(),"coin",round.game);
-            if (round.stopRun.collected!=previousTokens) logEvent(log.c_str(),"stop_token",round.game);
+                queuePlayEvent(round.jump.airborne()?"jump_pad":"jump_landed",round.game);
+            if (!policeTriggered && round.police.triggeredAt) queuePlayEvent("police_trigger",round.game);
+            if (!secretStarted && round.secret.startedAt) queuePlayEvent("secret_runner_started",round.game);
+            if (!marcyStarted && round.marcy.startedAt) queuePlayEvent("marcy_started",round.game);
+            if (round.chuckles.defeatedCount!=previousChuckles) queuePlayEvent("chuckle_defeated",round.game);
+            if (round.coins.bonus>previousBonus) queuePlayEvent("coin",round.game);
+            if (round.stopRun.collected!=previousTokens) queuePlayEvent("stop_token",round.game);
             if (round.slots.outcome!=previousSlotOutcome) {
                 if (auto* out=std::fopen(log.c_str(),"a")) {
                     std::fprintf(out,"event=slots_resolved course=%s frames=%u,%u,%u outcome=%u bonus=%u tick=%u\n",
@@ -7257,12 +9541,12 @@ int main(int argc,char** argv) {
                     std::fclose(out);
                 }
             }
-            if (round.speedRun.collected!=previousSpeed) logEvent(log.c_str(),"speed_token",round.game);
-            if (round.brokenBlocks!=previousBlocks) logEvent(log.c_str(),"block_broken",round.game);
-            if (round.keyStage && round.roundKeys.collected!=previousKeys) logEvent(log.c_str(),"round_key",round.game);
-            if (round.keyStage && round.roundKeys.opened!=previousDoors) logEvent(log.c_str(),"key_door_opened",round.game);
-            if (round.skulls.bonus!=previousSkullBonus) logEvent(log.c_str(),"skull_defeated",round.game);
-            if (round.baddies.defeatedCount!=previousBaddieDefeats) logEvent(log.c_str(),"baddie_hit",round.game);
+            if (round.speedRun.collected!=previousSpeed) queuePlayEvent("speed_token",round.game);
+            if (round.brokenBlocks!=previousBlocks) queuePlayEvent("block_broken",round.game);
+            if (round.keyStage && round.roundKeys.collected!=previousKeys) queuePlayEvent("round_key",round.game);
+            if (round.keyStage && round.roundKeys.opened!=previousDoors) queuePlayEvent("key_door_opened",round.game);
+            if (round.skulls.bonus!=previousSkullBonus) queuePlayEvent("skull_defeated",round.game);
+            if (round.baddies.defeatedCount!=previousBaddieDefeats) queuePlayEvent("baddie_hit",round.game);
             if (progress.quest!=previousQuest) {
                 persistProgress(save,round,log.c_str());
                 logEvent(log.c_str(),"pool_quest_saved",round.game);
@@ -7286,6 +9570,12 @@ int main(int argc,char** argv) {
             if (usesRingTimers(currentCourse) && currentCourse!=Elysian512Course && ((!wasWon && round.game.won) || (!wasCaught && round.caught)))
                 audio.stopRingTimers();
             if (!wasWon && round.game.won) {
+                // The old HUD/quiet Loss reserve cannot outlive new results.
+                // The music and authored victory sounds keep their lifecycle.
+                audio.stop(Sound::Loss);
+#ifdef UCG_VICTORY_PROBE
+                finishLossProbe(LossProbe::EndReason::Manual);
+#endif
                 if (currentCourse==CosmicSeventeenthCourse) stopLastHurrahSounds053();
                 resultStart=now;
                 resultHit=resultRank=false;
@@ -7294,18 +9584,37 @@ int main(int argc,char** argv) {
                 victoryProbeStart=now;
                 victoryProbeCourse=currentCourse;
                 victoryFrames=victoryRenderMax=0;
+                victoryPerf={};
                 victoryRenderSample={true,0,0,0};
                 audio.probe(AudioProbePhase::Victory);
 #endif
                 audio.play(Sound::Win);
+                if (!hidesElysianScoring(currentCourse)) {
+                    const unsigned rank=scoreFor(course,round).rank;
+                    ranks.prepare(rank,levelSelectArt.rankWorkspace<RankPlayer::PrefetchBytes>());
+                    audio.prime(Sound::ResultsHit);
+                    audio.prime(static_cast<Sound>(static_cast<unsigned>(Sound::RankUncanny)+rank));
+                }
                 if (round.horseBroadcast.active()) logEvent(log.c_str(),"horse_broadcast",round.game);
                 else {
                     thoughts.play(Thought::Win,round.tvTick());
                     thoughts.setFallback(Thought::Win);
                     logEvent(log.c_str(),"goal",round.game);
+                    if (currentCourse==SwitchCourse)
+                        parkTransitionTrace.record("victory_ready","3_03","3_04",scoreFor(course,round).rank,round.ticks,round.coins.bonus);
                 }
             }
             if (!wasCaught && round.caught) {
+#ifdef UCG_VICTORY_PROBE
+                if (currentCourse==CoasterCourse && !round.backrooms && !round.waterDead &&
+                    !round.fellOut && !round.finaleMineLoss && round.horse.phase!=HorsePhase039::Lost) {
+                    finishLossProbe(LossProbe::EndReason::NextCaught);
+                    const unsigned caughtAt=sceKernelGetSystemTimeLow();
+                    audio.beginLossProbe(caughtAt);
+                    lossProbe.caught(caughtAt,audio.lossSnapshot());
+                    audio.probe(AudioProbePhase::Off);
+                }
+#endif
                 if (currentCourse==CosmicSeventeenthCourse) stopLastHurrahSounds053();
                 if (currentCourse==CosmicThirteenthCourse) audio.stageCue(StageCue::None);
                 resultStart=now;
@@ -7314,8 +9623,18 @@ int main(int argc,char** argv) {
                     thoughts.setFallback(Thought::Death);
                 }
                 if (round.backrooms) audio.muteMusic();
+                else if (round.campaignActive() && round.campaignMods.wallDeath) audio.play(Sound::WallDeath);
                 else if (round.horse.phase==HorsePhase039::Lost && !round.horseGhostCaught && !round.fellOut && !round.waterDead && !round.finaleMineLoss) audio.play(Sound::HorseJumpscare);
-                else if (!round.waterDead && !round.finaleMineLoss) audio.play(round.fellOut?Sound::OutOfBounds:Sound::Loss);
+                else if (!round.waterDead && !round.finaleMineLoss) {
+                    if (round.fellOut) audio.play(Sound::OutOfBounds);
+                    else if (round.horseGhostCaught || round.horseBroadcast.active()) audio.play(Sound::Loss);
+                    else {
+                        const unsigned selectedCue=campaignBuddySound();
+                        // Preserve the warmed default Loss voice and all special causes.
+                        const Sound ghostCue=selectedCue==260?Sound::Loss:static_cast<Sound>(selectedCue);
+                        audio.play(ghostCue);
+                    }
+                }
                 logEvent(log.c_str(),round.backrooms?"backrooms":round.waterDead?"water":
                          round.fellOut?"jump_out_of_bounds":"caught",round.game);
             }
@@ -7324,12 +9643,31 @@ int main(int argc,char** argv) {
                 acceptGoldenTee045(course,round,save,log.c_str());
                 resultStart=0;
             }
-            if (round.horseBroadcast.ready() ||
+            if (skipRequested || round.horseBroadcast.ready() ||
                 (currentCourse==Elysian518Course && round.finale518.canEnterEnding()) ||
                 (currentCourse!=Elysian518Course && round.game.won && confirm && !liftHorseInput && canAdvance(resultMs))) {
+#ifdef UCG_VICTORY_PROBE
+                finishLossProbe(LossProbe::EndReason::Manual);
+#endif
                 if (usesRingTimers(currentCourse)) audio.stopRingTimers();
-                const auto outcome=advanceCampaign(executable,course,round,save,log.c_str(),false);
-                if (outcome==Advance::Fatal) break;
+                if (currentCourse==SwitchCourse)
+                    parkTransitionTrace.record("advance_request","3_03","3_04",resultMs,scoreFor(course,round).rank,pressed);
+                const auto outcome=advanceCampaign(executable,course,round,save,log.c_str(),skipRequested);
+                if (skipRequested) round.clearSkip();
+                if (outcome==Advance::Fatal) {
+                    if (currentCourse!=SwitchCourse) break;
+                    parkTransitionTrace.record("advance_fatal_to_map","3_03","3_04");
+                    titleReusedCourseVram=true;
+                    openLevelSelect(flow,currentCourse);
+                    phaseStart=now;
+                    resultStart=0;
+                    waitRelease=true;
+                    accumulator=0;
+                    audio.stageCue(StageCue::None);
+                    audio.music(Sound::Menu);
+                    logEvent(log.c_str(),"advance_load_recovered",round.game);
+                    continue;
+                }
                 if (outcome==Advance::Failed && round.horseBroadcast.active()) {
                     audio.stop(Sound::HorseAlarm);
                     audio.music(Sound::Menu);
@@ -7386,12 +9724,22 @@ int main(int argc,char** argv) {
                     resultStart=now-4400000;
                     resultMs=4400;
                 }
+#ifdef UCG_VICTORY_PROBE
+                const unsigned rankFillStart=victoryProbeStart?sceKernelGetSystemTimeLow():0;
+#endif
+                ranks.fill(resultMs>=4400?resultMs-4400:0);
+#ifdef UCG_VICTORY_PROBE
+                if (rankFillStart)
+                    victoryPerf.rankFillMax=std::max(victoryPerf.rankFillMax,sceKernelGetSystemTimeLow()-rankFillStart);
+#endif
                 if (!resultHit && resultMs>=2000) {
                     resultHit=true;
                     audio.play(Sound::ResultsHit);
                 }
                 if (!resultRank && resultMs>=4400) {
                     resultRank=true;
+                    if (currentCourse==SwitchCourse)
+                        parkTransitionTrace.record("rank_ready","3_03","3_04",scoreFor(course,round).rank,round.ticks,round.coins.bonus);
                     audio.play(Sound::ResultsBang);
                     const unsigned rank=scoreFor(course,round).rank;
                     audio.play(static_cast<Sound>(static_cast<unsigned>(Sound::RankUncanny)+rank));
@@ -7399,14 +9747,41 @@ int main(int argc,char** argv) {
             }
         }
         if (now-lastRender>=32000) {
+            const uint32_t renderStart066=sceKernelGetSystemTimeLow();phaseProfile066.buildUs=phaseProfile066.syncUs=0;
 #ifdef UCG_VICTORY_PROBE
-            const unsigned renderStart=(victoryProbeStart || titleProbeStart)?sceKernelGetSystemTimeLow():0;
+            const unsigned renderStart=(victoryProbeStart || titleProbeStart || lossProbe.active())?sceKernelGetSystemTimeLow():0;
 #endif
+            const auto mapReads=levelSelectArt.reads();
+            menuProbe.renderBegin(flow.screen);
             render(flow,course,round,flow.screen==Screen::ElysianEnding?endingClock.ms():
                    static_cast<unsigned>((now-phaseStart)/1000),
                    round.ticks*5/3,round.totalTicks*5/3,
                    resultStart?static_cast<unsigned>((now-resultStart)/1000):0,
-                   UINT32_MAX,static_cast<unsigned>((now-menuStart)/1000%MenuScroll::PeriodMs),endingClock.fast);
+                   UINT32_MAX,static_cast<unsigned>((now-menuStart)/1000%MenuScroll::PeriodMs),endingClock.fast,settingsFromPause);
+            if (builderPresent.graphicsFailed() || giftGeFailure) break;
+            menuProbe.renderEnd();
+#ifdef UCG_VICTORY_PROBE
+            if (lossProbe.active()) {
+                lossProbe.render(sceKernelGetSystemTimeLow()-renderStart);
+                lossGameplayFrameReady=flow.screen==Screen::Hole && currentCourse==CoasterCourse &&
+                    !round.caught && !round.game.won && !round.paused;
+            }
+#endif
+            if (pendingLoadIoAudit) {
+                parkTransitionTrace.flush();
+                logLoadIoAudit(log.c_str());
+                pendingLoadIoAudit=false;
+            }
+            if (profileMapPending) profileMapShown=true;
+            if (profileMapFirstFrame && flow.screen==Screen::LevelSelect) {
+                profileMapFirstFrame=false;
+                if (auto* out=std::fopen(log.c_str(),"a")) {
+                    const auto after=levelSelectArt.reads();
+                    std::fprintf(out,"build=053 event=map_first_frame map_reads=%u map_bytes=%u\n",
+                                 after.calls-mapReads.calls,after.bytes-mapReads.bytes);
+                    std::fclose(out);
+                }
+            }
 #ifdef UCG_VICTORY_PROBE
             if (titleProbeStart) titleRenderMax=std::max(titleRenderMax,sceKernelGetSystemTimeLow()-renderStart);
             if (victoryProbeStart) {
@@ -7414,16 +9789,52 @@ int main(int argc,char** argv) {
                 victoryRenderMax=std::max(victoryRenderMax,sceKernelGetSystemTimeLow()-renderStart);
             }
 #endif
+            if(profileActive066){const uint32_t done066=sceKernelGetSystemTimeLow();unsigned actors066=0;for(unsigned i=0;i<round.chuckles.count;++i)actors066+=round.chuckles.bodies[i].radius>0;phaseProfile066.observe(1,currentCourse,done066-profileFrameStart066,profileStepUs066,done066-renderStart066,phaseProfile066.buildUs,phaseProfile066.syncUs,actors066);profileFrameStart066=done066;profileStepUs066=0;}
             frameReady=true;
             lastRender=now;
         }
     }
 #ifdef UCG_VICTORY_PROBE
+    finishLossProbe(LossProbe::EndReason::Exit);
     finishVictoryProbe(sceKernelGetSystemTimeWide());
+    if (mapAudioStart) {
+        audio.probe(AudioProbePhase::Off);
+        reportMapAudio(sceKernelGetSystemTimeWide());
+    }
 #endif
-    if (flow.screen==Screen::Hole) persistProgress(save,round,log.c_str());
+    flushPhaseProfile066();
+    if (AttractRuntime::active()) AttractRuntime::leave(course,round);
+    parkTransitionTrace.record("shutdown",currentCourse<CourseCount?CourseIds[currentCourse]:"invalid","-",
+                               running.load(std::memory_order_relaxed),flow.quit,static_cast<unsigned>(flow.screen));
+    levelSelectArt.closePrefetch();
+    menuStreaming.stop();
+    reportCityField();
+    flushMenu();
+    flushPlayEvents(log.c_str());
+    if (courseResourcesValid && (flow.screen==Screen::Hole || (flow.screen==Screen::Settings && settingsFromPause)))
+        persistProgress(save,round,log.c_str());
+    if (!avatarClicks058.flush()) logEvent(log.c_str(),"avatar_click_save_error",round.game);
+    if (flow.screen==Screen::CatArtist) CatArtist::leave();
     audio.stop();
+#ifdef UCG_VICTORY_PROBE
+    writeLossProfiles(log.c_str(),lossProbe,lossResidentFrames,lossTotalFrames);
+#endif
+    parkTransitionTrace.flush();
+    if (giftGeFailure) if (auto* out=std::fopen(log.c_str(),"a")) {
+        std::fprintf(out,"build=053 event=gift_graphics_abort error=%s\n",giftGeFailure);
+        std::fclose(out);
+    }
+    if (builderPresent.graphicsFailed()) if (auto* out=std::fopen(log.c_str(),"a")) {
+        std::fprintf(out,"build=053 event=builder_graphics_abort error=%s\n",builderPresent.error().c_str());
+        std::fclose(out);
+    }
+    logLoadIoAudit(log.c_str());
+    EditorEntry054::close();
+    builderPresent.shutdown();
+    if (!giftGeFailure && !builderPresent.graphicsFailed()) EditorLegacyGiftBlast::close(false);
     sceGuTerm();
+    if (!giftGeFailure && !builderPresent.graphicsFailed() && EditorEntry054::launchPending) EditorEntry054::launchFailure(EditorEntry054::launch(log.c_str()));
     sceKernelExitGame();
     return 0;
 }
+

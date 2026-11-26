@@ -52,3 +52,4 @@ uint32_t cosmicShade048(unsigned index) {
     const unsigned shade=usesPolyrhythm049(index)?51:index==CosmicSixthCourse?156:178;
     return GU_RGBA(shade,shade,shade,255);
 }
+

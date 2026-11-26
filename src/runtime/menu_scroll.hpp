@@ -3,6 +3,9 @@
 #include "asset_file.hpp"
 #include "visual.hpp"
 
+#include <algorithm>
+#include <pspkernel.h>
+
 #include <cstdint>
 #include <cstring>
 
@@ -28,6 +31,18 @@ constexpr unsigned BackTableBytes=(BackFrames+1)*sizeof(uint32_t);
 constexpr float Scale=17.0f/32.0f, TileSize=200*Scale;
 
 static_assert(sizeof(Patch)==12 && FileBytes==2896068);
+
+inline bool readBytes(std::FILE* file,void* destination,unsigned bytes,bool background) {
+    auto* pixels=static_cast<uint8_t*>(destination);
+    while (bytes) {
+        const unsigned count=background?std::min(32768u,bytes):bytes;
+        if (std::fread(pixels,1,count,file)!=count) return false;
+        pixels+=count;
+        bytes-=count;
+        if (background && bytes) sceKernelDelayThread(1000);
+    }
+    return true;
+}
 
 inline unsigned recordOffset(unsigned index) { return 4+TileBytes+index*RecordBytes; }
 inline unsigned buttonOffset(unsigned locale) { return recordOffset(RecordCount)+locale*ButtonRecordBytes; }

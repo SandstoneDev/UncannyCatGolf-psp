@@ -66,3 +66,4 @@ bool loadCosmicArt052(const char* executable,unsigned index) {
            loadVramAtlas045(cosmicProps615,path("cosmic-props-6_15.pak"),SantaPropOffset) &&
            prepareSantaSprite052();
 }
+

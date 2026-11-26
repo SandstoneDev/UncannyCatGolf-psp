@@ -142,3 +142,4 @@ void drawCosmicGateArt045(const GameplayView& view,const Round& round,uint32_t t
     setTexture(GU_PSM_8888,CosmicGateLabel045Width,CosmicGateLabel045Height,cosmicGateLabel045.texture());
     actor(view,cosmicGateLabel045.patch(0),center,scale,White,true);
 }
+

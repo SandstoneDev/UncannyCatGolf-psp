@@ -176,3 +176,4 @@
             audio.playTuned(Sound::GlassClink,0,0.8f+(sceKernelGetSystemTimeLow()%301)/1000.0f);
         if (!game.won) chaseGhosts(true);
     }
+

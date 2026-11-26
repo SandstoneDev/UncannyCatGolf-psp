@@ -1,4 +1,5 @@
 #pragma once
+#include "actor_pronouns054.hpp"
 #include "campaign.hpp"
 #include "game.hpp"
 #include "campaign.hpp"
@@ -149,6 +150,7 @@ struct SkullRun {
     static constexpr float Radius=16.0f, Speed=100.0f;
     static constexpr unsigned Bonus=25;
     static constexpr unsigned Capacity=32;
+    ActorPronouns054::Tag labels[Capacity]{};
     CircleCollider bodies[Capacity]{};
     Vec2 velocity[Capacity]{};
     unsigned defeatedAt[Capacity]{};
@@ -160,6 +162,7 @@ struct SkullRun {
         *this={};
         for (unsigned i=0;i<count;++i) {
             bodies[i]={spawns[i].position,Radius};
+            labels[i]=ActorPronouns054::session.ready(ActorPronouns054::Kind::Baddie);
             velocity[i]=spawns[i].direction*Speed;
         }
     }
@@ -210,13 +213,16 @@ struct SkullRun {
 
 struct GhostMotion {
     Vec2 position{},velocity{};
+    bool panic=false;
+    ActorPronouns054::Tag label{};
 
     bool chase(Vec2 target) {
         const Vec2 offset=target-position;
         const float distance=length(offset);
-        if (distance>0.001f) velocity=velocity+offset*(0.35f/distance);
+        if (distance>0.001f) velocity=velocity+offset*((panic?2.0f:0.35f)/distance);
         const float speed=length(velocity);
-        if (speed>40.0f) velocity=velocity*(40.0f/speed);
+        const float limit=panic?150.0f:40.0f;
+        if (speed>limit) velocity=velocity*(limit/speed);
         position=position+velocity*(1.0f/60.0f);
         const Vec2 remaining=target-position;
         return dot(remaining,remaining)<=27.9655f*27.9655f;

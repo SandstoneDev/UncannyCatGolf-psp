@@ -87,3 +87,4 @@ void drawStarstormBlocks047(const GameplayView& view,const Round& round) {
         if (round.brokenBlocks.has(i))
             drawDestruction(view,stage.blocks[i].center,round.ticks-round.blockTicks[i],round.blockValues[i]);
 }
+

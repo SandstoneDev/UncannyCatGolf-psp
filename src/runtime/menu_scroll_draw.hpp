@@ -35,7 +35,8 @@ void drawTitleArt(unsigned elapsedMs) {
 }
 
 // These helpers share the renderer's texture state and are included after hudPatch.
-void drawMenuTile(const void* texture,unsigned elapsedMs) {
+void drawMenuTile(const void* texture,unsigned elapsedMs,float cropLeft=0,float cropTop=0,
+                  float cropRight=Width,float cropBottom=Height) {
     using namespace MenuScroll;
     const auto scroll=phase(elapsedMs);
     const float left=ViewX+HudWidth, right=ViewX+MenuScroll::ViewWidth;
@@ -44,9 +45,11 @@ void drawMenuTile(const void* texture,unsigned elapsedMs) {
     auto* vertices=static_cast<TextureVertex*>(sceGuGetMemory(32*sizeof(TextureVertex)));
     unsigned count=0;
     for (float y=-scroll.y;y<MenuScroll::Height;y+=TileSize) {
-        const float top=std::max(y,0.0f), bottom=std::min(y+TileSize,static_cast<float>(MenuScroll::Height));
+        const float top=std::max(y,cropTop),bottom=std::min(y+TileSize,cropBottom);
+        if (top>=bottom) continue;
         for (float x=left-scroll.x;x<right;x+=TileSize) {
-            const float x0=std::max(x,left), x1=std::min(x+TileSize,right);
+            const float x0=std::max({x,left,cropLeft}),x1=std::min({x+TileSize,right,cropRight});
+            if (x0>=x1) continue;
             // The packed source has one repeated texel before and after its visible UVs.
             vertices[count++]={1+(x0-x)/Scale,1+(top-y)/Scale,White,x0,top,0};
             vertices[count++]={1+(x1-x)/Scale,1+(bottom-y)/Scale,White,x1,bottom,0};
@@ -132,3 +135,4 @@ void drawMenuScroll(const MenuScroll::Textures& art,const Patch* selected,unsign
     }
     sceGuBlendFunc(GU_ADD,GU_SRC_ALPHA,GU_ONE_MINUS_SRC_ALPHA,0,0);
 }
+

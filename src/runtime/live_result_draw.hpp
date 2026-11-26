@@ -69,7 +69,7 @@ bool prepareElysianTrees515() {
 }
 
 void drawLiveResultSprite(const LiveResultArt::Slot& slot,float slide=0,const GameplayView* view=nullptr,
-                          float scale=1,uint32_t tint=White) {
+                          float scale=1,uint32_t tint=White,bool rainbow=false) {
     const auto& sprite=slot.sprite;
     const Vec2 anchor=view?view->position({}):Vec2{ViewX+272.0f,136};
     const bool mirror=view && view->delta({1,0}).x<0;
@@ -86,9 +86,14 @@ void drawLiveResultSprite(const LiveResultArt::Slot& slot,float slide=0,const Ga
         sceGuTexImage(0,extent(tile.width),extent(tile.height),tile.pitch,image.pixels);
         sceGuTexFlush();
         const float x=sprite.x+tile.x-272,y=sprite.y+tile.y-136;
-        patchScaled({0,0,static_cast<int16_t>(tile.width),static_cast<int16_t>(tile.height),0,0},
-                    anchor.x+(mirror?-x-tile.width:x)*scale,anchor.y+y*scale+slide,
-                    scale,scale,tint,mirror);
+        const float left=anchor.x+(mirror?-x-tile.width:x)*scale,top=anchor.y+y*scale+slide;
+        if (rainbow) {
+            const float right=left+tile.width*scale,bottom=top+tile.height*scale;
+            const TextureVertex quad[4]={{0,0,tint,left,top,0},{float(tile.width),0,tint,right,top,0},
+                {float(tile.width),float(tile.height),tint,right,bottom,0},{0,float(tile.height),tint,left,bottom,0}};
+            CostumeShader056::drawQuad(quad);
+        } else patchScaled({0,0,static_cast<int16_t>(tile.width),static_cast<int16_t>(tile.height),0,0},
+                    left,top,scale,scale,tint,mirror);
     }
 }
 

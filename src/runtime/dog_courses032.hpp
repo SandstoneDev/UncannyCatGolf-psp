@@ -42,3 +42,4 @@ inline const DogCourse032* dogCourse032(const char* courseId) {
     if (std::strcmp(courseId, "3_15") == 0) return &DogCourse315;
     return nullptr;
 }
+

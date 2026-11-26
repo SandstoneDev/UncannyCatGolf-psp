@@ -1,0 +1,31 @@
+TARGET = build/ucg_editor
+OBJS = build/editor_main.o build/storage_hooks.o
+CFLAGS = -O2 -G0 -Wall -Wextra -Werror -ffunction-sections -fdata-sections
+CXXFLAGS = -std=gnu++17 -fno-exceptions -fno-rtti -DUCG_EDITOR_MODULE $(EDITOR_TEST)
+LDFLAGS += -Wl,--gc-sections -Wl,--wrap=fopen
+LIBS = -lpspsystemctrl_user -lpsppower -lpsprtc -lpspgu -lpspaudio -lpsputility -lpng -ljpeg -lz -lvorbisfile -lvorbis -logg -lstdc++ -lm
+BUILD_PRX = 1
+PSP_FW_VERSION = 660
+PSP_LARGE_MEMORY = 0
+EXTRA_TARGETS = $(PSP_EBOOT)
+PSP_EBOOT_TITLE = Uncanny Cat Golf - Level Editor
+PSP_EBOOT_SFO = build/EDITOR-SFO
+PSP_EBOOT = build/EDITOR.PBP
+PSPSDK := $(shell psp-config --pspsdk-path)
+include $(PSPSDK)/lib/build.mak
+build/storage_hooks.o: storage_hooks.cpp storage_hooks.hpp storage_reader.hpp storage_pool.hpp storage_stdio.hpp storage_diagnostic.hpp storage_file_pool.hpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+build/editor_main.o: editor_main.cpp $(wildcard *.hpp)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+build/editor_main.o: editor_loading066.hpp frame_profile066.hpp editor_legacy_lookup066.hpp editor_widget_readable066.hpp
+
+build/editor_main.o: chapter_loading066.inc editor_loading_thread066.hpp
+
+build/editor_main.o: editor_toolbar_plate066.hpp editor_toolbar_plate066.inc
+
+build/editor_main.o: home_exit067.hpp
+
+build/editor_main.o: editor_focus067.hpp editor_original_cursor067.hpp ui_modality067.hpp editor_list_layout067.hpp editor_readable_labels067.hpp editor_widget_text.hpp editor_perf067.hpp editor_menu_overlay066.hpp
+
+build/editor_main.o: property_layout067.hpp editor_modifier_help067.hpp

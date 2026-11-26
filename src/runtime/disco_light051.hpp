@@ -47,3 +47,4 @@ private:
                       (-delta.x*sine+delta.y*cosine)/diameter+0.5f);
     }
 };
+

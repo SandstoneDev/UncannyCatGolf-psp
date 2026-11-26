@@ -1,4 +1,5 @@
 #pragma once
+#include "actor_pronouns054.hpp"
 
 #include "smiley_ring.hpp"
 
@@ -24,12 +25,14 @@ struct DogGolfUpdate {
 
 class DogGolfRun {
 public:
+    ActorPronouns054::Tag label{};
     CircleCollider body{};
     Vec2 velocity{};
     float graphicScale=0;
     bool winner=false;
 
     void restart(const DogGolfScene& scene) {
+        label=ActorPronouns054::session.ready(ActorPronouns054::Kind::Dog);
         body={scene.spawn,scene.radius};
         velocity=scene.velocity;
         graphicScale=scene.graphicScale;
@@ -159,3 +162,4 @@ inline bool onParkPursuitSand(Vec2 position,float radius) {
     const Vec2 offset=local-closest;
     return dot(offset,offset)<=radius*radius;
 }
+

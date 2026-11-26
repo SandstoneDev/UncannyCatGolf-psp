@@ -173,3 +173,4 @@ bool runFocused041(const char* executable,Course& course,SaveFile& save,
 #endif
     return true;
 }
+

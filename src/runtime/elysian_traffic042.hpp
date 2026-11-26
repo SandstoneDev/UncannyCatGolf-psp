@@ -41,3 +41,4 @@ struct ElysianTraffic513 {
         dogs[i].struckByPlayer(scenes[i],player);
     }
 };
+

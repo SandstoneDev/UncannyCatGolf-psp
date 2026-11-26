@@ -94,7 +94,7 @@ bool runFocused050(const char* executable,Course& course,SaveFile& save,
             if (tick==80 && (round.polyrhythm.mask!=1 || !capture("p10-pink"))) return false;
             if (tick==107 && (round.polyrhythm.mask || round.rhythmWalls.activeTiles() ||
                              !capture("p10-neither"))) return false;
-
+            
             if (tick==CosmicPspKeyTick610 && !round.roundKeys.collected) return false;
             if (tick==CosmicPspDoorTick610) {
                 if (!round.roundKeys.opened || round.roundKeys.bonus!=CosmicDoorBonus610 ||
@@ -173,3 +173,4 @@ bool runFocused050(const char* executable,Course& course,SaveFile& save,
     }
     return true;
 }
+

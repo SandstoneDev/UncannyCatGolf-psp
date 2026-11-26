@@ -17,14 +17,56 @@ public:
         pending=std::memcmp(&queued,&completed,sizeof queued)!=0;
     }
 
+    struct Timing {
+        unsigned elapsed=0,calls=0,callMax=0;
+        int result=0;
+    };
+
+    bool takeTiming(Timing& out) {
+        if (!timingReady) return false;
+        out=timing;
+        timingReady=false;
+        return true;
+    }
+
     void update(bool allowStart,const char* log,const Game& game) {
+        const unsigned started=sceKernelGetSystemTimeLow();
+        const bool wasActive=active;
+        const bool starting=!active && allowStart && pending && !failed;
+        if (starting) {
+            timing={};
+            timingStart=started;
+        }
+        updateSavedata(allowStart,log,game);
+        if (starting || wasActive) {
+            ++timing.calls;
+            timing.callMax=std::max(timing.callMax,sceKernelGetSystemTimeLow()-started);
+            if (!active) {
+                timing.elapsed=sceKernelGetSystemTimeLow()-timingStart;
+                timing.result=lastResult;
+                timingReady=true;
+            }
+        }
+    }
+
+    bool forget(unsigned slot) {
+        if(active)return false;
+        if(queued.slot==slot) {queued={};pending=false;failed=false;}
+        if(completed.slot==slot)completed={};
+        return true; // Native SAVEDATA is deliberately untouched.
+    }
+    bool busy() const { return active; }
+    bool waiting() const { return pending && !failed; }
+
+private:
+    void updateSavedata(bool allowStart,const char* log,const Game& game) {
         if (active) {
             switch (sceUtilitySavedataGetStatus()) {
             case PSP_UTILITY_DIALOG_VISIBLE:
                 sceUtilitySavedataUpdate(1);
                 break;
             case PSP_UTILITY_DIALOG_QUIT:
-                if (sceUtilitySavedataShutdownStart()<0) {
+                if ((lastResult=sceUtilitySavedataShutdownStart())<0) {
                     failed=true;
                     active=false;
                     logEvent(log,"xmb_profile_error",game);
@@ -32,6 +74,7 @@ public:
                 break;
             case PSP_UTILITY_DIALOG_NONE:
                 active=false;
+                lastResult=parameter.base.result;
                 if (parameter.base.result>=0) completed=transfer;
                 logEvent(log,parameter.base.result>=0?"xmb_profile_saved":"xmb_profile_error",game);
                 break;
@@ -76,13 +119,11 @@ public:
             parameter.icon0FileData.bufSize=size;
             parameter.icon0FileData.size=size;
         }
-        active=sceUtilitySavedataInitStart(&parameter)>=0;
+        lastResult=sceUtilitySavedataInitStart(&parameter);
+        active=lastResult>=0;
         if (!active) logEvent(log,"xmb_profile_error",game);
     }
 
-    bool busy() const { return active; }
-
-private:
     struct Record {
         uint32_t magic=0x31504355,version=1,slot=0,chill=0;
         ProfileName title{},player{};
@@ -101,4 +142,8 @@ private:
     SceUtilitySavedataParam parameter{};
     Record queued{},transfer{},completed{};
     bool pending=false,active=false,failed=false;
+    bool timingReady=false;
+    Timing timing{};
+    unsigned timingStart=0;
+    int lastResult=0;
 } xmbProfile;

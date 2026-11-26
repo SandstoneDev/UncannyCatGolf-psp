@@ -73,3 +73,4 @@ struct FakeGoals052 {
         return picked;
     }
 };
+

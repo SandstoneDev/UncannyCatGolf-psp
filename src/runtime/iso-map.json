@@ -1,0 +1,5055 @@
+{
+  "package": "/mnt/e/DECOMPIL/PSP/Uncanny_Cat_Golf-psp/parallel-053-editor-opt/content-057/package/UCG054",
+  "files": [
+    {
+      "logical": "data/animation/en/anim.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000000.BIN",
+      "bytes": 91352
+    },
+    {
+      "logical": "data/animation/ending-045.uce.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000001.BIN",
+      "bytes": 77456
+    },
+    {
+      "logical": "data/animation/park-video-3_04.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000002.BIN",
+      "bytes": 2120
+    },
+    {
+      "logical": "data/animation/ru/anim.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000003.BIN",
+      "bytes": 92456
+    },
+    {
+      "logical": "data/animation/selector-transition.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000004.BIN",
+      "bytes": 51152
+    },
+    {
+      "logical": "data/audio/audio.uca",
+      "physical": "PSP_GAME/USRDIR/A0000005.BIN",
+      "bytes": 242288789
+    },
+    {
+      "logical": "data/audio/park-timer-3_11.pcm.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000006.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/courses/en/0_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000007.BIN",
+      "bytes": 1160
+    },
+    {
+      "logical": "data/courses/en/0_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000008.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/0_03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000009.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/0_04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000010.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/0_05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000011.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000012.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000013.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000014.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000015.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000016.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_06.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000017.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_07.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000018.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_08.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000019.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_09.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000020.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_10.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000021.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_11.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000022.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_12.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000023.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_13.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000024.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_14.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000025.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_15.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000026.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_16.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000027.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_17.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000028.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/1_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000029.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000030.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000031.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000032.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000033.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000034.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_06.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000035.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_07.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000036.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_08.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000037.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_09.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000038.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_10.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000039.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_11.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000040.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_12.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000041.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_13.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000042.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_14.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000043.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_15.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000044.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_16.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000045.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_17.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000046.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/2_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000047.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000048.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000049.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000050.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000051.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000052.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_06.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000053.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_07.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000054.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_08.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000055.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_09.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000056.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_10.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000057.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_11.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000058.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_12.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000059.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_13.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000060.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_14.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000061.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_15.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000062.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_16.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000063.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_17.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000064.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/3_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000065.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000066.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000067.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000068.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000069.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000070.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_06.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000071.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_07.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000072.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_08.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000073.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_09.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000074.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_10.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000075.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_11.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000076.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_12.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000077.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_13.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000078.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_14.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000079.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_15.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000080.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_16.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000081.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_17.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000082.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/4_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000083.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000084.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000085.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000086.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000087.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000088.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_06.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000089.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_07.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000090.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_08.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000091.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_09.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000092.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_10.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000093.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_11.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000094.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_12.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000095.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_13.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000096.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_14.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000097.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_15.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000098.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_16.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000099.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_17.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000100.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/5_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000101.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000102.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000103.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000104.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000105.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000106.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_06.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000107.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_07.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000108.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_08.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000109.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_09.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000110.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_10.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000111.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_11.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000112.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_12.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000113.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_13.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000114.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_14.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000115.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_15.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000116.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_16.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000117.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_17.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000118.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/en/6_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000119.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/0_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000120.BIN",
+      "bytes": 1160
+    },
+    {
+      "logical": "data/courses/ru/0_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000121.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/0_03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000122.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/0_04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000123.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/0_05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000124.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000125.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000126.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000127.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000128.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000129.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_06.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000130.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_07.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000131.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_08.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000132.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_09.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000133.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_10.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000134.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_11.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000135.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_12.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000136.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_13.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000137.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_14.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000138.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_15.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000139.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_16.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000140.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_17.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000141.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/1_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000142.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000143.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000144.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000145.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000146.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000147.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_06.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000148.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_07.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000149.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_08.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000150.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_09.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000151.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_10.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000152.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_11.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000153.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_12.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000154.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_13.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000155.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_14.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000156.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_15.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000157.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_16.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000158.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_17.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000159.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/2_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000160.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000161.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000162.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000163.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000164.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000165.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_06.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000166.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_07.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000167.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_08.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000168.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_09.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000169.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_10.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000170.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_11.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000171.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_12.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000172.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_13.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000173.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_14.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000174.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_15.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000175.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_16.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000176.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_17.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000177.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/3_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000178.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000179.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000180.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000181.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000182.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000183.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_06.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000184.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_07.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000185.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_08.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000186.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_09.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000187.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_10.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000188.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_11.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000189.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_12.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000190.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_13.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000191.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_14.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000192.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_15.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000193.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_16.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000194.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_17.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000195.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/4_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000196.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000197.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000198.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000199.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000200.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000201.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_06.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000202.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_07.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000203.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_08.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000204.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_09.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000205.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_10.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000206.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_11.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000207.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_12.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000208.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_13.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000209.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_14.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000210.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_15.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000211.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_16.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000212.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_17.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000213.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/5_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000214.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000215.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000216.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000217.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000218.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000219.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_06.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000220.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_07.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000221.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_08.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000222.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_09.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000223.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_10.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000224.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_11.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000225.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_12.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000226.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_13.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000227.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_14.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000228.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_15.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000229.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_16.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000230.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_17.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000231.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/courses/ru/6_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000232.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/editor/EBOOT.PBP",
+      "physical": "PSP_GAME/SYSDIR/EDITOR.PBP",
+      "bytes": 3890178
+    },
+    {
+      "logical": "data/interface/bart-gift-033.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000233.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/club-robert-054.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000234.BIN",
+      "bytes": 200
+    },
+    {
+      "logical": "data/interface/club-scenes-054.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000235.BIN",
+      "bytes": 944
+    },
+    {
+      "logical": "data/interface/editor-legacy-gift-blast.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000236.BIN",
+      "bytes": 176
+    },
+    {
+      "logical": "data/interface/elysian-ob.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000237.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/frontier-titles.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000238.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/level-select.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000239.BIN",
+      "bytes": 7832
+    },
+    {
+      "logical": "data/interface/locale-font.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000240.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/interface/menu-labels.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000241.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/menu-scroll.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000242.BIN",
+      "bytes": 1112
+    },
+    {
+      "logical": "data/interface/pause-menu.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000243.BIN",
+      "bytes": 272
+    },
+    {
+      "logical": "data/interface/phone-overlays054.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000244.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/phone-plate-en054.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000245.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/phone-plate-ru054.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000246.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/profiles-art.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000247.BIN",
+      "bytes": 656
+    },
+    {
+      "logical": "data/interface/results-native.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000248.BIN",
+      "bytes": 9248
+    },
+    {
+      "logical": "data/interface/results-win.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000249.BIN",
+      "bytes": 9032
+    },
+    {
+      "logical": "data/interface/robert-atlas.rgba.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000250.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/selector-045-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000251.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/selector-046-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000252.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/interface/selector-046-world.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000253.BIN",
+      "bytes": 1208
+    },
+    {
+      "logical": "data/interface/selector-047-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000254.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/selector-048-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000255.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/selector-049-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000256.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/selector-050-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000257.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/interface/selector-051-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000258.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/selector-052-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000259.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/selector-053-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000260.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/interface/selector-details.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000261.BIN",
+      "bytes": 416
+    },
+    {
+      "logical": "data/interface/selector-dog-titles.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000262.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/selector-elysian-0203-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000263.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-elysian-0607-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000264.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-extra-park-titles.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000265.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-factory-titles.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000266.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/selector-final-park-titles.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000267.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/selector-frontier-050405-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000268.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-frontier-0607-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000269.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-frontier-1011-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000270.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-frontier-1213-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000271.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-frontier-1415-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000272.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-frontier-1617-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000273.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-frontier-18501-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000274.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-frontier-final-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000275.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-frontier-late-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000276.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-gift-burst.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000277.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/selector-gift-explosion.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000278.BIN",
+      "bytes": 800
+    },
+    {
+      "logical": "data/interface/selector-gifts.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000279.BIN",
+      "bytes": 416
+    },
+    {
+      "logical": "data/interface/selector-go.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000280.BIN",
+      "bytes": 200
+    },
+    {
+      "logical": "data/interface/selector-horse-050809-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000281.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-horse-051011-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000282.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-horse-051213-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000283.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-horse-051415-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000284.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/selector-horse-051617-titles.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000285.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/interface/selector-late-park-titles.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000286.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/selector-next-titles.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000287.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/selector-next-world-titles.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000288.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/interface/selector-park-titles.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000289.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/settings-widgets.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000290.BIN",
+      "bytes": 128
+    },
+    {
+      "logical": "data/interface/startup-intro.bin",
+      "physical": "PSP_GAME/USRDIR/A0000291.BIN",
+      "bytes": 20265
+    },
+    {
+      "logical": "data/interface/thoughts.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000292.BIN",
+      "bytes": 168824
+    },
+    {
+      "logical": "data/interface/title.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000293.BIN",
+      "bytes": 488
+    },
+    {
+      "logical": "data/interface/villa-checklist-en.ucr",
+      "physical": "PSP_GAME/USRDIR/A0000294.BIN",
+      "bytes": 175592
+    },
+    {
+      "logical": "data/interface/villa-checklist-ru.ucr",
+      "physical": "PSP_GAME/USRDIR/A0000295.BIN",
+      "bytes": 182571
+    },
+    {
+      "logical": "data/interface/villa-costume-actors054.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000296.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/villa-costume-residents054.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000297.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/interface/villa-pointer-labels.ucr",
+      "physical": "PSP_GAME/USRDIR/A0000298.BIN",
+      "bytes": 59642
+    },
+    {
+      "logical": "data/interface/villa-pointer.ucr",
+      "physical": "PSP_GAME/USRDIR/A0000299.BIN",
+      "bytes": 66703
+    },
+    {
+      "logical": "data/interface/villa-scenes-054.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000300.BIN",
+      "bytes": 200
+    },
+    {
+      "logical": "data/locale/en/golf.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000301.BIN",
+      "bytes": 608
+    },
+    {
+      "logical": "data/locale/en/objects.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000302.BIN",
+      "bytes": 440
+    },
+    {
+      "logical": "data/locale/en/park-marcy-text-3_06.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000303.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/locale/en/ranks-raw.pak",
+      "physical": "PSP_GAME/USRDIR/A0000304.BIN",
+      "bytes": 4194896
+    },
+    {
+      "logical": "data/locale/en/ranks.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000305.BIN",
+      "bytes": 1592
+    },
+    {
+      "logical": "data/locale/en/results.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000306.BIN",
+      "bytes": 224
+    },
+    {
+      "logical": "data/locale/ru/golf.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000307.BIN",
+      "bytes": 608
+    },
+    {
+      "logical": "data/locale/ru/objects.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000308.BIN",
+      "bytes": 440
+    },
+    {
+      "logical": "data/locale/ru/park-marcy-text-3_06.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000309.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/locale/ru/ranks-raw.pak",
+      "physical": "PSP_GAME/USRDIR/A0000310.BIN",
+      "bytes": 4194896
+    },
+    {
+      "logical": "data/locale/ru/ranks.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000311.BIN",
+      "bytes": 1592
+    },
+    {
+      "logical": "data/locale/ru/results.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000312.BIN",
+      "bytes": 224
+    },
+    {
+      "logical": "data/world/3_03-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000313.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_03-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000314.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_04-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000315.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_04-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000316.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_07-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000317.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_07-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000318.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_12-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000319.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_12-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000320.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_13-dog.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000321.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_13-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000322.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_13-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000323.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_14-dog.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000324.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_14-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000325.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_14-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000326.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_15-dog.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000327.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_15-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000328.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_15-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000329.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_16-dog-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000330.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_16-dog-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000331.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_16-dog-both.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000332.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_17-dog-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000333.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_17-dog-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000334.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_17-dog-both.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000335.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_17-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000336.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_17-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000337.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_18-end.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000338.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/3_18-start.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000339.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_02-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000340.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_02-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000341.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_02-switch-2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000342.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_02-switch-3.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000343.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_04-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000344.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_04-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000345.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_04-switch-2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000346.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_04-switch-3.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000347.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_05-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000348.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_05-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000349.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_05-switch-2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000350.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_05-switch-3.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000351.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_07-dog.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000352.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_08-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000353.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_08-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000354.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_08-switch-2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000355.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_08-switch-3.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000356.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_17-fake-goal-gate.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000357.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_17-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000358.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_17-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000359.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_17-switch-2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000360.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_17-switch-3.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000361.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/4_18-easy-tiles.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000362.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_04-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000363.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_05-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000364.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_06-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000365.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_07-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000366.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_08-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000367.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_09-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000368.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_10-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000369.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_11-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000370.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_12-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000371.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_12-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000372.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_12-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000373.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_13-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000374.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_14-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000375.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_14-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000376.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_14-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000377.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_14-switch-2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000378.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_14-switch-3.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000379.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_15-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000380.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_16-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000381.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_17-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000382.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/5_18-horse.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000383.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_03-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000384.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_03-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000385.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_04-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000386.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_04-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000387.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_06-rhythm-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000388.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_06-rhythm-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000389.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_06-rhythm-2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000390.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_07-rhythm-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000391.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_07-rhythm-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000392.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_07-rhythm-2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000393.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_07-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000394.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_07-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000395.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_08-rhythm-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000396.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_08-rhythm-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000397.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_08-rhythm-2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000398.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_09-rhythm-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000399.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_09-rhythm-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000400.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_09-rhythm-2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000401.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_10-rhythm-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000402.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_10-rhythm-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000403.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_10-rhythm-2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000404.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_11-rhythm-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000405.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_11-rhythm-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000406.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_11-rhythm-2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000407.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_11-rhythm-3.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000408.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_11-rhythm-4.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000409.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_11-rhythm-5.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000410.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_11-rhythm-6.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000411.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_12-switch-0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000412.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_12-switch-1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000413.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_12-switch-2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000414.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_12-switch-3.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000415.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_15-stuck.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000416.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_16-r1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000417.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_16-r2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000418.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_17-dog.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000419.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_17-r1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000420.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_17-r2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000421.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_17-s0.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000422.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_17-s1.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000423.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_17-s2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000424.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_17-s3.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000425.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/6_17-trap.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000426.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/actors.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000427.BIN",
+      "bytes": 392
+    },
+    {
+      "logical": "data/world/backrooms-clean057.bin",
+      "physical": "PSP_GAME/USRDIR/A0000428.BIN",
+      "bytes": 8196
+    },
+    {
+      "logical": "data/world/backrooms.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000429.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/baddies.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000430.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/billboards.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000431.BIN",
+      "bytes": 8504
+    },
+    {
+      "logical": "data/world/bort-bash-art.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000432.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cat-artist-art.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000433.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cat-artist-costumes.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000434.BIN",
+      "bytes": 752
+    },
+    {
+      "logical": "data/world/chuckle.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000435.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/club-npcs-054.bin",
+      "physical": "PSP_GAME/USRDIR/A0000436.BIN",
+      "bytes": 281558
+    },
+    {
+      "logical": "data/world/coaster-bg-3_18.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000437.BIN",
+      "bytes": 10808
+    },
+    {
+      "logical": "data/world/coaster-ride-3_18.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000438.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/coaster-scenery-3_18.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000439.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/coaster-springs.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000440.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/coaster-track-3_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000441.BIN",
+      "bytes": 224
+    },
+    {
+      "logical": "data/world/coaster.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000442.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-blocks-6_02.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000443.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/cosmic-blocks-6_05.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000444.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-carpet-6_02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000445.BIN",
+      "bytes": 224
+    },
+    {
+      "logical": "data/world/cosmic-course-6_15.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000446.BIN",
+      "bytes": 536
+    },
+    {
+      "logical": "data/world/cosmic-door-6_07.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000447.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/cosmic-door-6_10.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000448.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cosmic-earthbound-6_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000449.BIN",
+      "bytes": 416
+    },
+    {
+      "logical": "data/world/cosmic-earthbound-6_09.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000450.BIN",
+      "bytes": 416
+    },
+    {
+      "logical": "data/world/cosmic-earthbound-6_15.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000451.BIN",
+      "bytes": 416
+    },
+    {
+      "logical": "data/world/cosmic-ending053-art.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000452.BIN",
+      "bytes": 440
+    },
+    {
+      "logical": "data/world/cosmic-ending053-confetti.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000453.BIN",
+      "bytes": 5624
+    },
+    {
+      "logical": "data/world/cosmic-ending053-glass.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000454.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cosmic-ending053-track.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000455.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_03-state1.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000456.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_04-state1.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000457.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_06-state1.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000458.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_06-state2.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000459.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_07-state1.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000460.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_07-state2.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000461.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_07-state3.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000462.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_07-state4.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000463.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_07-state5.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000464.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_08-state1.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000465.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_08-state2.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000466.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_09-state0.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000467.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_09-state1.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000468.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_09-state2.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000469.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_10-state0.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000470.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_10-state1.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000471.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_10-state2.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000472.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_11-state0.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000473.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_11-state1.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000474.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_11-state2.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000475.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_11-state3.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000476.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_11-state4.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000477.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_11-state5.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000478.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_11-state6.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000479.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_12-state1.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000480.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_12-state2.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000481.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-fallback-6_12-state3.z.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000482.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-field-6_01.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000483.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-field-6_02.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000484.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-field-6_03.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000485.BIN",
+      "bytes": 248
+    },
+    {
+      "logical": "data/world/cosmic-field-6_04.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000486.BIN",
+      "bytes": 248
+    },
+    {
+      "logical": "data/world/cosmic-field-6_05.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000487.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-field-6_06.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000488.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/world/cosmic-field-6_07.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000489.BIN",
+      "bytes": 632
+    },
+    {
+      "logical": "data/world/cosmic-field-6_08.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000490.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/world/cosmic-field-6_09.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000491.BIN",
+      "bytes": 440
+    },
+    {
+      "logical": "data/world/cosmic-field-6_10.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000492.BIN",
+      "bytes": 440
+    },
+    {
+      "logical": "data/world/cosmic-field-6_11.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000493.BIN",
+      "bytes": 824
+    },
+    {
+      "logical": "data/world/cosmic-field-6_12.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000494.BIN",
+      "bytes": 440
+    },
+    {
+      "logical": "data/world/cosmic-field-6_13.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000495.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-flag-6_01.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000496.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-flag-6_02.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000497.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-flag-6_03.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000498.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-flag-6_04.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000499.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-flag-6_05.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000500.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-flag-6_06.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000501.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-flag-6_07.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000502.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-flag-6_08.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000503.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-flag-6_09.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000504.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-flag-6_10.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000505.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-flag-6_11.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000506.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-flag-6_12.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000507.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-gate-label-6_01.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000508.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cosmic-gate-pattern-6_01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000509.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cosmic-gate-props-6_01.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000510.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/cosmic-glass-6_15.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000511.BIN",
+      "bytes": 536
+    },
+    {
+      "logical": "data/world/cosmic-gloss-6_06.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000512.BIN",
+      "bytes": 11000
+    },
+    {
+      "logical": "data/world/cosmic-gloss-6_07-switch0.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000513.BIN",
+      "bytes": 11000
+    },
+    {
+      "logical": "data/world/cosmic-gloss-6_07-switch1.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000514.BIN",
+      "bytes": 11000
+    },
+    {
+      "logical": "data/world/cosmic-gloss-6_08.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000515.BIN",
+      "bytes": 11000
+    },
+    {
+      "logical": "data/world/cosmic-gloss-6_09.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000516.BIN",
+      "bytes": 14648
+    },
+    {
+      "logical": "data/world/cosmic-gloss-6_10.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000517.BIN",
+      "bytes": 14648
+    },
+    {
+      "logical": "data/world/cosmic-gloss-6_11-high.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000518.BIN",
+      "bytes": 14648
+    },
+    {
+      "logical": "data/world/cosmic-gloss-6_11-low.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000519.BIN",
+      "bytes": 14648
+    },
+    {
+      "logical": "data/world/cosmic-gloss-6_13.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000520.BIN",
+      "bytes": 3704
+    },
+    {
+      "logical": "data/world/cosmic-goals-6_14.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000521.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-key-6_15-a.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000522.BIN",
+      "bytes": 3128
+    },
+    {
+      "logical": "data/world/cosmic-key-6_15-b.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000523.BIN",
+      "bytes": 2960
+    },
+    {
+      "logical": "data/world/cosmic-layers-6_16.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000524.BIN",
+      "bytes": 296
+    },
+    {
+      "logical": "data/world/cosmic-layers-6_17.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000525.BIN",
+      "bytes": 488
+    },
+    {
+      "logical": "data/world/cosmic-layers-6_18.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000526.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-light-field-6_12.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000527.BIN",
+      "bytes": 440
+    },
+    {
+      "logical": "data/world/cosmic-lights-053.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000528.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-metronome-048.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000529.BIN",
+      "bytes": 1112
+    },
+    {
+      "logical": "data/world/cosmic-moving-goal-6_13.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000530.BIN",
+      "bytes": 248
+    },
+    {
+      "logical": "data/world/cosmic-parallax-6_15.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000531.BIN",
+      "bytes": 392
+    },
+    {
+      "logical": "data/world/cosmic-plants-046.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000532.BIN",
+      "bytes": 2936
+    },
+    {
+      "logical": "data/world/cosmic-plants-6_07.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000533.BIN",
+      "bytes": 11576
+    },
+    {
+      "logical": "data/world/cosmic-plants-6_13.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000534.BIN",
+      "bytes": 2936
+    },
+    {
+      "logical": "data/world/cosmic-portals-6_08.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000535.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cosmic-portals-6_11.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000536.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/cosmic-props-6_15.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000537.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-props-6_16.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000538.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-props-6_17.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000539.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/cosmic-props-6_18.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000540.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/cosmic-rainbow-6_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000541.BIN",
+      "bytes": 128
+    },
+    {
+      "logical": "data/world/cosmic-santa-6_15.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000542.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-sky-6_13.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000543.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-sky-6_17.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000544.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-stuck-6_15.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000545.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/cosmic-trap-6_17.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000546.BIN",
+      "bytes": 248
+    },
+    {
+      "logical": "data/world/cosmic-ufo-6_17.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000547.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/cosmic-water-6_07.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000548.BIN",
+      "bytes": 2360
+    },
+    {
+      "logical": "data/world/cosmic-water-6_11.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000549.BIN",
+      "bytes": 3128
+    },
+    {
+      "logical": "data/world/cosmic-water-6_14.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000550.BIN",
+      "bytes": 1592
+    },
+    {
+      "logical": "data/world/cosmic-water-gloss-6_11-high.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000551.BIN",
+      "bytes": 3704
+    },
+    {
+      "logical": "data/world/cosmic-water-gloss-6_11-low.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000552.BIN",
+      "bytes": 3704
+    },
+    {
+      "logical": "data/world/cosmic-weather-6_05.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000553.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/costume-scares056.bin",
+      "physical": "PSP_GAME/USRDIR/A0000554.BIN",
+      "bytes": 3449596
+    },
+    {
+      "logical": "data/world/costume-screen056.bin",
+      "physical": "PSP_GAME/USRDIR/A0000555.BIN",
+      "bytes": 354002
+    },
+    {
+      "logical": "data/world/decorations.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000556.BIN",
+      "bytes": 1304
+    },
+    {
+      "logical": "data/world/dense-blocks-3_08.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000557.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-art.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000558.BIN",
+      "bytes": 43856
+    },
+    {
+      "logical": "data/world/editor-aux/HUD/timer.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000559.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserCard0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000560.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserCard1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000561.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserCard2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000562.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserDescription.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000563.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserGo0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000564.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserGo1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000565.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserGo2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000566.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserHScrollBar_grabber.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000567.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserHScrollBar_grabber_highlight.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000568.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserHScrollBar_grabber_pressed.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000569.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserHScrollBar_scroll.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000570.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserHScrollBar_scroll_focus.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000571.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserRank_atrocious.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000572.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserRank_erm.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000573.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserRank_norank.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000574.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserRank_ok.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000575.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserRank_peak.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000576.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserRank_swag.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000577.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserSubFocus.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000578.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserSublevel0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000579.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserSublevel1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000580.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserSublevel2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000581.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserVScrollBar_grabber.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000582.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserVScrollBar_grabber_highlight.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000583.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserVScrollBar_grabber_pressed.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000584.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserVScrollBar_scroll.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000585.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/BrowserVScrollBar_scroll_focus.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000586.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/browser/default-world.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000587.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawIcon_grabber.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000588.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawIcon_grabber_disabled.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000589.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawIcon_grabber_highlight.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000590.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawNarrow_grabber_area_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000591.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawNarrow_grabber_area_2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000592.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawNarrow_grabber_area_3.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000593.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawNarrow_grabber_area_4.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000594.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawNarrow_grabber_area_5.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000595.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawNarrow_grabber_area_6.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000596.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawNarrow_grabber_area_7.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000597.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawNarrow_grabber_area_highlight_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000598.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawNarrow_grabber_area_highlight_2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000599.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawNarrow_grabber_area_highlight_3.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000600.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawNarrow_grabber_area_highlight_4.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000601.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawNarrow_grabber_area_highlight_5.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000602.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawNarrow_grabber_area_highlight_6.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000603.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawNarrow_grabber_area_highlight_7.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000604.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawStyle_focus.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000605.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawStyle_grabber_area.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000606.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawStyle_grabber_area_highlight.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000607.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/color-channels/ChannelRawStyle_slider.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000608.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/enemy/car.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000609.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/editor-aux/error.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000610.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/browser-font-0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000611.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/browser-font-1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000612.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/browser-font-2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000613.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/browser-font-3.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000614.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/browser-font-4.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000615.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/browser-font-5.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000616.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/browser-font-6.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000617.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/hud0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000618.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/hud1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000619.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/hud2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000620.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/hud3.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000621.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/hud4.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000622.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/hud5.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000623.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/hud6.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000624.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/hud7.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000625.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/score-literal20.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000626.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/fonts/score20.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000627.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/gimmicks/uncanny/gravestone.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000628.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menu/prism-black.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000629.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menu/prism.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000630.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuIcon_checked.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000631.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuIcon_checked_disabled.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000632.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuIcon_radio_checked.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000633.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuIcon_radio_checked_disabled.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000634.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuIcon_radio_unchecked.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000635.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuIcon_radio_unchecked_disabled.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000636.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuIcon_submenu.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000637.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuIcon_submenu_mirrored.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000638.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuIcon_unchecked.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000639.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuIcon_unchecked_disabled.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000640.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuItem_ColorPalette_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000641.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuItem_ColorPalette_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000642.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuItem_ColorPalette_2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000643.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuItem_ColorShape_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000644.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuItem_ColorShape_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000645.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuItem_ColorShape_2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000646.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuItem_ColorShape_3.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000647.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuItem_song_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000648.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuItem_song_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000649.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuItem_song_2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000650.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuItem_song_3.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000651.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuItem_song_4.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000652.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuItem_song_5.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000653.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuStyle_hover.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000654.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuStyle_labeled_separator_left.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000655.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuStyle_labeled_separator_right.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000656.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuStyle_panel.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000657.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/menus/MenuStyle_separator.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000658.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/minigames/bartbash/boom.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000659.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/minigames/bartbash/bort.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000660.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/modifier/bee.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000661.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/modifier/missile_reticle.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000662.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker-named/core-blank-0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000663.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker-named/core-blank-1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000664.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker-named/core-blank-2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000665.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker-named/core-blank-3.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000666.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker-named/font-0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000667.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker-named/font-1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000668.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker-named/font-2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000669.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker-named/font-3.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000670.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerAdd16_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000671.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerAdd16_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000672.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerAdd16_2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000673.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerAdd_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000674.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerAdd_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000675.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerAdd_2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000676.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_176_0_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000677.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_176_0_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000678.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_176_1_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000679.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_176_1_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000680.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_176_2_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000681.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_176_2_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000682.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_176_3_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000683.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_176_3_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000684.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_184_0_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000685.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_184_0_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000686.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_184_1_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000687.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_184_1_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000688.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_184_2_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000689.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_184_2_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000690.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_184_3_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000691.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_184_3_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000692.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_193_0_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000693.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_193_0_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000694.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_193_1_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000695.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_193_1_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000696.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_193_2_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000697.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_193_2_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000698.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_193_3_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000699.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerCore_193_3_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000700.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_176_0_0_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000701.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_176_0_0_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000702.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_176_0_1_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000703.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_176_0_1_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000704.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_176_1_0_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000705.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_176_1_0_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000706.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_176_1_1_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000707.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_176_1_1_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000708.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_184_0_0_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000709.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_184_0_0_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000710.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_184_0_1_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000711.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_184_0_1_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000712.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_184_1_0_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000713.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_184_1_0_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000714.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_184_1_1_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000715.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_184_1_1_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000716.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_193_0_0_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000717.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_193_0_0_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000718.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_193_0_1_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000719.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_193_0_1_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000720.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_193_1_0_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000721.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_193_1_0_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000722.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_193_1_1_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000723.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerHeader_193_1_1_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000724.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerIcon_bar_arrow.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000725.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerIcon_menu_option.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000726.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerIcon_overbright_indicator.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000727.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerIcon_picker_cursor.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000728.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerIcon_picker_cursor_bg.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000729.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerIcon_sample_bg.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000730.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerIcon_sample_revert.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000731.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerIcon_screen_picker.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000732.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerIcon_shape_circle.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000733.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerIcon_shape_rect.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000734.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerIcon_shape_rect_wheel.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000735.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerPopupPanel.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000736.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerPresetBg.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000737.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_176_0_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000738.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_176_0_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000739.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_176_1_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000740.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_176_1_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000741.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_176_2_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000742.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_176_2_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000743.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_176_3_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000744.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_176_3_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000745.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_184_0_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000746.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_184_0_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000747.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_184_1_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000748.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_184_1_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000749.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_184_2_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000750.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_184_2_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000751.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_184_3_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000752.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_184_3_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000753.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_193_0_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000754.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_193_0_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000755.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_193_1_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000756.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_193_1_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000757.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_193_2_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000758.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_193_2_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000759.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_193_3_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000760.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerShape_193_3_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000761.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerSwatch_16_16_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000762.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerSwatch_16_16_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000763.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerSwatch_16_16_2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000764.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerSwatch_16_25_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000765.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerSwatch_16_25_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000766.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerSwatch_16_25_2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000767.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerSwatch_25_16_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000768.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerSwatch_25_16_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000769.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerSwatch_25_16_2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000770.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerSwatch_25_25_0.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000771.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerSwatch_25_25_1.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000772.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/picker/PickerSwatch_25_25_2.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000773.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_arle.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000774.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_arle_ghost.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000775.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_bingus.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000776.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_bingus_ghost.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000777.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_builder.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000778.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_canny.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000779.BIN",
+      "bytes": 128
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_cannydigo.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000780.BIN",
+      "bytes": 128
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_catfish.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000781.BIN",
+      "bytes": 248
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_catfish_ghost.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000782.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_chen.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000783.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_chen_ghost.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000784.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_dog.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000785.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_horse.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000786.BIN",
+      "bytes": 128
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_minnie.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000787.BIN",
+      "bytes": 224
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_mscanny.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000788.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_mscanny_ghost.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000789.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_nothing.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000790.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_peak.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000791.BIN",
+      "bytes": 128
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_peak_ghost.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000792.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_pig.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000793.BIN",
+      "bytes": 200
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_ploobie.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000794.BIN",
+      "bytes": 128
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_ploobie_ghost.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000795.BIN",
+      "bytes": 128
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_rainbow_canny.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000796.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_retro.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000797.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_retro_ghost.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000798.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_robert.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000799.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_rudy.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000800.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_swag.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000801.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_true.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000802.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_true_ghost.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000803.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_uncanny.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000804.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_veteran.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000805.BIN",
+      "bytes": 128
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_veteran_ghost.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000806.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_wires.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000807.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/editor-aux/player/costume_wires_ghost.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000808.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/editor-aux/stage/misc/backrooms.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000809.BIN",
+      "bytes": 224
+    },
+    {
+      "logical": "data/world/editor-aux/stage/misc/out_of_bounds.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000810.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-collision.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000811.BIN",
+      "bytes": 224
+    },
+    {
+      "logical": "data/world/editor-entry.bin",
+      "physical": "PSP_GAME/USRDIR/A0000812.BIN",
+      "bytes": 574333
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/1-1.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000813.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/1-2.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000814.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/1-3.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000815.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/1-4.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000816.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/1-5.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000817.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/1-6.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000818.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/1-7.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000819.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/1-71.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000820.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/1-8.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000821.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/1-9.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000822.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/2-1.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000823.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/2-2.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000824.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/2-3.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000825.BIN",
+      "bytes": 128
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/666.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000826.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/FUCK.ogg.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000827.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/ScaryMaze.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000828.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/black.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000829.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/customgametiles.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000830.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/examplegametiles.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000831.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/gd.jpg.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000832.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/icon.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000833.BIN",
+      "bytes": 200
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/info.json.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000834.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/joe.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000835.BIN",
+      "bytes": 296
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/ohiobg.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000836.BIN",
+      "bytes": 560
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/ohiotiles.png.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000837.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/song.ogg.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000838.BIN",
+      "bytes": 1400
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/song2.ogg.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000839.BIN",
+      "bytes": 1448
+    },
+    {
+      "logical": "data/world/editor-examples/ExampleWorld/uncanny.ogg.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000840.BIN",
+      "bytes": 128
+    },
+    {
+      "logical": "data/world/editor-floor.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000841.BIN",
+      "bytes": 5840
+    },
+    {
+      "logical": "data/world/editor-font-browser.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000842.BIN",
+      "bytes": 560
+    },
+    {
+      "logical": "data/world/editor-font-hud.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000843.BIN",
+      "bytes": 872
+    },
+    {
+      "logical": "data/world/editor-font-legacy.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000844.BIN",
+      "bytes": 272
+    },
+    {
+      "logical": "data/world/editor-font-score.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000845.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-gift-source.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000846.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/editor-gift.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000847.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-icons.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000848.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/editor-light.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000849.BIN",
+      "bytes": 6344
+    },
+    {
+      "logical": "data/world/editor-nuke-indexed.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000850.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/editor-nuke.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000851.BIN",
+      "bytes": 536
+    },
+    {
+      "logical": "data/world/editor-settings.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000852.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/world/editor-source-indexed.bin",
+      "physical": "PSP_GAME/USRDIR/A0000853.BIN",
+      "bytes": 5812442
+    },
+    {
+      "logical": "data/world/editor-tiles.rgba.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000854.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/editor-whole-cpu.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000855.BIN",
+      "bytes": 200
+    },
+    {
+      "logical": "data/world/elysian-car-5_11.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000856.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/elysian-finale-5_18.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000857.BIN",
+      "bytes": 248
+    },
+    {
+      "logical": "data/world/elysian-horse-defeat-5_18.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000858.BIN",
+      "bytes": 248
+    },
+    {
+      "logical": "data/world/elysian-mine-blasts-5_18.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000859.BIN",
+      "bytes": 656
+    },
+    {
+      "logical": "data/world/elysian-mines-5_18.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000860.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/elysian-mist-051415.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000861.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/elysian-neutral-5_18.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000862.BIN",
+      "bytes": 224
+    },
+    {
+      "logical": "data/world/elysian-portals-5_15.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000863.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/elysian-secret-5_18.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000864.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/world/elysian-secret-labels-5_18.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000865.BIN",
+      "bytes": 320
+    },
+    {
+      "logical": "data/world/elysian-spawner-5_13.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000866.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/elysian-spells-5_16.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000867.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/elysian-switch-faces-5_14.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000868.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/elysian-trees-5_15.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000869.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/elysian-water-5_18.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000870.BIN",
+      "bytes": 416
+    },
+    {
+      "logical": "data/world/elysian-wizard-5_16.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000871.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/ending-costume057.bin",
+      "physical": "PSP_GAME/USRDIR/A0000872.BIN",
+      "bytes": 19226845
+    },
+    {
+      "logical": "data/world/ending-player-first057.bin",
+      "physical": "PSP_GAME/USRDIR/A0000873.BIN",
+      "bytes": 440032
+    },
+    {
+      "logical": "data/world/endless-00-ru.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000874.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/endless-00.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000875.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/endless-01.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000876.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/endless-02.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000877.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/endless-03-alt.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000878.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/endless-03.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000879.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/endless-04-art.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000880.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/endless-04.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000881.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/endless-05-rings.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000882.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/endless-05-rotate-2.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000883.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/endless-05-rotate-3.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000884.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/endless-05-rotate-4.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000885.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/endless-05.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000886.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/endless-06-alt.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000887.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/endless-06.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000888.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/endless-07-ru.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000889.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/endless-07.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000890.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/endless-08.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000891.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/endless-09.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000892.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/endless-modifiers.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000893.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/endless-objects-art.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000894.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/endless-particles056.bin",
+      "physical": "PSP_GAME/USRDIR/A0000895.BIN",
+      "bytes": 83988
+    },
+    {
+      "logical": "data/world/endless-presentation.bin",
+      "physical": "PSP_GAME/USRDIR/A0000896.BIN",
+      "bytes": 655600
+    },
+    {
+      "logical": "data/world/frontier-bed-4_18.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000897.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-big-coin-4_06.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000898.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-block-4_11.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000899.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-chuckle-4_08.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000900.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-clouds-5_01.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000901.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-clouds-5_02.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000902.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-clouds-5_07.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000903.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-clouds-5_08.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000904.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-clouds-5_09.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000905.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-clouds-5_10.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000906.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-clouds-5_14.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000907.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-dblock-5_09.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000908.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-dog-4_07.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000909.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-horse-050405.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000910.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/frontier-horse-meter-050405.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000911.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/frontier-light-1011.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000912.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-light-4_18.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000913.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-lights-1617.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000914.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-night-1213.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000915.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-night-1415.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000916.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/frontier-night-4_09.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000917.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-nuke-4_07.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000918.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-nuke-4_08.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000919.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/frontier-nuke-explosions.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000920.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/frontier-prism-4_18.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000921.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/frontier-props-4_16.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000922.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/frontier-props-4_17.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000923.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/frontier-switch-5_12.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000924.BIN",
+      "bytes": 248
+    },
+    {
+      "logical": "data/world/frontier-switch-5_14.ucr.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000925.BIN",
+      "bytes": 248
+    },
+    {
+      "logical": "data/world/gimmicks.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000926.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/glowstick.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000927.BIN",
+      "bytes": 7352
+    },
+    {
+      "logical": "data/world/goal-flags.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000928.BIN",
+      "bytes": 680
+    },
+    {
+      "logical": "data/world/keydoors.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000929.BIN",
+      "bytes": 248
+    },
+    {
+      "logical": "data/world/meowls-art.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000930.BIN",
+      "bytes": 440
+    },
+    {
+      "logical": "data/world/meowls-presentation.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000931.BIN",
+      "bytes": 7376
+    },
+    {
+      "logical": "data/world/news.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000932.BIN",
+      "bytes": 1976
+    },
+    {
+      "logical": "data/world/park-art.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000933.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/park-ash-3_10.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000934.BIN",
+      "bytes": 248
+    },
+    {
+      "logical": "data/world/park-balloon-motion-3_12.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000935.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/park-balloons-3_07.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000936.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-balloons-3_12.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000937.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-blocks-3_02.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000938.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-blocks-3_05.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000939.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-blocks-3_06.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000940.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-blocks-3_08.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000941.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/park-blocks-3_09.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000942.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-blocks-4_01.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000943.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-blocks-5_06.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000944.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-camera-3_16.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000945.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/park-carousel-3_02.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000946.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/park-decor-3_07.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000947.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/park-decoration-3_12.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000948.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/park-dog-3_13.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000949.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/park-dog-3_14.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000950.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/park-dog-3_15.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000951.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/park-dog-tiles-3_13.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000952.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-dog-tiles-3_14.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000953.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-dog-tiles-3_15.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000954.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-dog-tiles-3_16.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000955.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/park-dog-tiles-3_17.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000956.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-dogs-3_16-17.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000957.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/park-doors-3_07.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000958.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-doors-3_11.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000959.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-flag-3_04.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000960.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-key-doors-3_17.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000961.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-lights-3_10.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000962.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-marcy-hud-3_06.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000963.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/park-marcy-spill-3_06.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000964.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/park-screen-3_13.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000965.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/park-spawner-3_07.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000966.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-stage-3_02.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000967.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/park-stage-3_03.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000968.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/park-stage-3_05.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000969.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/park-stage-3_06.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000970.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-stage-3_07.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000971.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/park-stage-3_11.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000972.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-stage-3_12.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000973.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-stage-3_14.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000974.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/park-stage-3_16.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000975.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-stage-3_17.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000976.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-stage-5_12.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000977.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-stage.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000978.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-switch-3_03.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000979.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/park-switch-3_07.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000980.BIN",
+      "bytes": 152
+    },
+    {
+      "logical": "data/world/park-switch-3_12.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000981.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/park-switch-3_13.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000982.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/park-switch-3_14.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000983.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/park-switch-3_15.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000984.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/park-switch-3_17.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000985.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/park-switch-faces.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000986.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/park-tiles-3_04.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000987.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/pool.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000988.BIN",
+      "bytes": 272
+    },
+    {
+      "logical": "data/world/profile-delete.ucpd",
+      "physical": "PSP_GAME/USRDIR/A0000989.BIN",
+      "bytes": 38430
+    },
+    {
+      "logical": "data/world/slots.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000990.BIN",
+      "bytes": 344
+    },
+    {
+      "logical": "data/world/snow-4_01.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000991.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/snow-dog-tiles-4_07.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000992.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/snow-gate-4_17.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000993.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/snow-portals-4_03.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000994.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/snow-portals-4_04.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000995.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/snow-portals-4_06.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000996.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/snow-switch-4_02.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000997.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/snow-switch-4_04.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000998.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/snow-switch-4_05.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0000999.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/snow-switch-4_08.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0001000.BIN",
+      "bytes": 80
+    },
+    {
+      "logical": "data/world/snow-switch-4_17.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0001001.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/snow-switch-faces.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0001002.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/sound-test-art.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0001003.BIN",
+      "bytes": 1376
+    },
+    {
+      "logical": "data/world/speed-tokens.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0001004.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/stop-tokens.pak.ucb",
+      "physical": "PSP_GAME/USRDIR/A0001005.BIN",
+      "bytes": 56
+    },
+    {
+      "logical": "data/world/uncanny-dash-art.bin.ucb",
+      "physical": "PSP_GAME/USRDIR/A0001006.BIN",
+      "bytes": 104
+    },
+    {
+      "logical": "data/world/world-gifts.bin",
+      "physical": "PSP_GAME/USRDIR/A0001007.BIN",
+      "bytes": 1080961
+    },
+    {
+      "logical": "storage.ucd",
+      "physical": "PSP_GAME/USRDIR/A0001008.BIN",
+      "bytes": 743555565
+    }
+  ]
+}

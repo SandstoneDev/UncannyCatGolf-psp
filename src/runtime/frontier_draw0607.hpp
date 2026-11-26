@@ -42,6 +42,7 @@ void drawProductionDog(const GameplayView& view,const Round& round,const DogGolf
     const float zoom=view.worldZoom()*round.dog.graphicScale/scene.graphicScale;
     const auto center=view.position(round.dog.body.center);
     patch(sprite,center.x+sprite.x*zoom,center.y+sprite.y*zoom,zoom);
+    ActorLabelDraw054::add(round.dog.label,view,round.dog.body.center,ActorPronouns054::Kind::Dog);
 }
 
 struct FrontierNukeView { const Vec2* centers; unsigned count; };

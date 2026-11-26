@@ -25,3 +25,4 @@ bool loadRhythmArt049(const char* executable,unsigned index) {
     return index!=CosmicEighthCourse || loadVramAtlas045(cosmicPortalArt608,
         assetPath(executable,"cosmic-portals-6_08.pak"),CosmicTailOffset046);
 }
+

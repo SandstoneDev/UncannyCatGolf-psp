@@ -386,3 +386,4 @@ void drawSantaProps(const GameplayView& view,const Round& round,bool result) {
                    at.x-ViewX,at.y-6,0.9f,White,true);
     }
 }
+

@@ -141,3 +141,4 @@ private:
     const SwitchStage* stage=nullptr;
     bool recovering=false;
 };
+

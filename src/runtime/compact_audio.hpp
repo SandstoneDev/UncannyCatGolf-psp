@@ -17,6 +17,7 @@ namespace ucg::packed_audio {
 
 template<unsigned Count>
 class Bank {
+    static constexpr unsigned LegacyCount = 226;
     static constexpr unsigned S16Stereo = 4;
     static constexpr unsigned FramesPerBlock = 4096;
     static constexpr unsigned Invalid = UINT32_MAX;
@@ -44,10 +45,38 @@ private:
         std::FILE* file = nullptr;
         unsigned base = 0, size = 0, position = 0, filePosition = Invalid;
         IoTiming* timing=nullptr;
+        const unsigned char* cache=nullptr;
+        unsigned cacheStart=0, cacheEnd=0;
     };
 
 public:
     enum class Open { Missing, Invalid, Ready };
+    static constexpr unsigned MusicInputReserve=48*1024;
+
+    unsigned musicInputReady() const {
+        return slice.cache && slice.position>=slice.cacheStart && slice.position<slice.cacheEnd?
+               slice.cacheEnd-slice.position:0;
+    }
+
+    bool canCacheMusic(unsigned id) const {
+        return musicTrack==id && slice.size-slice.position>=MusicInputReserve;
+    }
+
+    unsigned cacheMusicInput() {
+        slice.cache=nullptr;
+        const unsigned count=std::min<unsigned>(sizeof musicCache,slice.size-slice.position);
+        const unsigned offset=slice.base+slice.position;
+        slice.filePosition=Invalid;
+        if (std::fseek(music,offset,SEEK_SET)!=0 || std::fread(musicCache,1,count,music)!=count) {
+            std::clearerr(music);
+            return 0;
+        }
+        slice.filePosition=offset+count;
+        slice.cache=musicCache;
+        slice.cacheStart=slice.position;
+        slice.cacheEnd=slice.position+count;
+        return count;
+    }
     void measureIo(IoTiming* target) { measuredIo=target; slice.timing=target; }
 
     Bank() = default;
@@ -79,20 +108,22 @@ public:
         if (effects) std::fclose(effects);
         if (music) std::fclose(music);
         effects = music = nullptr;
-        blockTrack = blockIndex = tableTrack = Invalid;
+        blockTrack = blockIndex = Invalid;
+        for (auto& table:blockTables) table=BlockTable{};
     }
 
     bool ready() const { return music != nullptr; }
-    bool stream(unsigned id) const { return entries[id].flags & Stream; }
-    bool loop(unsigned id) const { return entries[id].flags & Loop; }
+    bool stream(unsigned id) const { return id<Count && (entries[id].flags & Stream); }
+    bool loop(unsigned id) const { return id<Count && (entries[id].flags & Loop); }
     unsigned frames(unsigned id) const {
-        return outputFrames(entries[id], entries[id].frames);
+        return id<Count?outputFrames(entries[id], entries[id].frames):0;
     }
     unsigned loopFrame(unsigned id) const {
-        return outputFrames(entries[id], entries[id].loopFrame);
+        return id<Count?outputFrames(entries[id], entries[id].loopFrame):0;
     }
 
     unsigned readEffect(unsigned id, unsigned position, int16_t* output, unsigned count) {
+        if (id>=Count) return 0;
         const Entry& entry = entries[id];
         if (entry.codec != Pcm || position >= entry.frames) return 0;
         count = std::min<unsigned>(count, entry.frames - position);
@@ -111,7 +142,10 @@ public:
     }
 
     unsigned readMusic(unsigned id, unsigned position, int16_t* output, unsigned count) {
-        if (entries[id].codec != Vorbis || position >= frames(id)) return 0;
+        if (id>=Count || position >= frames(id)) return 0;
+        if (id>=LegacyCount && entries[id].codec == Pcm && stream(id))
+            return readEffect(id,position,output,count);
+        if (entries[id].codec != Vorbis) return 0;
         if (musicTrack != id && !beginMusic(id)) return 0;
         if (musicPosition != position && !seekMusic(position)) {
             endMusic();
@@ -135,11 +169,21 @@ private:
     Entry entries[Count]{};
     std::FILE* effects = nullptr;
     std::FILE* music = nullptr;
-    unsigned blockTrack = Invalid, blockIndex = Invalid, tableTrack = Invalid;
+    unsigned blockTrack = Invalid, blockIndex = Invalid;
+    // Immutable bank metadata. Independent bounded windows prevent interleaved
+    // voices from seeking back to the offset table for every PCM page.
+    struct BlockTable {
+        static constexpr unsigned Capacity=8;
+        unsigned first=Invalid,count=0;
+        bool checked=false;
+        uint32_t locations[Capacity][2]{};
+    };
+    BlockTable blockTables[Count]{};
     alignas(64) int16_t blockPcm[2 * FramesPerBlock];
     alignas(64) unsigned char encoded[S16Stereo * FramesPerBlock];
     OggVorbis_File decoder{};
     Slice slice{};
+    unsigned char musicCache[64*1024];
     IoTiming* measuredIo=nullptr;
     unsigned musicTrack = Invalid, musicPosition = 0;
     unsigned sourceBase = 0, sourceCount = 0;
@@ -154,24 +198,37 @@ private:
         uint32_t header[4];
         if (std::fseek(effects, 0, SEEK_END) != 0) return false;
         const long end = std::ftell(effects);
-        if (end < static_cast<long>(sizeof(header) + sizeof(entries)) ||
+        if (end < static_cast<long>(sizeof(header)) ||
             std::fseek(effects, 0, SEEK_SET) != 0 || std::fread(header, sizeof(header), 1, effects) != 1 ||
-            header[0] != 0x41564355 || header[1] != 1 || header[2] != Count || header[3] != sizeof(Entry) ||
-            std::fread(entries, sizeof(Entry), Count, effects) != Count) return false;
-        unsigned offset = sizeof(header) + sizeof(entries);
+            header[0] != 0x41564355 || header[1] != 1 ||
+            (header[2] != Count &&
+             !((Count==LegacyCount || Count==362 || Count==364 || Count==365 || Count==371) &&
+               (header[2]==LegacyCount || header[2]==362 || header[2]==364 || header[2]==365 || header[2]==371))) || header[3] != sizeof(Entry) ||
+            static_cast<unsigned long>(end)>UINT32_MAX ||
+            header[2]>(static_cast<unsigned>(end)-sizeof(header))/sizeof(Entry)) return false;
+        // Legacy metadata remains strict even when the shared bank has appended cues.
+        // A standalone Main84 bank still exposes its original 226 entries.
+        unsigned offset = sizeof(header) + header[2]*sizeof(Entry);
         const unsigned bytes = static_cast<unsigned>(end);
-        for (const Entry& entry : entries) {
-            if (entry.offset != offset || !entry.bytes || entry.bytes > bytes - offset ||
-                !entry.frames || entry.channels != 2 || entry.loopFrame >= entry.frames) return false;
+        for (unsigned id=0;id<header[2];++id) {
+            Entry entry{};
+            if (std::fread(&entry,sizeof entry,1,effects)!=1) return false;
+            const bool legacy=id<LegacyCount;
+            if (entry.offset != offset || offset>bytes || !entry.bytes || entry.bytes > bytes - offset ||
+                !entry.frames || entry.channels<1 || entry.channels>2 ||
+                (legacy && entry.channels!=2) || entry.loopFrame >= entry.frames) return false;
             if (entry.codec == Vorbis) {
                 if (!(entry.flags & Stream) || (entry.flags & ~(Stream | Loop | ImportLoop)) ||
                     (entry.rate != 44100 && entry.rate != 48000)) return false;
-            } else if (entry.codec != Pcm || (entry.flags & ~Loop) || entry.rate != 44100 ||
-                       entry.loopFrame || entry.frames > UINT32_MAX / S16Stereo) {
+            } else if (entry.codec != Pcm || entry.channels!=2 ||
+                       (entry.flags & ~(legacy?Loop:(Stream|Loop|ImportLoop))) || entry.rate != 44100 ||
+                       (legacy && entry.loopFrame) || entry.frames > UINT32_MAX / S16Stereo) {
                 return false;
             }
+            if (id<Count) entries[id]=entry;
             offset += entry.bytes;
         }
+        if (header[2]<Count) std::fill(entries+header[2],entries+Count,Entry{});
         return offset == bytes;
     }
 
@@ -193,20 +250,27 @@ private:
         const unsigned blocks = (entry.frames + FramesPerBlock - 1) / FramesPerBlock;
         const unsigned dataStart = 12 + blocks * 8;
         if (block >= blocks || dataStart > entry.bytes) return false;
-        if (id != tableTrack) {
+        auto& table=blockTables[id];
+        if (!table.checked) {
             uint32_t header[3];
             const IoScope io(measuredIo);
             if (std::fseek(effects, entry.offset, SEEK_SET) != 0 ||
                 std::fread(header, sizeof(header), 1, effects) != 1 ||
                 header[0] != 0x4d43505a || header[1] != FramesPerBlock || header[2] != blocks) return false;
-            tableTrack = id;
+            table.checked = true;
         }
-        uint32_t loc[2];
-        {
+        if (block<table.first || block-table.first>=table.count) {
+            uint32_t incoming[BlockTable::Capacity][2];
+            const unsigned first=block/BlockTable::Capacity*BlockTable::Capacity;
+            const unsigned count=std::min<unsigned>(BlockTable::Capacity,blocks-first);
             const IoScope io(measuredIo);
-            if (std::fseek(effects, entry.offset + 12 + block * 8, SEEK_SET) != 0 ||
-                std::fread(loc, sizeof(loc), 1, effects) != 1) return false;
+            if (std::fseek(effects, entry.offset + 12 + first * 8, SEEK_SET) != 0 ||
+                std::fread(incoming, sizeof incoming[0], count, effects) != count) return false;
+            std::memcpy(table.locations,incoming,count*sizeof incoming[0]);
+            table.first=first;
+            table.count=count;
         }
+        const auto& loc=table.locations[block-table.first];
         const bool raw = loc[1] & RawBlock;
         const unsigned length = loc[1] & ~RawBlock;
         if (loc[0] < dataStart || loc[0] > entry.bytes || !length || length > sizeof(encoded) ||
@@ -233,6 +297,13 @@ private:
         auto& source = *static_cast<Slice*>(context);
         if (!size) return 0;
         count = std::min(count, (source.size - source.position) / size);
+        if (source.cache && source.position>=source.cacheStart && source.position<source.cacheEnd &&
+            count<=(source.cacheEnd-source.position)/size) {
+            const auto bytes=count*size;
+            std::memcpy(output,source.cache+source.position-source.cacheStart,bytes);
+            source.position+=bytes;
+            return count;
+        }
         const unsigned target = source.base + source.position;
         const IoScope io(source.timing);
         if (source.filePosition != target && std::fseek(source.file, target, SEEK_SET) != 0) return 0;
@@ -271,7 +342,7 @@ private:
         }
         musicTrack = id;
         const vorbis_info* info = ov_info(&decoder, 0);
-        if (!info || static_cast<uint32_t>(info->rate) != entry.rate || info->channels != 2 || ov_streams(&decoder) != 1 ||
+        if (!info || static_cast<uint32_t>(info->rate) != entry.rate || static_cast<unsigned>(info->channels) != entry.channels || ov_streams(&decoder) != 1 ||
             !ov_seekable(&decoder) || ov_pcm_total(&decoder, 0) != entry.frames) {
             endMusic();
             return false;
@@ -293,6 +364,23 @@ private:
     }
 
     unsigned readNative(int16_t* output, unsigned count) {
+        if (entries[musicTrack].channels==1) {
+            unsigned read=0;
+            while (read<count) {
+                int link=-1;
+                auto* samples=output+read*2;
+                const long bytes=ov_read(&decoder,reinterpret_cast<char*>(samples),
+                                         (count-read)*sizeof(int16_t),0,2,1,&link);
+                if (bytes<=0 || link!=0 || bytes%sizeof(int16_t)) break;
+                const unsigned frames=bytes/sizeof(int16_t);
+                for (unsigned i=frames;i>0;--i) {
+                    const int16_t sample=samples[i-1];
+                    samples[2*i-2]=samples[2*i-1]=sample;
+                }
+                read+=frames;
+            }
+            return read;
+        }
         unsigned read = 0;
         while (read < count) {
             int link = -1;

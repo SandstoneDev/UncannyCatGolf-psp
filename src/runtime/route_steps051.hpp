@@ -11,3 +11,4 @@ inline constexpr unsigned CosmicSwitchTicks612[]={158,344,595};
 
 inline constexpr CosmicStroke051 CosmicRoute613[]={{8,-127,30}};
 inline constexpr unsigned CosmicWinTick613=112,CosmicWinBounces613=4;
+

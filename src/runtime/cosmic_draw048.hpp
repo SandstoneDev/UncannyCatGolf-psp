@@ -107,3 +107,4 @@ void drawCosmicDoor607(const GameplayView& view,const Round& round) {
     if (alpha) actor(view,cosmicDoor607.patch(1),center,view.worldScale(),GU_RGBA(255,255,255,alpha));
     if (opened) drawDestruction(view,center,round.ticks-state.openedAt[0],CosmicDoorScore607);
 }
+

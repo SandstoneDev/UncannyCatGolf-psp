@@ -141,3 +141,4 @@ inline float frontierSnowSeconds(unsigned ticks) {
     const float elapsed=(phase-FrontierWindFade)*secondsPerTick;
     return cycles+1.8f+elapsed*(0.7f-0.6f*elapsed);
 }
+
