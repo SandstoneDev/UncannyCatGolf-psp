@@ -103,11 +103,13 @@ void finishProfileMap(Flow& flow,SaveFile& save) {
 void updateProfiles(Flow& flow,uint32_t pressed,const char* log,const Game& game,SaveFile& save,uint32_t held) {
     if (profileDeletePrompt.shown) {
         const unsigned slot=profileDeleteToken.slot;
-        if (profileDeleteReady && !profileDeleteReady(slot)) return;
         const auto action=profileDeletePrompt.input(pressed&PSP_CTRL_CROSS,held&PSP_CTRL_CROSS,
             pressed&PSP_CTRL_CIRCLE,pressed&PSP_CTRL_LEFT,pressed&PSP_CTRL_RIGHT);
         if (action==ProfileDelete::Action::Cancel) {profileDeleteToken={};audio.play(Sound::Back);}
         if (action==ProfileDelete::Action::Confirm) {
+            if(profileDeleteReady && !profileDeleteReady(slot)) {
+                profileDeleteToken={};profileError=true;audio.play(Sound::Back);return;
+            }
             const auto result=profiles.confirmDelete(profileDeleteToken);
             profileDeleteToken={};
             profileError=result!=Profiles::DeleteResult::Archived;

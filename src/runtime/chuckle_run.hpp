@@ -125,7 +125,7 @@ struct ChuckleRun {
                 continue;
             }
             if (spawnEnabled || swarmEnabled) {
-                const Vec2 correction=peerCorrection(i,optimizeSwarm);
+                const Vec2 correction=peerCorrection(i,optimizeSwarm,optimizeSwarm?&peerGrid:nullptr);
                 if (dot(correction,correction)>0) {
                     const auto contact=sweepSolids(body.center,correction,body.radius);
                     body.center=body.center+correction*std::min(1.0f,contact.time);
@@ -214,21 +214,45 @@ private:
     unsigned spawnTick=0,nextSpawnAt=FirstSpawnTick,lastSpawnAt=0;
     unsigned bornAt[SwarmCapacity]{};
 
-    Vec2 peerCorrection(unsigned index,bool rejectSeparated=false) const {
+    Vec2 peerCorrection(unsigned index,bool rejectSeparated=false,SwarmPeerGrid066* grid=nullptr) const {
         // The spawner may place a body on top of a surviving Chuckle.
         const auto& body=bodies[index];
         Vec2 correction{};
-        for (unsigned j=0;j<count;++j) {
-            if (j==index || bodies[j].radius<=0) continue;
+        const auto correctPeer=[&](unsigned j) {
+            if (j==index || bodies[j].radius<=0) return false;
             const float clearance=body.radius+bodies[j].radius;
             const Vec2 delta=body.center+correction-bodies[j].center;
-            if (rejectSeparated && (std::abs(delta.x)>clearance || std::abs(delta.y)>clearance)) continue;
+            if (rejectSeparated && (std::abs(delta.x)>clearance || std::abs(delta.y)>clearance)) return false;
             const float squared=dot(delta,delta);
-            if (squared>=clearance*clearance) continue;
+            if (squared>=clearance*clearance) return false;
             const float distance=std::sqrt(squared);
             const Vec2 normal=distance>0.001f?delta*(1.0f/distance):Vec2{index<j?1.0f:-1.0f,0};
             correction=correction+normal*((clearance-distance)*0.4f);
+            return true;
+        };
+        unsigned first=0;
+        SwarmPeerGrid066::Mask peers;
+        const bool indexed=grid && grid->query(body.center,peers);
+        if (indexed) {
+            bool corrected=false;
+            for (unsigned word=0;word<SwarmPeerGrid066::Words && !corrected;++word) {
+                uint32_t bits=peers.words[word];
+                while (bits) {
+                    const unsigned bit=static_cast<unsigned>(__builtin_ctz(bits));
+                    bits&=bits-1;
+                    const unsigned j=32*word+bit;
+                    if (correctPeer(j)) {
+                        first=j+1;
+                        corrected=true;
+                        break;
+                    }
+                }
+            }
+            if (!corrected) return correction;
         }
+        // A correction can introduce a later peer outside the initial mask.
+        // Resume the original full ascending suffix after the first correction.
+        for (unsigned j=first;j<count;++j) correctPeer(j);
         return correction;
     }
 

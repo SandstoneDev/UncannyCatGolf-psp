@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.6 / RC21 · 2026-11-27
+
+- Added one native PSP save for all eight profiles and shared progress, used by both ISO and EBOOT.
+- Added first-launch import of earlier progress. Existing native data takes priority; old progress files are no longer updated.
+- Check saving before HOME exit, game/editor transitions and Builder reward presentation. Fixed native utility startup admission after a process restart.
+- Reconstruct eligible last-chapter animation tiles in existing cached scratch memory before copying to VRAM.
+- Include the RC18 smiley query and text batching improvements. Content and EN/RU are retained.
+- Provide a separate optional native 100% save. Installation replaces the complete shared save.
+
+The editor remains very slow; its optimization is deferred. A paired RC21 hardware speed/audio comparison is pending. See [validation](docs/RC21_AUDIT.md).
+
 ## 0.6.9 / RC17 — 2026-11-26 (release)
 
 Published as the regular latest release. The same game archives and checksums are retained; their enclosed documentation records the earlier prerelease audit.

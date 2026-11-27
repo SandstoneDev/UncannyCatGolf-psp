@@ -36,10 +36,11 @@ class Adapter {
  bool bankOpen=false;
 public:
  struct Stats{uint64_t decodes=0,cacheHits=0,draws=0,getAttempts=0,errors=0;}stats;
+ std::function<bool(std::string&)> durable;
  Adapter()=default;Adapter(const Adapter&)=delete;Adapter&operator=(const Adapter&)=delete;
  bool init(const std::string& gameRoot,Sound playSound,std::string& e){
   shutdown();root=gameRoot;if(!root.empty()&&root.back()!='/'&&root.back()!='\\')root+='/';sound=std::move(playSound);error.clear();e.clear();stats={};
-  store.save=[this](uint32_t value,std::string& message){EditorBuilder::File file(path(EditorBuilder::FileName));if(file.write(value))return true;message="Cannot persist pending Builder gift";return false;};
+  store.save=[this](uint32_t value,std::string& message){EditorBuilder::File file(path(EditorBuilder::FileName));if(!file.write(value)){message="Cannot persist pending Builder gift";return false;}return !durable||durable(message);};
   EditorBuilder::File file(path(EditorBuilder::FileName));if(!store.restore(file.read(),e))return fail(e,e);
   presentation.restorePending();
   presentation.onSound=[this](EditorBuilder::Cue cue){

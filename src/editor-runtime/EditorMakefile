@@ -2,7 +2,7 @@ TARGET = build/ucg_editor
 OBJS = build/editor_main.o build/storage_hooks.o
 CFLAGS = -O2 -G0 -Wall -Wextra -Werror -ffunction-sections -fdata-sections
 CXXFLAGS = -std=gnu++17 -fno-exceptions -fno-rtti -DUCG_EDITOR_MODULE $(EDITOR_TEST)
-LDFLAGS += -Wl,--gc-sections -Wl,--wrap=fopen
+LDFLAGS += -Wl,--gc-sections -Wl,--wrap=fopen -Wl,--wrap=rename -Wl,--wrap=unlink -Wl,--wrap=remove -Wl,--wrap=stat
 LIBS = -lpspsystemctrl_user -lpsppower -lpsprtc -lpspgu -lpspaudio -lpsputility -lpng -ljpeg -lz -lvorbisfile -lvorbis -logg -lstdc++ -lm
 BUILD_PRX = 1
 PSP_FW_VERSION = 660

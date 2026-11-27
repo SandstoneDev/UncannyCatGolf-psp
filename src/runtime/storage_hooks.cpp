@@ -1,3 +1,4 @@
+#include "native_game074.hpp"
 #include "storage_hooks.hpp"
 #include "storage_stdio.hpp"
 #include "storage_pool.hpp"
@@ -187,4 +188,13 @@ unsigned poolPeakPinned(){return decodedPool.stats().peakPinned;}
 unsigned poolPinned(){return decodedPool.stats().pinned;}
 unsigned poolInvalidReleases(){return static_cast<unsigned>(decodedPool.stats().invalidReleases); }
 } // namespace ucg_storage
-extern "C" std::FILE* __wrap_fopen(const char* path,const char* mode) { return ucg_storage::wrap(path,mode); }
+extern "C" std::FILE* __wrap_fopen(const char* path,const char* mode) { bool recognized=false;auto*f=NativeGame074::router.open(path,mode,recognized);return recognized?f:ucg_storage::wrap(path,mode); }
+extern "C" int __real_rename(const char*,const char*);
+extern "C" int __real_unlink(const char*);
+extern "C" int __real_remove(const char*);
+extern "C" int __real_stat(const char*,struct stat*);
+extern "C" int __wrap_rename(const char*a,const char*b){bool known=false;const int r=NativeGame074::router.rename(a,b,known);return known?r:__real_rename(a,b);}
+extern "C" int __wrap_unlink(const char*p){bool known=false;const int r=NativeGame074::router.unlink(p,known);return known?r:__real_unlink(p);}
+extern "C" int __wrap_remove(const char*p){bool known=false;const int r=NativeGame074::router.unlink(p,known);return known?r:__real_remove(p);}
+extern "C" int __wrap_stat(const char*p,struct stat*s){bool known=false;const int r=NativeGame074::router.stat(p,s,known);return known?r:__real_stat(p,s);}
+

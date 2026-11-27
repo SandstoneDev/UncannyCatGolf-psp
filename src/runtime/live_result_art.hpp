@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstring>
 #include <string>
 #include <new>
 #include <zlib.h>
@@ -153,7 +154,7 @@ public:
                 unsigned long size=tile.bytes;
                 const auto* source=inMemory?cachedData+(tile.offset-cachedOffset):scratch+(tile.offset-tiles[0].offset);
                 if (uncompress(target,&size,source,tile.compressed)!=Z_OK || size!=tile.bytes) return false;
-            } else if (!decodeTile(file,tile,sprite.first+i,target,scratch,scratchBytes)) return false;
+            } else if (!decodeTile(file,tile,sprite.first+i,target,scratch,scratchBytes,!cached)) return false;
             if (cached) sceKernelDcacheWritebackRange(pixels,tile.bytes);
             slot.images[i]={tile,pixels};
             used+=tile.bytes;
@@ -203,14 +204,30 @@ private:
     }
 
     bool decodeTile(std::FILE* file,const Tile& tile,unsigned index,uint8_t* output,
-                    uint8_t* scratch,unsigned scratchBytes) const {
+                    uint8_t* scratch,unsigned scratchBytes,bool stageDelta) const {
         if (tile.reference) {
             Tile reference;
             if (tile.reference>index ||
                 std::fseek(file,tileOffset+(tile.reference-1)*sizeof(Tile),SEEK_SET)!=0 ||
                 std::fread(&reference,sizeof reference,1,file)!=1 || reference.reference ||
                 reference.bytes!=tile.bytes || reference.pitch!=tile.pitch || reference.rows!=tile.rows ||
-                reference.format!=tile.format || !readPayload(file,reference,scratch,scratchBytes)) return false;
+                reference.format!=tile.format) return false;
+            auto* const destination=output;
+            unsigned stagedBytes=0;
+            if (stageDelta && tile.bytes<=scratchBytes) {
+                const unsigned prefix=scratchBytes-tile.bytes;
+                const uintptr_t outputAddress=reinterpret_cast<uintptr_t>(output)&~uintptr_t(0x40000000u);
+                const uintptr_t scratchAddress=reinterpret_cast<uintptr_t>(scratch)&~uintptr_t(0x40000000u);
+                const bool separate=outputAddress<scratchAddress?scratchAddress-outputAddress>=tile.bytes:
+                    outputAddress-scratchAddress>=scratchBytes;
+                if (separate && reference.compressed<=prefix && tile.compressed<=prefix-reference.compressed) {
+                    // Reconstruct in the existing cached scratch tail, then write VRAM once.
+                    output=scratch+prefix;
+                    scratchBytes=prefix;
+                    stagedBytes=tile.bytes;
+                }
+            }
+            if (!readPayload(file,reference,scratch,scratchBytes)) return false;
             unsigned long bytes=reference.bytes;
             if (uncompress(output,&bytes,scratch,reference.compressed)!=Z_OK || bytes!=reference.bytes)
                 return false;
@@ -221,9 +238,12 @@ private:
                 if (uncompress2(difference,&bytes,scratch,&packedBytes)!=Z_OK ||
                     bytes!=tile.bytes || packedBytes!=tile.compressed) return false;
                 for (unsigned i=0;i<tile.bytes;++i) output[i]+=difference[i];
+                if (stagedBytes) std::memcpy(destination,output,stagedBytes);
                 return true;
             }
-            return addDelta(output,tile.bytes,scratch,tile.compressed);
+            const bool decoded=addDelta(output,tile.bytes,scratch,tile.compressed);
+            if (decoded && stagedBytes) std::memcpy(destination,output,stagedBytes);
+            return decoded;
         }
         if (!readPayload(file,tile,scratch,scratchBytes)) return false;
         unsigned long bytes=tile.bytes;

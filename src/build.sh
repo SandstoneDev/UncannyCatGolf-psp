@@ -9,7 +9,7 @@ command -v psp-config >/dev/null || { echo 'Install PSPSDK or set PSPDEV.' >&2; 
 command -v make >/dev/null || { echo 'Install make.' >&2; exit 1; }
 
 # Build clean copies so the frozen compiler inputs stay byte-for-byte intact.
-work=$(mktemp -d "${TMPDIR:-/tmp}/ucg-rc17-build.XXXXXXXX")
+work=$(mktemp -d "${TMPDIR:-/tmp}/ucg-rc21-build.XXXXXXXX")
 trap 'rm -rf -- "$work"' EXIT
 cp -R -- "$root/runtime" "$work/runtime"
 cp -R -- "$root/editor-runtime" "$work/editor-runtime"
@@ -28,4 +28,4 @@ cp -- "$work/runtime/PSP-GAME/UCG053END/EBOOT.PBP" "$output/EBOOT.PBP"
 cp -- "$work/editor-runtime/build/EDITOR.PBP" "$output/data/editor/EBOOT.PBP"
 printf 'Normal Main: %s\nEditor module: %s\n' "$output/EBOOT.PBP" "$output/data/editor/EBOOT.PBP"
 printf '%s\n' 'Both use MEMSIZE=1. ISO packaging reuses the same normal Main; do not enable UCG_DISC_BUILD.'
-printf '%s\n' 'Add the matching RC17 release data; this script does not regenerate asset banks or build an ISO.'
+printf '%s\n' 'Add the matching RC21 release data; this script does not regenerate asset banks or build an ISO.'

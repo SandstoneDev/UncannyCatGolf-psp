@@ -1,29 +1,21 @@
-# Saves and updates / Сохранения и обновление
+# Save data / Сохранения
 
-## Current RC17
+Progress is read and written through the native PSP Saved Data Utility:
+`PSP/SAVEDATA/UCGP00054GAME`. This single XMB entry contains all eight game profiles and shared unlocks, rewards, quest state, costumes and Endless records. EBOOT and ISO share it.
 
-Both the standard EBOOT and ISO use `PSP/GAME/UCG054` for mutable game state. Keep the entire folder when updating: profile files, shared world/config files, custom levels and any art/editor files. Do not delete it just because you launch the ISO. An EBOOT in a renamed folder uses that folder instead; the ISO always uses `UCG054`.
+The first launch imports the previous loose progress only when no native entry exists. An unreadable or corrupt native entry is reported, never replaced by empty progress. Once native data is valid, it is authoritative. Old loose files and per-profile XMB mirrors remain recovery copies; the new game does not update them. Keep a backup when upgrading or downgrading: RC17/RC18 cannot read the new shared native entry.
 
-The `PSP/SAVEDATA/UCGP00054PROFILE##` XMB entries are mirrors; do not treat them alone as a verified recovery backup. Copy the game-state folder too.
+Settings, player artwork and custom levels remain ordinary configuration/user-content files in `PSP/GAME/UCG054`. They are not campaign progress. Copy them separately when moving the entire installation.
 
-ISO и стандартный EBOOT RC17 используют общую `PSP/GAME/UCG054`. При обновлении сохраните всю папку: профили, общие открытия/настройки, свои уровни, рисунки и редакторские файлы. ISO тоже использует её. EBOOT в переименованной папке хранит данные рядом с собой; ISO всегда использует `UCG054`.
+The optional native 100% download is separate from both game archives. It replaces the whole shared entry, including every profile. Its profile 07 and shared unlocks are generated; its scores are not claimed as natural records. See its included README for the disclosed completion markers.
 
-Записи `PSP/SAVEDATA/UCGP00054PROFILE##` — зеркало XMB, а не отдельно проверенный способ восстановления. Основную папку игры тоже нужно копировать.
+## Русский
 
-## Old public053 builds
+Прогресс читается и записывается через нативную систему сохранений PSP:
+`PSP/SAVEDATA/UCGP00054GAME`. В одной записи меню PSP хранятся все восемь профилей и общие открытия, награды, задания, костюмы и результаты Endless. ISO и EBOOT используют эту запись совместно.
 
-Keep `PSP/GAME/UCG053`, `PSP/UCG053-ISO` and old PSP saved-data entries intact. RC17 does not automatically move those old directories. Back them up before experimenting; do not assume that blindly copying old shared configuration or XMB mirrors is a supported migration. Keep the old build side by side until your progress is confirmed. A missing profile in the new directory does not mean the old profile was deleted.
+При первом запуске старый прогресс переносится только при отсутствии нативного сейва. Повреждённый или недоступный сейв не заменяется пустым. После успешной загрузки нативный сейв становится основным. Старые файлы прогресса и прежние записи отдельных профилей остаются резервными копиями и больше не обновляются. При обновлении или откате сохраняйте резервную копию: RC17/RC18 не читают новый общий сейв.
 
-Сохраните `PSP/GAME/UCG053`, `PSP/UCG053-ISO` и старые записи PSP. RC17 не переносит эти папки автоматически. Сделайте резервную копию; слепое копирование старых общих настроек/зеркал XMB не считается проверенной миграцией. Оставьте старую версию рядом, пока не убедитесь в наличии нужного прогресса. Отсутствие профиля в новой папке не означает удаление старого.
+Настройки, рисунки игрока и созданные уровни остаются обычными файлами в `PSP/GAME/UCG054`. При переносе всей установки копируйте их отдельно.
 
-## Optional100%bonus save
-
-The game archives contain no personal saves and do not install the bonus save. Download it separately only if wanted. Back up the complete `PSP/GAME/UCG054` first. Its profile slot and shared-state replacement affect different scopes: profile07 replaces that slot; shared unlocks/quests apply to every profile. Restore your full backup to undo the shared-state replacement. Follow the exact file list/definition in the archive; it is a developer-generated unlock save, not a natural leaderboard record. It is intended for this RC17 state format, not the old053 release.
-
-Обычные архивы игры не содержат личных сейвов и не устанавливают бонусный. Он скачивается отдельно, только по желанию. Сначала скопируйте всю `PSP/GAME/UCG054`. Профиль07 заменяет этот слот; общие открытия/квесты влияют на все профили. Чтобы отменить замену общих данных, восстановите полную резервную копию. Точный список файлов и определение100%смотрите в архиве. Это сгенерированный сейв открытий, не рекорд естественного прохождения; формат рассчитан на RC17, не старый053.
-
-## Native PSP saves / Нативные сохранения PSP
-
-Both current EBOOT and ISO call the PSP savedata AUTOSAVE API to write a profile mirror under `PSP/SAVEDATA/UCGP00054PROFILE##`. This is not an ISO-only feature. The current runtime does not load profiles back through AUTOLOAD/LOAD: authoritative state is read from `PSP/GAME/UCG054`. The bonus archive therefore supplies those game-state files, including shared unlocks that a profile mirror alone would not restore.
-
-Нативная запись через PSP savedata работает у текущих EBOOT и ISO. Она создаёт зеркало профиля в `PSP/SAVEDATA/UCGP00054PROFILE##`; это не функция только для ISO. Обратная загрузка профиля через AUTOLOAD/LOAD пока не подключена. Основные данные игра читает из `PSP/GAME/UCG054`, поэтому бонусный архив содержит именно эти файлы, включая общие открытия, которые одним зеркалом профиля не восстановить. Это ограничение текущей интеграции, а не ограничение PSP.
+Необязательный нативный сейв 100% скачивается отдельно. Он заменяет всю общую запись со всеми профилями. Профиль 07 и общие открытия сгенерированы; рекорды естественного прохождения не заявляются. Подробности о маркерах завершения указаны в его README.

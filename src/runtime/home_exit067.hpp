@@ -6,9 +6,13 @@
 // executable: loadexec does not carry the previous executable's callbacks.
 namespace HomeExit067 {
 inline std::atomic<int> registration{1};
+inline std::atomic<bool> deferred{false}, requested{false};
+inline void defer() { deferred.store(true,std::memory_order_release); }
+inline bool exitRequested() { return requested.load(std::memory_order_acquire); }
 inline int callback(int,int,void*) {
-    // Do not depend on the render/load loop or perform new save writes here.
-    sceKernelExitGame();
+    // Native persistence belongs to the main thread, never this callback.
+    if (deferred.load(std::memory_order_acquire)) requested.store(true,std::memory_order_release);
+    else sceKernelExitGame();
     return 0;
 }
 inline int worker(SceSize,void*) {

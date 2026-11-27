@@ -1,3 +1,4 @@
+#include "native_game074.hpp"
 #include "home_exit067.hpp"
 #include "release_paths.hpp"
 #include "asset_layout.hpp"
@@ -3803,6 +3804,32 @@ void drawStrokes(unsigned strokes) {
     }
 }
 
+class GlyphSprites071 {
+public:
+    explicit GlyphSprites071(unsigned count) : remaining(count) {}
+
+    void patch(const Patch& p,float x,float y,float scaleX,float scaleY,uint32_t tint) {
+        if (!pending) {
+            capacity=std::min(remaining,64u);
+            vertices=static_cast<TextureVertex*>(sceGuGetMemory(2*capacity*sizeof(TextureVertex)));
+        }
+        vertices[2*pending]={static_cast<float>(p.u),static_cast<float>(p.v),tint,x,y,0};
+        vertices[2*pending+1]={static_cast<float>(p.u+p.width),static_cast<float>(p.v+p.height),
+                             tint,x+p.width*scaleX,y+p.height*scaleY,0};
+        ++pending;
+        --remaining;
+        if (pending==capacity) {
+            sceGuDrawArray(GU_SPRITES,GU_TEXTURE_32BITF|GU_COLOR_8888|GU_VERTEX_32BITF|GU_TRANSFORM_2D,
+                           2*pending,nullptr,vertices);
+            pending=0;
+        }
+    }
+
+private:
+    TextureVertex* vertices=nullptr;
+    unsigned remaining=0,pending=0,capacity=0;
+};
+
 unsigned localeTextWidth(const char* text) {
     unsigned width=0;
     while (*text) width+=glyphAdvance[nextGlyph(text)];
@@ -3818,9 +3845,12 @@ void localeText(const char* text,float x,float y,float scale=1.0f,uint32_t color
         if (centered) x-=width*scale*0.5f;
     }
     setTexture(GU_PSM_8888,512,128,localeFont);
+    unsigned count=0;
+    for (const char* scan=text;*scan;++count) nextGlyph(scan);
+    GlyphSprites071 glyphs(count);
     while (*text) {
         const unsigned glyph=nextGlyph(text);
-        patchScaled({static_cast<int16_t>(glyph%32*16),static_cast<int16_t>(glyph/32*20),16,20,0,0},
+        glyphs.patch({static_cast<int16_t>(glyph%32*16),static_cast<int16_t>(glyph/32*20),16,20,0,0},
                     ViewX+x,y,scale,keepHeight?requestedScale:scale,color);
         x+=glyphAdvance[glyph]*scale;
     }
@@ -3883,11 +3913,14 @@ void resultText(const char* text,float x,float y,uint32_t tint=White,float scale
         return;
     }
     setTexture(GU_PSM_8888,256,128,resultFont);
+    unsigned count=0;
+    for (const char* scan=text;*scan;++scan) count+=static_cast<unsigned char>(*scan)-32u<96;
+    GlyphSprites071 glyphs(count);
     for (;*text;++text,x+=6*scale) {
         const unsigned index=static_cast<unsigned char>(*text)-32u;
         if (index>=96) continue;
         const Patch glyph{static_cast<int16_t>(index%16*16),static_cast<int16_t>(index/16*16),16,16,0,0};
-        patch(glyph,ViewX+x,y,scale,tint);
+        glyphs.patch(glyph,ViewX+x,y,scale,scale,tint);
     }
 }
 
@@ -3913,11 +3946,14 @@ void resultLabel(const char* text,int x,int y,bool small=false,uint32_t color=Wh
         pen-=width/16.0f;
     }
     setTexture(GU_PSM_8888,ResultAssets::LettersWidth,ResultAssets::LettersHeight,resultAssets.letters);
+    unsigned count=0;
+    for (const char* scan=text;*scan;++scan) count+=static_cast<unsigned char>(*scan)-32u<96;
+    GlyphSprites071 glyphs(count);
     for (;*text;++text) {
         const unsigned i=static_cast<unsigned char>(*text)-32u;
         if (i>=96) continue;
         const Patch glyph{static_cast<int16_t>((i%16)*16),static_cast<int16_t>(bank*128+(i/16)*16),16,16,0,0};
-        patch(glyph,ViewX+pen,y,1,color);
+        glyphs.patch(glyph,ViewX+pen,y,1,1,color);
         pen+=resultAssets.advance[bank][i]/8.0f;
     }
 }
@@ -7024,11 +7060,15 @@ bool toggleBunkerJumpy(Round& round) {
 void persistProgress(SaveFile& save,const Round& round,const char* log) {
     if(activeProfile>=Profiles::Count)return;
     if (round.attractDemo || AttractRuntime::active()) return;
-    if (!avatarClicks058.flush()) logEvent(log,"avatar_click_save_error",round.game);
-    progress.ticks=round.totalTicks;
-    if (!rememberSharedWorldProgress()) logEvent(log,"world_save_error",round.game);
-    if (!save.write(progress)) logEvent(log,"save_error",round.game);
-    else if(activeProfile<Profiles::Count) xmbProfile.queue(activeProfile,profiles.entry(activeProfile),progress);
+    for(;;) {
+        bool serialized=true;
+        if (!avatarClicks058.flush()) {logEvent(log,"avatar_click_save_error",round.game);serialized=false;}
+        progress.ticks=round.totalTicks;
+        if (!rememberSharedWorldProgress()) {logEvent(log,"world_save_error",round.game);serialized=false;}
+        if (!save.write(progress)) {logEvent(log,"save_error",round.game);serialized=false;}
+        if(serialized){xmbProfile.queue(activeProfile,profiles.entry(activeProfile),progress);return;}
+        NativeGame074::serializationFailure();
+    }
 }
 
 TerryEvent interactTerry(Round& round,SaveFile& save,const char* log) {
@@ -8033,7 +8073,13 @@ int main(int argc,char** argv) {
         logMemory(log.c_str(),"boot_splash_ready",0);
     }
 #endif
+    initializeGraphics();
+    while(!NativeGame074::boot(statePath(executable,"").c_str(),log.c_str())) {
+        if(!NativeGame074::retryDialog(true)){sceKernelExitGame();return 1;}
+    }
+    if(HomeExit067::exitRequested()){NativeGame074::requireFlush();sceKernelExitGame();return 0;}
     const LanguageFile config(statePath(executable,"language.cfg"));
+    NativeGame074::russian=config.read()==Language::Russian;
     const BackgroundFile backgroundFile(statePath(executable,"background.cfg"));
     const StartupSettings::File startupFile(statePath(executable,"startup.cfg"));
     const PhoneSettings054::Files phoneSettings(statePath(executable,"phone-settings.cfg"),
@@ -8075,7 +8121,7 @@ int main(int argc,char** argv) {
     AvatarIdle059::cosmetic.state=sceKernelGetSystemTimeLow();
     avatarIdleLayout059=AvatarSpeech058::prepare(4,0);AvatarSpeech058::publish();TvCaption059::publish();
     profileDeleteArt.open(assetPath(executable,"profile-delete.ucpd"));
-    profileDeleteReady=[](unsigned) {return !xmbProfile.busy();};
+    profileDeleteReady=[](unsigned slot) {return !xmbProfile.busy() && NativeGame074::router.canArchiveProfile(slot);};
     profileDeleteCompleted=[](unsigned slot) {xmbProfile.forget(slot);avatarClicks058.forget(slot);};
     profiles.refresh();
     ArtistCopycat::root=statePath(executable,"");
@@ -8274,7 +8320,7 @@ int main(int argc,char** argv) {
         if (const auto* reason=audio.failure()) pspDebugScreenPrintf("Audio: %s\n",reason);
         if (logOpenResult<0) pspDebugScreenPrintf("Log open: 0x%08X\n",static_cast<unsigned>(logOpenResult));
         pspDebugScreenPrintf("TRIANGLE to exit.");
-        while (running.load(std::memory_order_relaxed)) {
+        while (running.load(std::memory_order_relaxed) && !HomeExit067::exitRequested()) {
             sceDisplayWaitVblankStart();
             SceCtrlData pad{};
             sceCtrlPeekBufferPositive(&pad,1);
@@ -8292,7 +8338,6 @@ int main(int argc,char** argv) {
     while (splashStart && sceKernelGetSystemTimeWide()-splashStart<3000000u)
         sceDisplayWaitVblankStart();
 #endif
-    initializeGraphics();
     logMemory(log.c_str(),"memory_ready",audio.effectMemoryBytes());
     logEvent(log.c_str(),"ready",round.game);
     logEvent(log.c_str(),russian()?"language_loaded_ru":"language_loaded_en",round.game);
@@ -8689,7 +8734,7 @@ int main(int argc,char** argv) {
 
     phaseProfilePath066=statePath(executable,"frame-profile066.log");
     uint32_t profileFrameStart066=sceKernelGetSystemTimeLow(),profileStepUs066=0;
-    while (running.load(std::memory_order_relaxed) && !flow.quit) {
+    while (running.load(std::memory_order_relaxed) && !HomeExit067::exitRequested() && !flow.quit) {
         const bool profileActive066=flow.screen==Screen::Hole&&!round.paused&&!round.caught&&!round.game.won;
         const bool profileFlush066=phaseProfile066.setActive(profileActive066);
         if(!profileActive066){if(profileFlush066)flushPhaseProfile066();profileStepUs066=0;profileFrameStart066=sceKernelGetSystemTimeLow();}
@@ -9192,7 +9237,7 @@ int main(int argc,char** argv) {
             }
             if (before==Screen::GameMenu) EditorEntry054::close();
             if(before==Screen::Hole && flow.screen!=Screen::Settings) {
-                if (!avatarClicks058.flush()) logEvent(log.c_str(),"avatar_click_save_error",round.game);
+                while (!avatarClicks058.flush()) {logEvent(log.c_str(),"avatar_click_save_error",round.game);NativeGame074::serializationFailure();}
                 avatarClicks058.clearSpeech();
                 audio.stop(Sound::Loss);
                 if(currentCourse==CoasterCourse) stopCoasterLocalSounds();
@@ -9813,9 +9858,11 @@ int main(int argc,char** argv) {
     flushPlayEvents(log.c_str());
     if (courseResourcesValid && (flow.screen==Screen::Hole || (flow.screen==Screen::Settings && settingsFromPause)))
         persistProgress(save,round,log.c_str());
-    if (!avatarClicks058.flush()) logEvent(log.c_str(),"avatar_click_save_error",round.game);
+    while (!avatarClicks058.flush()) {logEvent(log.c_str(),"avatar_click_save_error",round.game);NativeGame074::serializationFailure();}
     if (flow.screen==Screen::CatArtist) CatArtist::leave();
     audio.stop();
+    NativeGame074::controller.configure(profileArt.saveIcon(),profileArt.saveIconSize(),nullptr,nullptr);
+    NativeGame074::requireFlush();
 #ifdef UCG_VICTORY_PROBE
     writeLossProfiles(log.c_str(),lossProbe,lossResidentFrames,lossTotalFrames);
 #endif
@@ -9833,7 +9880,7 @@ int main(int argc,char** argv) {
     builderPresent.shutdown();
     if (!giftGeFailure && !builderPresent.graphicsFailed()) EditorLegacyGiftBlast::close(false);
     sceGuTerm();
-    if (!giftGeFailure && !builderPresent.graphicsFailed() && EditorEntry054::launchPending) EditorEntry054::launchFailure(EditorEntry054::launch(log.c_str()));
+    if (!HomeExit067::exitRequested() && !giftGeFailure && !builderPresent.graphicsFailed() && EditorEntry054::launchPending) EditorEntry054::launchFailure(EditorEntry054::launch(log.c_str()));
     sceKernelExitGame();
     return 0;
 }

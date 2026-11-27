@@ -3,7 +3,7 @@ OBJS = build/main.o build/storage_hooks.o
 CFLAGS = -O2 -G0 -Wall -Wextra -Werror -fno-align-functions -fno-align-loops -fno-align-jumps -fno-align-labels -ffunction-sections -fdata-sections
 VISUAL_TEST ?= -DUCG_VICTORY_PROBE
 CXXFLAGS = -std=gnu++17 -fno-exceptions -fno-rtti $(VISUAL_TEST)
-LDFLAGS += -Wl,--gc-sections -Wl,--wrap=fopen
+LDFLAGS += -Wl,--gc-sections -Wl,--wrap=fopen -Wl,--wrap=rename -Wl,--wrap=unlink -Wl,--wrap=remove -Wl,--wrap=stat
 IO_AUDIT_WRAPS = sceIoOpen sceIoClose sceIoRead sceIoWrite sceIoLseek sceIoLseek32 sceIoOpenAsync sceIoCloseAsync sceIoReadAsync sceIoLseek32Async sceIoPollAsync sceIoWaitAsync sceIoWaitAsyncCB
 LDFLAGS += $(foreach symbol,$(IO_AUDIT_WRAPS),-Wl,--wrap=$(symbol))
 build/main.o build/main-disc.o: loss_probe.hpp loss_audio_stats.hpp io_audit.hpp transition_trace.hpp park_resource_io.hpp

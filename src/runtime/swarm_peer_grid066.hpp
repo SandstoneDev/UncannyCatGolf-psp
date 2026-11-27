@@ -2,8 +2,8 @@
 
 #include "game.hpp"
 
-// Conservative motion-only broad phase. The exact collision and correction
-// arithmetic remains in ChuckleRun, including ascending peer tie order.
+// Conservative peer broad phase. Exact collision and correction arithmetic
+// remains in ChuckleRun, including ascending peer tie order and correction suffix.
 class SwarmPeerGrid066 {
 public:
     static constexpr unsigned Capacity=180,Words=6,Buckets=256;
@@ -24,6 +24,7 @@ public:
 
     bool build(const CircleCollider* bodies,unsigned count) {
         enabled=false;
+        cacheValid=false;
         if (count>Capacity) return false;
         for (unsigned i=0;i<count;++i) {
             const auto& body=bodies[i];
@@ -39,13 +40,18 @@ public:
     }
 
     bool query(Vec2 center,Mask& result) {
-        if (!enabled) return false;
+        if (!enabled) { cacheValid=false; return false; }
         if (!supported(center)) {
             enabled=false;
+            cacheValid=false;
             return false;
         }
-        std::fill_n(result.words,Words,0u);
         const int x=cell(center.x),y=cell(center.y);
+        if (cacheValid && x==cachedX && y==cachedY) {
+            result=cached;
+            return true;
+        }
+        std::fill_n(result.words,Words,0u);
         // Original reach is 32+200/60 (<64). Fixed neighboring cells avoid
         // inward-rounded center +/- reach endpoints at float boundaries.
         for (int dy=-1;dy<=1;++dy) {
@@ -54,10 +60,15 @@ public:
                 for (unsigned word=0;word<Words;++word) result.words[word]|=bucket.words[word];
             }
         }
+        cached=result;
+        cachedX=x;
+        cachedY=y;
+        cacheValid=true;
         return true;
     }
 
     void remove(unsigned index,Vec2 before) {
+        if (enabled) cacheValid=false;
         if (enabled) buckets[hash(cell(before.x),cell(before.y))].words[index/32]&=~(uint32_t{1}<<(index%32));
     }
 
@@ -65,11 +76,13 @@ public:
         if (!enabled) return;
         if (!supported(after)) {
             enabled=false;
+            cacheValid=false;
             return;
         }
         const unsigned oldBucket=hash(cell(before.x),cell(before.y));
         const unsigned newBucket=hash(cell(after.x),cell(after.y));
         if (oldBucket==newBucket) return;
+        cacheValid=false;
         buckets[oldBucket].words[index/32]&=~(uint32_t{1}<<(index%32));
         insert(index,after);
     }
@@ -77,6 +90,9 @@ public:
 private:
     Mask buckets[Buckets];
     bool enabled=false;
+    Mask cached{};
+    int cachedX=0,cachedY=0;
+    bool cacheValid=false;
     static bool supported(Vec2 point) {
         return std::isfinite(point.x) && std::isfinite(point.y) &&
                std::abs(point.x)<=CoordinateLimit && std::abs(point.y)<=CoordinateLimit;

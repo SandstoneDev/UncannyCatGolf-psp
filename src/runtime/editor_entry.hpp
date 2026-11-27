@@ -198,7 +198,7 @@ inline int launch(const char*log){
 }
 inline void launchFailure(int code){
  initializeGraphics();bool released=false;
- while(running.load(std::memory_order_relaxed)){
+ while(running.load(std::memory_order_relaxed)&&!HomeExit067::exitRequested()){
   beginFrame();rectangle(0,0,Width,Height,GU_RGBA(24,15,40,255));
   localeText(lang("Could not open the level editor","ÑNÑu ÑÖÑtÑpÑ|ÑÄÑÉÑé ÑÄÑÑÑ{ÑÇÑçÑÑÑé ÑÇÑuÑtÑpÑ{ÑÑÑÄÑÇ ÑÖÑÇÑÄÑrÑ~ÑuÑz"),204,91,.88f,Gold,true,430,true);
   char value[40];std::snprintf(value,sizeof value,"0x%08X",unsigned(code));localeText(value,204,133,.8f,White,true);

@@ -1,3 +1,4 @@
+#include "native_game074.hpp"
 #include "home_exit067.hpp"
 #include "asset_layout.hpp"
 #include "release_paths.hpp"
@@ -353,6 +354,8 @@ void returnMain() {
   const uint32_t carriedGiftAge=uint32_t(age<500?age:500+(age-500)%2000);
   builder.shutdown();
   audio.stop();
+  flushBatch();
+  NativeGame074::requireFlush();
   EditorSettingsArt::unload();
   EditorPlayHud::unloadFX();
   EditorPlayHud::unloadState();
@@ -398,6 +401,11 @@ int main(int argc, char **argv) {
   bootTrace065("graphics_begin");
   initializeGraphics();
   bootTrace065("graphics_done");
+  const auto nativeLog=companion(executable.c_str(),"editor-native074.log");
+  while(!NativeGame074::boot(ReleasePaths::state(executable.c_str(),"").c_str(),nativeLog.c_str())){
+    if(!NativeGame074::retryDialog(true)){sceKernelExitGame();return 1;}
+  }
+  if(HomeExit067::exitRequested()){NativeGame074::requireFlush();sceKernelExitGame();return 0;}
   const auto loading066=EditorLoadingThread066::start(reinterpret_cast<uint16_t*>(reinterpret_cast<uintptr_t>(sceGeEdramGetAddr())|0x40000000u),unsigned(sceGeEdramGetSize()),fallbackPage,sizeof fallbackPage);
   bootTrace065("loading_presented",loading066.spinning?"original_prism_center_black_spinning":loading066.shown?"original_prism_center_black_static":"failed");
   AvatarIdle059::cosmetic.state=sceKernelGetSystemTimeLow();AvatarEditorSpeech059::initialize();TvCaption059::publish();
@@ -463,6 +471,16 @@ int main(int argc, char **argv) {
   std::string error;
   bootTrace065("browser_begin");
   if(!builder.init(companion(executable.c_str(),""),[](unsigned id,float gain,uint32_t owner){return audio.editorOneShot(id,owner,0,gain,1.f);},error))panel.say(error);
+  builder.durable=[&](std::string&){
+    // One rare reward boundary: finish graphics and stop card-reading workers.
+    // The gift cue is queued only after the native readback has succeeded.
+    flushBatch();
+    const auto music=static_cast<Sound>(ucg::editor_audio::BrowserMusic);
+    const unsigned musicFrame=audio.musicPositionFrames(music);
+    audio.stop();NativeGame074::requireFlush();
+    if(!openAudio())panel.say(std::string("Cannot open audio: ")+audio.failure());
+    applySettings();audio.musicAt(music,musicFrame);return true;
+  };
   EditorFiles::installExample(
       companion(executable.c_str(), "data/world/editor-examples/ExampleWorld"),
       companion(executable.c_str(), "custom_levels"), error);
@@ -688,7 +706,7 @@ int main(int argc, char **argv) {
   uint64_t builderClock=sceKernelGetSystemTimeWide();
   uint64_t builderRemainder=0;
   phaseProfile066.enabled=true;unsigned previousProfileContext066=~0u;
-  while (!leaving) {
+  while (!leaving && !HomeExit067::exitRequested()) {
     const uint32_t frameStart066=sceKernelGetSystemTimeLow();
     const unsigned profileContext066=settings.active?5u:session.active?(session.paused?4u:3u):editing?2u:16u+unsigned(browser.mode);
     if(profileContext066!=previousProfileContext066){if(profileContext066!=3u)flushPhaseProfile066();previousProfileContext066=profileContext066;}
@@ -993,6 +1011,9 @@ int main(int argc, char **argv) {
 #endif
   }
   flushPhaseProfile066();
+  flushBatch();
+  audio.stop();
+  NativeGame074::requireFlush();
   sceKernelExitGame();
   return 0;
 }

@@ -1,8 +1,8 @@
 # Uncanny Cat Golf для PSP
 
-[English](README.md) · [Загрузки RC17](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/tag/v1.0.3b-psp.069-rc17) · [Список изменений](CHANGELOG.ru.md)
+[English](README.md) · [Загрузки RC21](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/tag/v1.0.3b-psp.076-rc21) · [Список изменений](CHANGELOG.ru.md)
 
-Неофициальный порт **SandstoneDev** на основе оригинала **1.0.3b**. Текущая версия — **0.6.9 / RC17**, релиз с основным игровым контентом, которого ещё не было в публичной сборке 053.
+Неофициальный порт **SandstoneDev** на основе оригинала **1.0.3b**. Текущая версия — **0.7.6 / RC21**, общий нативный сейв и весь основной игровой контент.
 
 **Редактор уровней на PSP очень сильно тормозит и сейчас практически непригоден для комфортной работы. Он включён как экспериментальный модуль; дальнейшая работа над ним пока отложена.** В основной игре тоже остаются задержки кадров/звука. Стабильные30/60FPS и точное совпадение с PC не заявляются.
 
@@ -13,23 +13,23 @@
 - **Endless Shuffle:** 82 позиции, включая10уникальных полей и72повторных кампанийных.
 - Cat Artist/Copycat, Meowls, Uncanny Dash и Bort Bash; Sound Test на58позиций.
 - 11профильных модификаторов, отдельный Peak Hunter, первое вступление и25автодемонстраций.
-- Экспериментальный редактор и14оригинальных полей ExampleWorld, загрузка/сохранение своих миров и playtest.
+- Экспериментальный редактор и 14 оригинальных полей ExampleWorld, загрузка/сохранение своих миров и playtest.
 - Английский и русский в основной игре. Редактор по умолчанию английский. PC-моды Godot и локали FR/JA/RO/BI в объём этого порта не входят.
 
-Перечисленные основные режимы и наборы уровней перенесены. Это **не означает**, что уже проверены все естественные открытия, эффекты и сочетания механик оригинала. Подробности — в [известных проблемах](docs/KNOWN_ISSUES.md) и [предрелизном аудите](docs/RC17_AUDIT.md).
+Перечисленные основные режимы и наборы уровней перенесены. Это **не означает**, что уже проверены все естественные открытия, эффекты и сочетания механик оригинала. Подробности — в [известных проблемах](docs/KNOWN_ISSUES.md) и [предрелизном аудите](docs/RC21_AUDIT.md).
 
 ## Загрузка и установка
 
 Выберите **один** архив игры; необходимые ассеты включены в оба. Нужна PSP, настроенная для запуска homebrew. Основная проверенная аппаратная модель — PSP-3000; пригодность этой версии для PSP-1000 и всех сочетаний прошивок/моделей не подтверждена.
 
-- [EBOOT ZIP](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.069-rc17/Uncanny-Cat-Golf-1.0.3b-PSP-069-RC17-EBOOT.zip): распакуйте папку `PSP` в корень карты. Сохраняйте целиком `PSP/GAME/UCG054`, включая `EBOOT.PBP`, `storage.ucd` и `data`.
-- [ISO ZIP](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.069-rc17/Uncanny-Cat-Golf-1.0.3b-PSP-069-RC17-ISO.zip): распакуйте папки `ISO` и `PSP` в корень карты. Запускайте образ из Игра → Memory Stick. В папке `PSP` лежит необязательное офлайн-руководство.
-- [Необязательный бонусный сейв100%](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.069-rc17/Uncanny-Cat-Golf-1.0.3b-PSP-069-RC17-100-Percent-Save.zip): **отдельная загрузка**; обычные архивы игры его не устанавливают. Сначала прочитайте инструкцию: сейв использует слот07 и заменяет общие открытия/состояние квеста. Сделайте копию всей `PSP/GAME/UCG054`. Это сгенерированный разработчиком сейв с открытым контентом, а не рекорд естественного прохождения; точный состав и исключения указаны внутри.
-- [Контрольные суммы SHA-256](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.069-rc17/SHA256SUMS.txt) для всех трёх архивов. Также опубликована сумма исходного ISO.
+- [EBOOT ZIP](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.076-rc21/Uncanny-Cat-Golf-1.0.3b-PSP-076-RC21-EBOOT.zip): распакуйте папку `PSP` в корень карты. Сохраняйте целиком `PSP/GAME/UCG054`, включая `EBOOT.PBP`, `storage.ucd` и `data`.
+- [ISO ZIP](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.076-rc21/Uncanny-Cat-Golf-1.0.3b-PSP-076-RC21-ISO.zip): распакуйте папки `ISO` и `PSP` в корень карты. Запускайте образ из Игра → Memory Stick. В папке `PSP` лежит необязательное офлайн-руководство.
+- [Необязательный нативный сейв 100%](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.076-rc21/Uncanny-Cat-Golf-1.0.3b-PSP-076-RC21-Native-100-Percent-Save.zip): **отдельная загрузка**, отсутствует в обоих архивах игры. Сначала скопируйте `PSP/SAVEDATA/UCGP00054GAME` в резервную копию: установка заменяет все восемь профилей и общий прогресс. Это сгенерированный сейв открытий; маркеры завершения описаны в его README.
+- [Контрольные суммы SHA-256](https://github.com/SandstoneDev/UncannyCatGolf-psp/releases/download/v1.0.3b-psp.076-rc21/SHA256SUMS.txt) для всех трёх архивов. Также опубликована сумма исходного ISO.
 
-У текущих ISO и стандартного EBOOT **общая папка прогресса/настроек/своих миров: `PSP/GAME/UCG054`**. При обновлении её нельзя удалять. Если EBOOT находится в переименованной папке, он использует её, а ISO всегда использует `UCG054`.
+Обе версии используют **общий нативный прогресс `PSP/SAVEDATA/UCGP00054GAME`**, независимо от имени папки EBOOT. Настройки, рисунки и свои миры стандартной установки остаются в `PSP/GAME/UCG054`. При обновлении сохраняйте обе папки. Переименование папки EBOOT влияет только на расположение обычных настроек и пользовательского контента.
 
-При переходе со старого публичного **053** сохраните `PSP/GAME/UCG053`, `PSP/UCG053-ISO` и записи сохранений PSP. Автоматически переносить эти старые папки новая версия не будет; см. [перенос сохранений](docs/SAVES.md). Бонусный сейв не предназначен для обновления личного прогресса без резервной копии.
+Прогресс RC17/RC18 из `PSP/GAME/UCG054` переносится при первом запуске, если нативного сейва ещё нет. Затем ISO и EBOOT совместно используют `PSP/SAVEDATA/UCGP00054GAME`. Старые файлы сохраняются для восстановления. Перед обновлением или откатом прочитайте [инструкцию по сейвам](docs/SAVES.md). Папки старой версии 053 автоматически не перемещаются.
 
 ## Управление
 
@@ -39,9 +39,9 @@
 
 | Заставка | Карта кампании | Обучение |
 |---|---|---|
-| ![Заставка](https://raw.githubusercontent.com/SandstoneDev/UncannyCatGolf-psp/v1.0.3b-psp.069-rc17/docs/media/title.png) | ![Карта](https://raw.githubusercontent.com/SandstoneDev/UncannyCatGolf-psp/v1.0.3b-psp.069-rc17/docs/media/campaign-map.png) | ![Обучение](https://raw.githubusercontent.com/SandstoneDev/UncannyCatGolf-psp/v1.0.3b-psp.069-rc17/docs/media/tutorial.png) |
+| ![Заставка](https://raw.githubusercontent.com/SandstoneDev/UncannyCatGolf-psp/v1.0.3b-psp.076-rc21/docs/media/title.png) | ![Карта](https://raw.githubusercontent.com/SandstoneDev/UncannyCatGolf-psp/v1.0.3b-psp.076-rc21/docs/media/campaign-map.png) | ![Обучение](https://raw.githubusercontent.com/SandstoneDev/UncannyCatGolf-psp/v1.0.3b-psp.076-rc21/docs/media/tutorial.png) |
 
-[Сборка текущего Main и Editor из исходников](https://github.com/SandstoneDev/UncannyCatGolf-psp/blob/v1.0.3b-psp.069-rc17/src/README.md).
+[Сборка текущего Main и Editor из исходников](https://github.com/SandstoneDev/UncannyCatGolf-psp/blob/v1.0.3b-psp.076-rc21/src/README.md).
 
 ## Авторы и публикация
 
